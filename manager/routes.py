@@ -30,7 +30,6 @@ from manager.models_socnet import EmpresaSOCNET, grupo_empresa_socnet
 from manager.utils import admin_required, is_safe_url, zipar_arquivos
 
 # TODO: verificar duplicidade de pedidos
-# TODO: refazer telas de associacao de Grupos (basear na route de prestadores)
 
 # NOTE: ao importar modulos de fora do pacote "manager",
 # manter import dentro da funcao para evitar conflitos de importacao
