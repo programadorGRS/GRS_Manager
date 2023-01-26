@@ -1,6 +1,6 @@
 if __name__ == '__main__':
     import sys
-    sys.path.append('../Projeto_Manager')
+    sys.path.append('../GRS_Manager')
 
     from manager.email import enviar_report
     from manager.models import Empresa, EmpresaPrincipal, Funcionario

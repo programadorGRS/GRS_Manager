@@ -1,11 +1,11 @@
-#!~/Projeto_Manager/venv/bin/python3
+#!~/GRS_Manager/venv/bin/python3
 
 # jobs padrao da database, realizados a cada x horas
 
 
 if __name__ == '__main__':
     import sys
-    sys.path.append('../Projeto_Manager')
+    sys.path.append('../GRS_Manager')
 
     from datetime import datetime, timedelta
     from manager.email import enviar_report

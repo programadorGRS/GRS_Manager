@@ -1,7 +1,7 @@
 if __name__ == '__main__':
     import sys
 
-    sys.path.append('../Projeto_Manager')
+    sys.path.append('../GRS_Manager')
 
     import os
     from datetime import datetime
