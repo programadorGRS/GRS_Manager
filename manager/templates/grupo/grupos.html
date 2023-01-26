@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block body %}
+ 
+<div class="container">
+    <h1>Grupos</h1>
+    <div class="d-flex justify-content-between">
+        <a href="{{ url_for('grupos_criar') }}" class="btn btn-outline-success">
+            <span class="material-icons align-middle">add</span> Criar
+        </a>
+        <a href="{{ url_for('grupos_csv') }}" class="btn btn-outline-success">
+            <span class="material-icons align-middle">download</span> Gerar Relatório
+        </a>
+    </div>
+    <table class="table table-hover">
+        <thead>
+            <tr>
+            <th scope="col">Id</th>
+            <th scope="col">Nome</th>
+            <th scope="col">Usuarios</th>
+            <th scope="col">Empresas</th>
+            <th scope="col">Empresas - SOCNET</th>
+            <th scope="col">Prestadores</th>
+            <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for grupo in lista_grupos %}
+                <tr>
+                    <td>{{ grupo.id_grupo }}</td>
+                    <td>{{ grupo.nome_grupo }}</td>
+                    <td>{{ grupo.usuarios | length }}</td>
+                    <td>{{ grupo.empresas | length }}</td>
+                    <td>{{ grupo.empresas_socnet | length }}</td>
+                    <td>{{ grupo.prestadores | length }}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="material-icons align-middle">edit_note</span> Editar
+                        </button>
+                          <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('grupos_editar', id_grupo=grupo.id_grupo) }}">
+                                    <span class="material-icons align-middle">groups</span> Grupo
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('grupos_usuarios', id_grupo=grupo.id_grupo) }}">
+                                    <span class="material-icons align-middle">person</span> Usuarios
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('grupos_empresas', id_grupo=grupo.id_grupo) }}">
+                                    <span class="material-icons align-middle">apartment</span> Empresas
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('grupos_empresas_socnet', id_grupo=grupo.id_grupo) }}">
+                                    <span class="material-icons align-middle">apartment</span> Empresas - SOCNET
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('grupos_prestadores', id_grupo=grupo.id_grupo) }}">
+                                    <span class="material-icons align-middle">local_hospital</span> Prestadores
+                                </a>
+                            </li>
+                          </ul>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+{% endblock %}

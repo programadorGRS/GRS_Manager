@@ -1,0 +1,86 @@
+.card {
+    width: 60%;
+    border-radius: 10px;
+    background-color: #fff
+}
+
+
+.btn-perfil{
+    width: 150px;
+    padding: 5px;
+}
+
+
+.btn-transparent {
+    background-color: transparent;
+    border-color: transparent;
+    box-shadow: none;
+}
+
+
+.w-49{
+    width: 49%;
+}
+
+.login_container{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login_card{
+    width: 35%;
+    background-color: rgba(255,255,255, .8); /* opacidade 80%*/
+    border-radius: 2%;
+    margin: auto;
+    margin-top: 5%;
+}
+
+#pbi_frame{
+    opacity: 0.9;
+    width: 70%;
+}
+
+button {
+    width: 100px;
+}
+
+
+table.small_font{
+    font-size: .8em;
+    padding: 0;
+}
+
+
+.sm-font{
+    font-size: 12px;
+    padding: 0;
+}
+
+
+.pbi {
+    width: 90vw;
+    height: 80vh;
+}
+
+
+.link-pedido{
+    color: black;
+    text-decoration: none;
+}
+
+
+.dropdown-submenu {
+position: relative;
+}
+
+
+.dropdown-submenu .dropdown-menu {
+top: 0  ;
+left: 100%;
+margin-top: -9px;
+}
+
+.ppt_color {
+    background-color: #D04423;
+}

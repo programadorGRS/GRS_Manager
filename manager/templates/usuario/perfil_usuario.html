@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container justify-content-center d-flex mt-2">
+    <div class="d-flex justify-content-center border">
+        <div class="d-flex align-items-center m-5">
+            <img src="/static/pics/default.png" alt="imagem perfil" class="rounded" width="200">
+        </div>
+        <div class="m-5">
+            <span>Id: {{ usuario.id_usuario }}</span> <br>
+            {% if usuario.ativo %}
+                <span>Ativo: </span><span style="color:green; font-weight:bold">Sim</span> <br>
+            {% else %}
+                <span>Ativo: </span><span style="color:red; font-weight:bold">Não</span> <br>
+            {% endif %}
+            <span>Nome: {{ usuario.nome_usuario }}</span> <br>
+            <span>Username: <b>{{ usuario.username }}</b></span> <br>
+            <span>Tipo de usuário: {{ usuario.role.nome }}</span> <br>
+            <span>Email: {{ usuario.email }}</span> <br>
+            <br>
+            {% if usuario.ultimo_login %}
+                <span>Último login: {{ usuario.ultimo_login.strftime('%d-%m-%Y, %H:%M:%S') }}</span> <br>
+            {% else %}
+                <span>Último login: None</span> <br>
+            {% endif %}
+            <br>
+            <span>Incluído em: {{ usuario.data_inclusao.strftime('%d-%m-%Y, %H:%M:%S') }}</span> <br>
+            <span>Incluído por: {{ usuario.incluido_por }}</span> <br>
+            <br>
+            {% if usuario.data_alteracao %}
+                <span>Alterado em: {{ usuario.data_alteracao.strftime('%d-%m-%Y, %H:%M:%S') }}</span> <br>
+            {% else %}
+                <span>Alterado em: None</span> <br>
+            {% endif %}
+            <span>Alterado por: {{ usuario.alterado_por }}</span> <br>
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('usuarios') }}" id="botao_voltar">
+                    <button type="button" class="btn btn-info text-nowrap mt-2" style="width: fit-content;">
+                        <span class="material-icons align-middle">arrow_back</span> Voltar
+                    </button>
+                </a>
+                <button type="button" class="btn btn-danger text-nowrap mt-2" data-bs-toggle="modal" data-bs-target="#excluir_usuario" style="width: fit-content;">
+                    <span class="material-icons align-middle">close</span> Excluir Conta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="excluir_usuario" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Excluir Usuário</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                    <div class="modal-body">
+                        O usuário {{usuario.username}} será excluído.
+                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form action="{{ url_for('excluir_usuario', id_usuario=usuario.id_usuario) }}" method="POST">
+                        <button type="submit" class="btn btn-danger">Excluir</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

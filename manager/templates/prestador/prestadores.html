@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container">
+    <h1>Prestadores</h1>
+    <h5>Qtd prestadores: {{ qtd }}</h5>
+    <table class="table table-sm">
+        <thead>
+            <tr>
+            <th scope="col">Id</th>
+            <th scope="col">Codigo</th>
+            <th scope="col">Nome</th>
+            <th scope="col">Ativo</th>
+            <th scope="col">Data Inclusão</th>
+            <th scope="col">Data Alteração</th>
+            <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prestador in lista_prestadores %}
+                <tr>
+                    <td>{{ prestador.id_prestador }}</td>
+                    <td>{{ prestador.cod_prestador }}</td>
+                    <td><input type="text" readonly class="form-control-plaintext" value="{{ prestador.nome_prestador }}"></td>
+                    <td>
+                        {% if prestador.ativo %}
+                            <span class="material-icons align-middle">done</span> <span style="color:green; font-weight:bold">Sim</span> <br>
+                        {% else %}
+                            <span class="material-icons align-middle">close</span> <span style="color:red; font-weight:bold">Não</span> <br>
+                        {% endif %}
+                    </td>
+                    <td>{{ prestador.data_inclusao.strftime('%d/%m/%Y') }}</td>
+                    {% if prestador.data_alteracao %}
+                        <td>{{ prestador.data_alteracao.strftime('%d/%m/%Y') }}</td>
+                    {% else %}
+                        <td></td>
+                    {% endif %}
+                    <td>
+                        <a href="{{ url_for('editar_prestador', id_prestador=prestador.id_prestador, cod_empresa_principal=prestador.cod_empresa_principal) }}">
+                            <button class="btn btn-sm btn-outline-primary">
+                                <span class="material-icons align-middle">edit_note</span> Editar
+                            </button>
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+{% endblock %}

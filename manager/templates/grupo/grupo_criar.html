@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container justify-content-center d-flex mt-2">
+    <div class="card p-4">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <legend>Criar Grupo</legend>
+            <fieldset>
+                <!-- Nome do Grupo -->
+                <div class="form-group">
+                    {{ form.nome_grupo.label(class="form-control-label") }}
+                    {% if form.nome_grupo.errors %}
+                        {{ form.nome_grupo(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.nome_grupo.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.nome_grupo(class="form-control") }}
+                    {% endif %}
+                </div>
+            </fieldset>
+            {{ form.botao_salvar (class="btn btn-success mt-2") }}
+        </form>
+    </div>
+</div>
+
+{% endblock %}

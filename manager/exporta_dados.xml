@@ -1,0 +1,1 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://services.soc.age.com/"><soapenv:Header/><soapenv:Body><ser:exportaDadosWs><arg0><parametros>placeholder_parametro</parametros></arg0></ser:exportaDadosWs></soapenv:Body></soapenv:Envelope>

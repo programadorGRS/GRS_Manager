@@ -1,0 +1,121 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="d-flex justify-content-center mt-2">
+        <div style="width: 55%;">
+            <div class="border rounded p-4">
+                <form method="POST" id="formBusca">
+                    {{ form.csrf_token }}
+                    <div class="d-flex">
+                        <legend>Exames Realizados</legend>
+                        <img src="{{ url_for('static', filename='images/grs/logo_grs.png') }}" alt="Icone GRS" height="30px" width="70px">
+                    </div>
+                    <fieldset>
+                        <!-- empresa principal -->
+                        <div class="form-group">
+                            {{ form.cod_empresa_principal.label(class="form-control-label") }}
+                            {% if form.cod_empresa_principal.errors %}
+                                {{ form.cod_empresa_principal(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                    {% for erro in form.cod_empresa_principal.errors %}
+                                        {{ erro }}
+                                    {% endfor %}
+                                    </div>
+                            {% else %}
+                                {{ form.cod_empresa_principal(class="form-control") }}
+                            {% endif %}
+                        </div>
+                        <!-- empresa -->
+                        <div class="form-group">
+                            {{ form.cod_empresa.label(class="form-control-label") }}
+                            {% if form.cod_empresa.errors %}
+                                {{ form.cod_empresa(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                    {% for erro in form.cod_empresa.errors %}
+                                        {{ erro }}
+                                    {% endfor %}
+                                    </div>
+                            {% else %}
+                                {{ form.cod_empresa(class="form-control") }}
+                            {% endif %}
+                        </div>
+                        <!-- unidade -->
+                        <div class="form-group">
+                            {{ form.cod_unidade.label(class="form-control-label") }}
+                            {% if form.cod_unidade.errors %}
+                                {{ form.cod_unidade(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                    {% for erro in form.cod_unidade.errors %}
+                                        {{ erro }}
+                                    {% endfor %}
+                                    </div>
+                            {% else %}
+                                {{ form.cod_unidade(class="form-control") }}
+                            {% endif %}
+                        </div>
+                        <!-- exame -->
+                        <div class="form-group">
+                            {{ form.cod_exame.label(class="form-control-label") }}
+                            {% if form.cod_exame.errors %}
+                                {{ form.cod_exame(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                    {% for erro in form.cod_exame.errors %}
+                                        {{ erro }}
+                                    {% endfor %}
+                                    </div>
+                            {% else %}
+                                {{ form.cod_exame(class="form-control") }}
+                            {% endif %}
+                        </div>
+                    </fieldset>
+                    <div class="d-flex justify-content-between">
+                        <!-- INICIO -->
+                        <div class="form-group w-49">
+                            {{ form.data_inicio.label(class="form-control-label") }}
+                            {% if form.data_inicio.errors %}
+                            {{ form.data_inicio(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.data_inicio.errors %}
+                                {{ erro }}
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            {{ form.data_inicio(class="form-control") }}
+                            {% endif %}
+                        </div>
+                        <!-- FIM -->
+                        <div class="form-group w-49">
+                            {{ form.data_fim.label(class="form-control-label") }}
+                            {% if form.data_fim.errors %}
+                            {{ form.data_fim(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.data_fim.errors %}
+                                {{ erro }}
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            {{ form.data_fim(class="form-control") }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <!-- BOTOES -->
+                    <div class="d-flex mt-3 justify-content-between">
+                        <button type="button" class="btn btn-secondary text-nowrap" style="width: fit-content;" id="botao_limpar" onclick="limpar()" value="Limpar">
+                            <span class="material-icons align-middle">close</span> Limpar
+                        </button>
+                        <button type="submit" class="btn btn-success text-nowrap" style="width: fit-content;" id="botao_csv" name="botao_csv" value="Gerar relatório">
+                            <span class="material-icons align-middle">download</span> Gerar Relatórios
+                        </button>
+                    </div>
+                </form>
+                <script>
+                    function limpar() {
+                        document.getElementById("formBusca").reset();
+                    }
+                </script>
+            </div>
+        </div>
+</div>
+
+{% endblock %}

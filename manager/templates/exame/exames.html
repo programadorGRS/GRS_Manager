@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container">
+    <h1>Exames</h1>
+    <h5>Qtd exames: {{ qtd }}</h5>
+    <table class="table table-sm">
+        <thead>
+            <tr>
+            <th scope="col">Codigo</th>
+            <th scope="col">Nome</th>
+            <th scope="col">Prazo (Dias)</th>
+            <th scope="col">Data Inclusão</th>
+            <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for exame in lista_exames %}
+                <tr>
+                    <td>{{ exame.cod_exame }}</td>
+                    <td><input type="text" readonly class="form-control-plaintext" value="{{ exame.nome_exame }}"></td>
+                    <td>{{ exame.prazo }}</td>
+                    <td>{{ exame.data_inclusao.strftime('%d-%m-%Y') }}</td>
+                    <td>
+                        <a href="{{ url_for('editar_exame', id_exame=exame.id_exame) }}">
+                            <button class="btn btn-sm btn-outline-primary">
+                                <span class="material-icons align-middle">edit_note</span> Editar
+                            </button>
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+{% endblock %}

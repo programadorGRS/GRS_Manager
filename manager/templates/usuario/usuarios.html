@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container">
+    <h1>Usuarios</h1>
+    <a href="{{ url_for('criar_conta') }}" class="btn btn-outline-success">
+        <span class="material-icons align-middle">add</span> Criar
+    </a>
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th scope="col">ID</th>
+                <th scope="col">Username</th>
+                <th scope="col">Tipo de usuario</th>
+                <th scope="col">Ativo</th>
+                <th scope="col">Email</th>
+                <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for usuario in lista_usuarios %}
+                <tr>
+                    <td>{{ usuario.id_usuario }}</td>
+                    <td><input type="text" readonly class="form-control-plaintext" value="{{ usuario.username }}"></td>
+                    <td>
+                        {% if usuario.role.id_role == 1 %}
+                            <span class="material-icons align-middle">work</span> {{ usuario.role.nome }}
+                        {% else %}
+                            <span class="material-icons align-middle">person</span> {{ usuario.role.nome }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if usuario.ativo %}
+                        <span class="material-icons align-middle">done</span> <span style="color:green; font-weight:bold">Sim</span> <br>
+                        {% else %}
+                        <span class="material-icons align-middle">close</span> <span style="color:red; font-weight:bold">Não</span> <br>
+                        {% endif %}
+                    </td>
+                    <td><input type="text" readonly class="form-control-plaintext" value="{{ usuario.email }}"></td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="material-icons align-middle">edit_note</span> Perfil
+                        </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('perfil', id_usuario=usuario.id_usuario ) }}">
+                                        <span class="material-icons align-middle">person</span> {{ usuario.username }}
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('editar_perfil', id_usuario=usuario.id_usuario) }}">
+                                        <span class="material-icons align-middle">badge</span> Editar perfil
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('alterar_senha', id_usuario=usuario.id_usuario) }}">
+                                        <span class="material-icons align-middle">lock</span> Alterar senha
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('alterar_chave', id_usuario=usuario.id_usuario) }}">
+                                        <span class="material-icons align-middle">vpn_key</span> Alterar chave API
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ url_for('config_usuario', id_usuario=usuario.id_usuario) }}">
+                                        <span class="material-icons align-middle">manage_accounts</span> Config usuário
+                                    </a>
+                                </li>
+                            </ul>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+{% endblock %}

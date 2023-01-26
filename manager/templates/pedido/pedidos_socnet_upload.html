@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container mt-2 mb-2">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        <!-- DIV FORM -->
+        <div class="border p-4">
+            <legend>Upload CSV - SOCNET</legend>
+            <div class="accordion" id="accordion01">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingOne">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                            <b>Instruções</b>
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordion01">
+                        <div class="accordion-body">
+                            <p><b>1</b> - No <b>SOC</b>, entre na <b>Empresa Principal</b> e acesse: <b>Menu > Administração > Rede Credenciada SOCNET > Relatório de Exames SOCNET</b></p>
+                            <ul>
+                                <li>Tipo de Relatório: Exames SOCNET encaminhados para GRS+Núcleo de Saúde Empresarial Ltda</li>
+                                <li>Situação: Todas</li>
+                                <li>Empresa: Selecionar empresa ou "Todas"</li>
+                                <li>Prestador: Selecionar prestador ou "Todos"</li>
+                            </ul>
+                            <p><b>2</b> - No menu <b>SOCNET</b>, acesse: <b>Empresas</b> e cadastre as empresas necessárias</p>
+                            <ul>
+                                <li>Preencha o campo <b>"Codigo da empresa"</b> com o valor da coluna <b>"Código Empresa"</b></li>
+                                <li>Preencha o campo <b>"Nome da empresa"</b> com o valor da coluna <b>"Empresa Principal"</b></li>
+                            </ul>
+                            <p><b>3</b> - Transformar o arquivo em CSV: <b>Arquivo > Salvar como > CSV (separado por vírgulas) (*.csv)</b></p>
+                            <b>Atenção:</b>
+                            <ul>
+                                <li>O separador deve ser ponto e vírgula ";"</li>
+                                <li>Não modifique o cabeçalho</li>
+                                <li>Não modifique os nomes das colunas</li>
+                                <li>É permitido excluir linhas para deixar o arquivo mais leve (exceto no cabeçalho)</li>
+                                <li>
+                                    Colunas necessárias:
+                                    <ul>
+                                        <li>Sequencial Ficha</li>
+                                        <li>Código Funcionário</li>
+                                        <li>CPF</li>
+                                        <li>Funcionario</li>
+                                        <li>Data Ficha</li>
+                                        <li>Tipo de Exame</li>
+                                        <li>Código Prestador</li>
+                                        <li>Código Empresa</li>
+                                        <li>Empresa</li>
+                                    </ul>
+                                </li>
+                                
+                            </ul>
+                            <b>Obs:</b>
+                            <ul>
+                                <li>Os campos vazios nas colunas <b>"Código Prestador"</b> e <b>"Código Empresa"</b> serão preenchidos com o valor padrão: <b>"Vazio"</b>. O mesmo vale para Empresas e Prestadores inativos</li>
+                                <li>A tabela aceitará apenas os pedidos de empresas que já possuem cadastro na tela <b>"Empresas - SOCNET"</b>, portanto cadastre as empresas necessárias antes de realizar o upload</li>
+                                <li>Os pedidos das empresas que não possuirem cadastro em <b>"Empresas - SOCNET"</b> serão descartados</li>
+                            </ul>
+                            <p><b>4</b> - Realizar upload</p>
+                            <p><b>5</b> - Na tela <b>"Importar Pedidos - SOCNET"</b> selecione o arquivo desejado e clique em <b>"Carregar"</b></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <fieldset>
+                <!-- file field -->
+                <div class="form-group mt-2">
+                    {% if form.csv.errors %}
+                    {{ form.csv(class="form-control is-invalid") }}
+                    <div class="invalid-feedback">
+                        {% for erro in form.csv.errors %}
+                        {{ erro }}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    {{ form.csv(class="form-control") }}
+                    {% endif %}
+                </div>
+            </fieldset>
+            <!-- BOTOES -->
+            <div class="d-flex mt-3 justify-content-between">
+                <button type="submit" class="btn btn-success text-nowrap btn-perfil" id="btn_upload" name="btn_upload" type="submit" value="Upload">
+                    <span class="material-icons align-middle">upload</span> Upload
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

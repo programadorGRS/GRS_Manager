@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container mt-2 mb-2">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        <!-- DIV FORM -->
+        <div class="border p-4">
+            <legend>Relatórios Agendados</legend>
+            <div class="accordion" id="accordion01">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingOne">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                            <b>Instruções</b>
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordion01">
+                        <div class="accordion-body">
+                            <p>Esta tela serve para configurar os Relatórios Agendados em Massa</p>
+                            <p>O formado dos arquivos deve ser <b>CSV</b> e o separador deve ser <b>";"</b> (ponto e vírgula).</p>
+                            <p>O arquivo pode conter as seguintes <b>Colunas</b>: id_empresa/id_unidade, conv_exames, 
+                            conv_exames_emails, exames_realizados, exames_realizados_emails, absenteismo, absenteismo_emails</p>
+                            <p>Tipos das colunas: </p>
+                            <ul>
+                                <li>Integer (identificador): id_empresa, id_unidade</li>
+                                <li>Bool (1/0): conv_exames, exames_realizados, absenteismo</li>
+                                <li>String: conv_exames_emails, exames_realizados_emails, absenteismo_emails</li>
+                            </ul>
+                            <p>Após as atualizações, serão retornados dois arquivos:</p>
+                            <ul>
+                                <li>alteracoes.csv: mostra a tabela após as alterações</li>
+                                <li>backup.csv: mostra a tabela antes das alterações</li>
+                            </ul>
+
+                            <b>Atenção:</b>
+                            <p>
+                                Ao habilitar a opção <b>"Excluir informações"</b> o sistema usará as 
+                                <u>células vazias do CSV</u> como base para apagar as informações das células correspondentes 
+                                no Banco de Dados
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex my-3">
+                <a href="{{ url_for('relatorios_agendados_modelo_empresas') }}">
+                    <button type="button" style="width: fit-content;" class="btn btn-primary text-nowrap me-2">Modelo Empresas</button>
+                </a>
+                <a href="{{ url_for('relatorios_agendados_modelo_unidades') }}">
+                    <button type="button" style="width: fit-content;" class="btn btn-secondary text-nowrap">Modelo Unidades</button>
+                </a>
+            </div>
+
+            <fieldset>
+                <div class="form-group form-check form-switch">
+                    {{ form.celulas_null(class="form-check-input", id="flexSwitch") }}
+                    {{ form.celulas_null.label(class="form-check-label", for="flexSwitch") }}
+                </div>
+                <div class="form-group mt-2">
+                    {{ form.tabela.label(class="form-control-label") }}
+                    {% if form.tabela.errors %}
+                        {{ form.tabela(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.tabela.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.tabela(class="form-control") }}
+                    {% endif %}
+                </div>
+                <div class="form-group mt-3">
+                    {% if form.csv.errors %}
+                    {{ form.csv(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.csv.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.csv(class="form-control") }}
+                    {% endif %}
+                </div>
+            </fieldset>
+            <!-- BOTOES -->
+            <div class="d-flex mt-3 justify-content-between">
+                <button type="submit" class="btn btn-success text-nowrap btn-perfil" id="btn_upload" name="btn_upload" type="submit" value="Upload">
+                    <span class="material-icons align-middle">upload</span> Upload
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+
+{% endblock %}
+

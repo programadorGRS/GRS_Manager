@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container">
+    <h1>Status</h1>
+    <a href="{{ url_for('criar_status') }}" class="btn btn-outline-success">
+        <span class="material-icons align-middle">add</span> Criar
+    </a>
+    <table class="table table-hover">
+        <thead>
+            <tr>
+            <th scope="col">Id</th>
+            <th scope="col">Nome</th>
+            <th scope="col">Data Inclusão</th>
+            <th scope="col">Data Alteração</th>
+            <th scope="col">Finaliza Processo</th>
+            <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for status in lista_status %}
+                <tr>
+                    <td>{{ status.id_status }}</td>
+                    <td>{{ status.nome_status }}</td>
+                    <td>{{ status.data_inclusao.strftime('%d/%m/%Y') }}</td>
+                    {% if status.data_alteracao %}
+                        <td>{{ status.data_alteracao.strftime('%d/%m/%Y') }}</td>
+                    {% else %}
+                        <td></td>
+                    {% endif %}
+                    <td>
+                        {% if status.finaliza_processo %}
+                            <span class="material-icons align-middle">done</span> <span style="color:green; font-weight:bold">Sim</span> <br>
+                        {% else %}
+                            <span class="material-icons align-middle">close</span> <span style="color:red; font-weight:bold">Não</span> <br>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not status.status_padrao %}
+                            <a href="{{ url_for('editar_status', id_status=status.id_status) }}">
+                                <button class="btn btn-sm btn-outline-primary">
+                                    <span class="material-icons align-middle">edit_note</span> Editar
+                                </button>
+                            </a>
+                        {% else %}
+                            <a href="#">
+                                <button class="btn btn-sm btn-outline-secondary">
+                                    <span class="material-icons align-middle">lock</span> Editar
+                                </button>
+                            </a>
+                        {% endif %}
+                    </td>
+                    </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+{% endblock %}

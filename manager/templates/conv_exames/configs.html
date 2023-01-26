@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+
+{% block body %}
+
+<div class="container mt-2">
+    <!--  form atualizar status -->
+    <form method="POST" id="formConfig">
+        {{ form.csrf_token }}
+        <!-- DIV FORM -->
+        <div class="border p-4">
+            <div class="d-flex">
+                <legend>Convocação de Exames - Configurações</legend>
+                <img src="{{ url_for('static', filename='images/grs/logo_grs.png') }}" alt="Icone GRS" height="30px" width="70px">
+            </div>
+            <p>Selecione os parametros para os pedidos de processamento de cada Empresa no SOC</p>
+            <hr>
+            <fieldset>
+                <!-- convocar_clinico -->
+                <div class="form-group">
+                    {{ form.convocar_clinico.label(class="form-control-label") }}
+                    {{ form.convocar_clinico(class="form-control") }}
+                    <br>
+                    <p>
+                        Se habilitado, caso haja nos riscos do funcionário
+                        o exame de código "CLINICO", se este possuir data "Refazer Em" dentro 
+                        do período selecionado, então todos os exames do funcionário devem 
+                        ser exibidos considerando a data de vencimento do exame clínico
+                    </p>
+                </div>
+                <hr>
+                <!-- exames pendentes -->
+                <div class="form-group">
+                    {{ form.exames_pendentes.label(class="form-control-label") }}
+                    {{ form.exames_pendentes(class="form-control") }}
+                    <br>
+                    <p>
+                        Se habilitado, contemplará os exames que estão associados a 
+                        um Pedido de Exames, porém não possuem data de resultado.
+                    </p>
+                </div>
+                <hr>
+                <!-- conv pendentes pcmso -->
+                <div class="form-group">
+                    {{ form.conv_pendentes_pcmso.label(class="form-control-label") }}
+                    {{ form.conv_pendentes_pcmso(class="form-control") }}
+                    <br>
+                    <p>
+                        Se habilitado, serão exibidos apenas os exames do PCMSO 
+                        que não possuem data de resultado. Considera-se exames do PCMSO os exames que 
+                        estão aplicados ao funcionário, seja através de Risco - Exame, 
+                        Aplicação de Exames ou GHE. Considera-se exames fora do PCMSO 
+                        os exames pedidos através da tela "248 - Pedido de Exames" 
+                        e que não estão aplicados ao funcionário.
+                    </p>
+                </div>
+                <hr>
+                <!-- nunca realizados -->
+                <div class="form-group">
+                    {{ form.nunca_realizados.label(class="form-control-label") }}
+                    {{ form.nunca_realizados(class="form-control") }}
+                    <br>
+                    <p>É possível ativar apenas um dos dois ou nenhum</p>
+                    <ul>
+                        <li>
+                            <b>Nunca realizados: </b>
+                            Se habilitado, serão exibidos também os exames 
+                            admissionais ou periódicos do funcionário que nunca foram realizados. 
+                            Essa opção não pode ser usada em conjunto com o parâmetro "Periódicos nunca realizados".
+                        </li>
+                        <br>
+                        <li>
+                            <b>Periódicos nunca realizados: </b>
+                            Se habilitado, serão exibidos também os
+                            exames periódicos do funcionário que nunca foram realizados.
+                            Essa opção não pode ser usada em conjunto com parâmetro "Nunca realizados".
+                        </li>
+                    </ul>
+                </div>
+                <hr>
+                <!-- selecao -->
+                <div class="form-group">
+                    {{ form.selecao.label(class="form-control-label") }}
+                    {{ form.selecao(class="form-control") }}
+                </div>
+            </fieldset>
+            <!-- BOTOES -->
+            <div class="d-flex mt-3 justify-content-between">
+                <a href="{{ url_for('buscar_conv_exames_configs') }}" id="botao_voltar">
+                    <button type="button" class="btn btn-info text-nowrap" style="width: fit-content;">
+                        <span class="material-icons align-middle">arrow_back</span> Voltar
+                    </button>
+                </a>
+                <button type="submit" class="btn btn-primary text-nowrap" style="width: fit-content;" id="botao_salvar" name="botao_salvar" type="submit" value="Salvar">
+                    <span class="material-icons align-middle">save</span> Aplicar
+                </button>
+            </div>
+        </div>
+        <p>
+            Referência: <br>
+            SOC: 280 - Manual de Procedimentos > 156.2 Tipos de Processamento Assíncrono Disponíveis
+        </p>
+        
+        <table class="table table-hover table-sm table-bordered small_font">
+            <!-- CABECALHO -->
+            <thead>
+                <tr>
+                    <td><input class="form-check-input" type="checkbox" onclick="toggleCheckBoxes(this, 'checkItem')"></td>
+                    <th scope="col">Cód. Empresa</th>
+                    <th scope="col" style="width:30%">Razão Social</th>
+                    <th scope="col">Realiza Conv. Exames</th>
+                    <th scope="col">Convocar Clínico</th>
+                    <th scope="col">Exames pendentes</th>
+                    <th scope="col">Convocar pendentes PCMSO</th>
+                    <th scope="col">Periódicos nunca realizados</th>
+                    <th scope="col">Nunca realizados</th>
+                    <th scope="col">Seleção</th>
+                </tr>
+            </thead>
+            <!-- CORPO -->
+            <tbody>
+                {% for empresa in busca %}
+                    <tr>
+                        <td><input class="form-check-input" type="checkbox" value={{ empresa.id_empresa }} name="checkItem"></td>
+                        <td>{{ empresa.cod_empresa }}</td>
+                        <td><input type="text" readonly tabindex="-1" class="form-control-plaintext p-0" value="{{ empresa.razao_social }}"></td>
+                        <td>
+                            {% if empresa.conv_exames %}
+                                <span style="color:green; font-weight:bold">Sim</span>
+                            {% else %}
+                                <span style="color:red; font-weight:bold">Não</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if empresa.conv_exames_convocar_clinico %}
+                                <span style="color:green; font-weight:bold">Sim</span>
+                            {% else %}
+                                <span style="color:red; font-weight:bold">Não</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if empresa.conv_exames_pendentes %}
+                                <span style="color:green; font-weight:bold">Sim</span>
+                            {% else %}
+                                <span style="color:red; font-weight:bold">Não</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if empresa.conv_exames_pendentes_pcmso %}
+                                <span style="color:green; font-weight:bold">Sim</span>
+                            {% else %}
+                                <span style="color:red; font-weight:bold">Não</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if empresa.conv_exames_per_nunca_realizados %}
+                                <span style="color:green; font-weight:bold">Sim</span>
+                            {% else %}
+                                <span style="color:red; font-weight:bold">Não</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if empresa.conv_exames_nunca_realizados %}
+                                <span style="color:green; font-weight:bold">Sim</span>
+                            {% else %}
+                                <span style="color:red; font-weight:bold">Não</span>
+                            {% endif %}
+                        </td>
+                        <td><b>{{ empresa.conv_exames_selecao }}</b></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </form>
+</div>
+
+{% endblock %}

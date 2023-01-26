@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container mt-2 mb-2">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        <!-- DIV FORM -->
+        <div class="border p-4">
+            <legend>Importar Dados</legend>
+            <div class="accordion" id="accordion01">
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="headingOne">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                            <b>Instruções</b>
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordion01">
+                        <div class="accordion-body">
+                            <p>Esta tela serve para atualizar Tabelas do Banco de Dados em massa.</p>
+                            <p>O formado dos arquivos deve ser <b>CSV</b> e o separador deve ser <b>";"</b> (ponto e vírgula).</p>
+                            <p>Cada arquivo deve conter exatamente as mesmas colunas (na mesma ordem) listadas em sua respectiva sessão.</p>
+                            <ul>
+                                <li><b>Empresas: </b>id_empresa, emails</li>
+                                <li><b>Unidades: </b>id_unidade, emails</li>
+                                <li><b>Exames: </b>id_exame, prazo</li>
+                            </ul>
+                            <p>Obs: por precaução, guarde um relatório de como a tabela estava antes das atualizações.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <fieldset>
+                <div class="form-group mt-2">
+                    {{ form.tabela.label(class="form-control-label") }}
+                    {% if form.tabela.errors %}
+                    {{ form.tabela(class="form-control is-invalid") }}
+                    <div class="invalid-feedback">
+                        {% for erro in form.tabela.errors %}
+                        {{ erro }}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    {{ form.tabela(class="form-control") }}
+                    {% endif %}
+                </div>
+                <!-- file field -->
+                <div class="form-group mt-2">
+                    {% if form.csv.errors %}
+                    {{ form.csv(class="form-control is-invalid") }}
+                    <div class="invalid-feedback">
+                        {% for erro in form.csv.errors %}
+                        {{ erro }}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    {{ form.csv(class="form-control") }}
+                    {% endif %}
+                </div>
+            </fieldset>
+            <!-- BOTOES -->
+            <div class="d-flex mt-3 justify-content-between">
+                <button type="submit" class="btn btn-success text-nowrap btn-perfil" id="btn_upload" name="btn_upload" type="submit" value="Upload">
+                    <span class="material-icons align-middle">upload</span> Upload
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+
+{% endblock %}
+

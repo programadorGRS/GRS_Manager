@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container justify-content-center d-flex mt-2">
+    <div class="card p-4">
+        <form method="POST" id="formBusca">
+            {{ form.csrf_token }}
+            <div class="d-flex">
+                {% if unidades %}
+                    <legend>Ativar/Desativar Convocação por Unidades</legend>
+                {% elif configs %}
+                    <legend>Configurações por Empresa</legend>
+                {% else %}
+                    <legend>Ativar/Desativar Convocação por Empresas</legend>
+                {% endif %}
+                <img src="{{ url_for('static', filename='images/grs/logo_grs.png') }}" alt="Icone GRS" height="30px" width="70px">
+            </div>
+            <fieldset>
+                <div class="form-group">
+                    {{ form.cod_empresa_principal.label(class="form-control-label") }}
+                    {% if form.cod_empresa_principal.errors %}
+                        {{ form.cod_empresa_principal(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.cod_empresa_principal.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.cod_empresa_principal(class="form-control") }}
+                    {% endif %}
+                </div>
+
+                {% if unidades %}
+                    <div class="form-group">
+                        {{ form.id_empresa.label(class="form-control-label") }}
+                        {% if form.id_empresa.errors %}
+                            {{ form.id_empresa(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.id_empresa.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.id_empresa(class="form-control") }}
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </fieldset>
+            <!-- BOTOES -->
+            <div class="d-flex mt-3 justify-content-between">
+                <button type="submit" class="btn btn-primary text-nowrap" style="width: fit-content;" id="botao_buscar" name="botao_buscar" type="submit" value="Buscar">
+                    <span class="material-icons align-middle">manage_search</span> Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container justify-content-center d-flex mt-2">
+    <div class="card p-4">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <legend>Criar Status</legend>
+            <fieldset>
+                <!-- NOME -->
+                <div class="form-group">
+                    {{ form.nome_status.label(class="form-control-label") }}
+                    {% if form.nome_status.errors %}
+                        {{ form.nome_status(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.nome_status.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.nome_status(class="form-control") }}
+                    {% endif %}
+                </div>
+                <!-- finaliza processo -->
+                <div class="form-group my-3">
+                    {{ form.finaliza_processo(class="form-check-input") }}
+                    {{ form.finaliza_processo.label(class="form-check-label") }}
+                </div>
+            </fieldset>
+            {{ form.botao_salvar(class="btn btn-success mt-2") }}
+        </form>
+    </div>
+</div>
+
+{% endblock %}

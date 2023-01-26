@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container justify-content-center d-flex mt-2">
+    <div class="card p-4">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <legend>Configurações do Usuário</legend>
+            <fieldset>
+              <!-- ATIVO -->
+              <div class="form-group my-3">
+                {{ form.ativo(class="form-check-input") }}
+                {{ form.ativo.label(class="form-check-label") }}
+              </div>
+              <!-- TIPO USUARIO -->
+              <div class="form-group">
+                {{ form.tipo_usuario.label(class="form-control-label") }}
+                {{ form.tipo_usuario(class="form-control") }}
+              </div>
+            </fieldset>
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('usuarios') }}" id="botao_voltar">
+                    <button type="button" class="btn btn-info text-nowrap mt-2" style="width: fit-content;">
+                        <span class="material-icons align-middle">arrow_back</span> Voltar
+                    </button>
+                </a>
+                <button type="submit" id="botao_salvar" class="btn btn-primary text-nowrap mt-2">
+                    <span class="material-icons align-middle">save</span> Salvar
+                </button>
+            </div>
+          </form>
+    </div>
+</div>
+
+{% endblock %}

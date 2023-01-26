@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<style>
+    body {
+        background-image: url("{{ url_for('static', filename='images/bg_login.png') }}");
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+</style>
+
+<div class="container mt-2 pbi">
+    <div>
+        <h5>Olá, {{ current_user.nome_usuario }}</h5>
+            <div class="text-center p-0 m-0 pbi">
+                <iframe title="Manager - GRS" id="pbi_frame"  width="90%" height="90%" src="https://app.powerbi.com/view?r=eyJrIjoiNWMzZjA3OTktYzM4MC00ZjQyLWIwODAtZjM5MjBkOTFjMjVkIiwidCI6IjZhNTk3Y2M5LTk2Y2ItNDM3Yi05MmE4LTFmMjcwMGI4M2NkMSJ9" frameborder="0" allowFullScreen="true"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

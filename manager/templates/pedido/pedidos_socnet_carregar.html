@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container mt-2">
+    <form method="POST" enctype="multipart/form-data">
+        {{ form.csrf_token }}
+        <!-- DIV FORM -->
+        <div class="border p-4">
+            <legend>Importar Pedidos - SOCNET</legend>
+            <small>Nome arquivo | Tamanho | Data upload | Hora upload</small>
+            <fieldset>
+                <div class="form-group">
+                    {% if form.arquivos.errors %}
+                    {{ form.arquivos(class="form-control is-invalid") }}
+                    <div class="invalid-feedback">
+                        {% for erro in form.arquivos.errors %}
+                        {{ erro }}
+                        {% endfor %}
+                    </div>  
+                    {% else %}
+                    {{ form.arquivos(class="form-control") }}
+                    {% endif %}
+                </div>
+            </fieldset>
+            <!-- BOTOES -->
+            <div class="d-flex mt-3 justify-content-between">
+                <button type="submit" class="btn btn-primary text-nowrap btn-perfil" id="btn_carregar" name="btn_carregar" type="submit" value="Upload">
+                    <span class="material-icons align-middle">cloud_upload</span> Carregar
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% endblock %}

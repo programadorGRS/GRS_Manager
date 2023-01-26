@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+
+<div class="container justify-content-center d-flex mt-2">
+    <div class="card p-4">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <legend>Editar Grupo</legend>
+            <fieldset>
+                <!-- Nome do Grupo -->
+                <div class="form-group">
+                    {{ form.nome_grupo.label(class="form-control-label") }}
+                    {% if form.nome_grupo.errors %}
+                        {{ form.nome_grupo(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.nome_grupo.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.nome_grupo(class="form-control") }}
+                    {% endif %}
+                </div>
+                <!-- datas incl alt-->
+                <div class="d-flex justify-content-between">
+                    <!-- data inclusao -->
+                    <div class="form-group w-49">
+                        {{ form.data_inclusao.label(class="form-control-label") }}
+                        {{ form.data_inclusao(class="form-control", disabled="disabled") }}
+                    </div>
+                    <!-- data alteracao -->
+                    <div class="form-group w-49">
+                        {{ form.data_alteracao.label(class="form-control-label") }}
+                        {{ form.data_alteracao(class="form-control", disabled="disabled") }}
+                    </div>
+                </div>
+                <!-- incl alt por -->
+                <div class="d-flex justify-content-between">
+                    <div class="form-group w-49">
+                        {{ form.incluido_por.label(class="form-control-label") }}
+                        {{ form.incluido_por(class="form-control", disabled="disabled") }}
+                    </div>
+                    <div class="form-group w-49">
+                        {{ form.alterado_por.label(class="form-control-label") }}
+                        {{ form.alterado_por(class="form-control", disabled="disabled") }}
+                    </div>
+                </div>
+            </fieldset>
+            <div class="d-flex justify-content-between">
+                {{ form.botao_salvar (class="btn btn-success mt-2") }}
+                <button type="button" class="btn btn-danger mt-2 ms-5" data-bs-toggle="modal" data-bs-target="#excluir_grupo">Excluir</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="excluir_grupo" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Excluir Prestador</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+                <div class="modal-body">
+                    O grupo {{ grupo.nome_grupo }} será excluído.
+                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form action="{{ url_for('grupos_excluir', id_grupo=grupo.id_grupo) }}" method="POST">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

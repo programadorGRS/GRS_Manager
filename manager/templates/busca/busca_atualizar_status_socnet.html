@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+
+{% block body %}
+
+<div class="container mt-2">
+    <!--  form atualizar status -->
+    <form method="POST">
+        {{ form.csrf_token }}
+        <!-- DIV FORM -->
+        <div class="border p-4">
+            <div class="d-flex">
+                <legend>Atualizar Status</legend>
+                <img src="{{ url_for('static', filename='images/logo_socnet.png') }}" alt="Icone GRS" height="25px" width="100px">
+            </div>
+            <fieldset>
+                <div class="d-flex justify-content-between">
+                    <!-- STATUS -->
+                    <div class="form-group w-49">
+                        {{ form.status_novo.label(class="form-control-label") }}
+                        {% if form.status_novo.errors %}
+                        {{ form.status_novo(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.status_novo.errors %}
+                            {{ erro }}
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ form.status_novo(class="form-control") }}
+                        {% endif %}
+                    </div>
+                    <!-- DATA RECEBIDO -->
+                    <div class="form-group w-49">
+                        {{ form.data_recebido.label(class="form-control-label") }}
+                        {% if form.data_recebido.errors %}
+                        {{ form.data_recebido(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.data_recebido.errors %}
+                            {{ erro }}
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        {{ form.data_recebido(class="form-control") }}
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- OBS -->
+                <div class="form-group">
+                    {{ form.obs.label(class="form-control-label") }}
+                    {% if form.obs.errors %}
+                    {{ form.obs(class="form-control is-invalid") }}
+                    <div class="invalid-feedback">
+                        {% for erro in form.obs.errors %}
+                        {{ erro }}
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    {{ form.obs(class="form-control") }}
+                    {% endif %}
+                </div>
+            </fieldset>
+            <!-- BOTOES -->
+
+            <div class="d-flex mt-3 justify-content-between">
+                <a href="{{ url_for('busca_socnet') }}" id="botao_voltar">
+                    <button type="button" class="btn btn-info text-nowrap" style="width: fit-content;">
+                        <span class="material-icons align-middle">arrow_back</span> Voltar
+                    </button>
+                </a>
+                <button type="submit" class="btn btn-primary text-nowrap" style="width: fit-content;" id="botao_salvar" name="botao_salvar" type="submit" value="Salvar">
+                    <span class="material-icons align-middle">save</span> Salvar
+                </button>
+            </div>
+        </div>
+        <!-- DIV TABELA -->
+        <div>
+            <p>Qtd de Resultados: {{ total }}</p>
+            <!-- tabela de resultados -->
+            <table class="table table-sm table-striped small_font">
+                <!-- CABECALHO -->
+                <thead>
+                    <tr>
+                        <td>
+                            <input class="form-check-input" type="checkbox" id="checkAll" onchange="toggleCheckBoxes(this, 'checkItem')">
+                        </td>
+                        <th scope="col">Seq. Ficha</th>
+                        <th scope="col">Funcionario</th>
+                        <th scope="col">Ficha</th>
+                        <th scope="col">Empresa</th>
+                        <th scope="col">Prestador</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Previsão</th>
+                        <th scope="col">Obs</th>
+                        <th scope="col">Tag</th>
+                    </tr>
+                </thead>
+                <!-- CORPO -->
+                <tbody>
+                    {% for pedido in busca %}
+                        <tr>
+                            <td>
+                                <input class="form-check-input" type="checkbox" value="{{ pedido.id_ficha }}" id="checkItem" name="checkItem">
+                            </td>
+                            <td>
+                                {{pedido.seq_ficha}}
+                            </td>
+                            <td>
+                                <a tabindex="-1" class="link-pedido" href="{{ url_for('pedido_socnet_editar', id_ficha=pedido.id_ficha) }}">{{pedido.nome_funcionario}}</a> <span class="fw-lighter">#{{ pedido.cod_prestador }}</span>
+                                <br>
+                                <b>CPF: </b>{{pedido.cpf}}
+                            </td>
+                            <td>
+                                {{pedido.data_ficha.strftime('%d/%m/%Y')}}
+                                <br>
+                                <b>{{ pedido.nome_tipo_exame }}</b>
+                            </td>
+                            <td>
+                                {{pedido.nome_empresa}} <span class="fw-lighter">#{{ pedido.cod_empresa }}</span>
+                            </td>
+                            <td>
+                                {{pedido.nome_prestador}} <span class="fw-lighter">#{{ pedido.cod_prestador }}</span>
+                            </td>
+                            <td>
+                                {{pedido.nome_status}}
+                            </td>
+                            <td>
+                                NULL
+                            </td>
+                            <td>
+                                {% if pedido.obs %}
+                                    <span class="material-icons align-middle" style="font-size: 14px;" data-bs-toggle="tooltip" data-bs-title="{{pedido.obs}}">info</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge {{pedido.cor_tag}} align-middle">{{pedido.nome_status_lib}}</span>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </form>
+</div>
+
+
+{% endblock %}

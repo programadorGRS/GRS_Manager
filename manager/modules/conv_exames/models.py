@@ -1,0 +1,967 @@
+import os
+import time
+from datetime import datetime, timedelta
+
+import pandas as pd
+from pptx import Presentation
+from pptx.chart.data import ChartData
+from pptx.util import Pt
+from pytz import timezone
+from werkzeug.utils import secure_filename
+
+from manager import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, database
+from manager.email_connect import EmailConnect
+from manager.exporta_dados import ExportaDadosWS
+from manager.models import (Empresa, EmpresaPrincipal, Exame, Funcionario,
+                            Unidade)
+from manager.utils import get_json_configs, zipar_arquivos
+
+
+class PedidoProcessamento(database.Model):
+    __tablename__ = 'PedidoProcessamento'
+    id_proc = database.Column(database.Integer, primary_key=True)
+    cod_empresa_principal = database.Column(database.Integer, database.ForeignKey('EmpresaPrincipal.cod'), nullable=False)
+    cod_solicitacao = database.Column(database.Integer, nullable=False)
+    id_empresa = database.Column(database.Integer, database.ForeignKey('Empresa.id_empresa'), nullable=False)
+    cod_empresa = database.Column(database.Integer, nullable=False)
+    data_criacao = database.Column(database.Date, nullable=False)
+    resultado_importado = database.Column(database.Boolean, nullable=False, default=False)
+    relatorio_enviado = database.Column(database.Boolean, nullable=False, default=False)
+    parametro = database.Column(database.String(500), nullable=False)
+    obs = database.Column(database.String(500))
+    
+    exames_conv = database.relationship('ConvExames', backref='pedido_proc', lazy=True) # one to many
+
+    @classmethod
+    def buscar_pedidos_proc(
+        self,
+        cod_empresa_principal: int,
+        inicio: str=None,
+        fim: str=None,
+        empresa: int=None,
+        cod_solicitacao: int=None,
+        resultado_importado: bool=None,
+        relatorio_enviado: bool=None,
+        obs: str=None
+    ):
+        '''
+        Realiza query filtrada pelos parametros passados
+
+        Retorna BaseQuery com os pedidos filtrados ou com todos os pedidos
+
+        Retorna apenas os pedidos associados as empresas e prestadores dos grupos do current_user
+        '''
+        parametros = [(self.cod_empresa_principal == cod_empresa_principal)]
+        
+        if inicio:
+            parametros.append(self.data_criacao >= inicio)
+        if fim:
+            parametros.append(self.data_criacao <= fim)
+        if empresa:
+            parametros.append(self.id_empresa == empresa)
+        if cod_solicitacao:
+            parametros.append(self.cod_solicitacao == cod_solicitacao)
+        if resultado_importado == 0 or resultado_importado == 1:
+            parametros.append(self.resultado_importado == resultado_importado)
+        if relatorio_enviado == 0 or relatorio_enviado == 1:
+            parametros.append(self.relatorio_enviado == relatorio_enviado)
+        if obs:
+            parametros.append(self.obs.like(f'%{obs}%'))
+
+        query = (
+            database.session.query(self)
+            .filter(*parametros)
+            .order_by(self.data_criacao, self.id_empresa)
+        )
+        return query
+    
+    @classmethod
+    def criar_pedido_processamento(self, id_empresa: int, dias: int = 730) -> dict:
+        """Envia request SOAP para criar Pedido de Processamento Assincrono \
+        de  Convocação de Exames no SOC. Registra o Pedido de Processamento na database, \
+        se a response for positiva.
+
+        Args:
+            dias (int, optional): dias no futuro para definir data fim do pedido. \
+            Defaults to 730.
+
+        Returns:
+            dict: {
+                'cod_empresa_principal': int,
+                'nome_empresa_principal': str,
+                'id_empresa': int,
+                'nome_empresa': str,
+                'status': str,
+                'cod_solicitacao': int | None
+            }
+        """
+        periodo = (
+            datetime.now(tz=timezone('America/Sao_Paulo')) +
+            timedelta(days=dias)
+        ).strftime('%m/%Y')
+
+        empresa: Empresa = Empresa.query.get(id_empresa)
+        empresa_principal: EmpresaPrincipal = EmpresaPrincipal.query.get(empresa.cod_empresa_principal)
+        credenciais: dict = get_json_configs(empresa_principal.configs_exporta_dados)
+
+        parametro: dict[str, any] = ExportaDadosWS.sol_conv_exames_assync(
+            cod_empresa = empresa.cod_empresa,
+            periodo = periodo,
+            convocar_clinico = empresa.conv_exames_convocar_clinico,
+            nunca_realizados = empresa.conv_exames_nunca_realizados,
+            periodicos_nunca_realizados = empresa.conv_exames_per_nunca_realizados,
+            exames_pendentes = empresa.conv_exames_pendentes,
+            conv_pendentes_pcmso = empresa.conv_exames_pendentes_pcmso,
+            selecao = empresa.conv_exames_selecao,
+        )
+
+        response: dict[str, any] = ExportaDadosWS.request_pedido_processameto_assincrono(
+            UsernameToken_username = str(empresa.cod_empresa_principal),
+            UsernameToken_password = credenciais['PROC_ASSYNC_PASSWORD'],
+            identificacaoUsuarioWsVo_codigoEmpresaPrincipal = str(empresa.cod_empresa_principal),
+            identificacaoUsuarioWsVo_codigoResponsavel = credenciais['COD_RESP'],
+            identificacaoUsuarioWsVo_codigoUsuario = credenciais['PROC_ASSYNC_USERNAME'],
+            processamentoAssincronoWsVo_codigoEmpresa = str(empresa.cod_empresa),
+            processamentoAssincronoWsVo_parametros = parametro
+        )
+
+        if response['response'].status_code == 200:
+            if not response['erro_soc']:
+                cod_sol = int(response['cod_solicitacao'])
+                p = PedidoProcessamento(
+                    cod_solicitacao = cod_sol,
+                    cod_empresa_principal = empresa.cod_empresa_principal,
+                    id_empresa = empresa.id_empresa,
+                    cod_empresa = empresa.cod_empresa,
+                    data_criacao = datetime.now(tz=TIMEZONE_SAO_PAULO).date(),
+                    resultado_importado = False,
+                    relatorio_enviado = False,
+                    parametro = str(parametro)
+                )
+                database.session.add(p)
+                database.session.commit()
+                return {
+                    'cod_empresa_principal': empresa_principal.cod,
+                    'nome_empresa_principal': empresa_principal.nome,
+                    'id_empresa': empresa.id_empresa,
+                    'nome_empresa': empresa.razao_social,
+                    'status': 'ok',
+                    'cod_solicitacao': response['cod_solicitacao']
+                }
+            else:
+                return {
+                    'cod_empresa_principal': empresa_principal.cod,
+                    'nome_empresa_principal': empresa_principal.nome,
+                    'id_empresa': empresa.id_empresa,
+                    'nome_empresa': empresa.razao_social,
+                    'status': f"erro soc: {response['msg_erro']}",
+                    'cod_solicitacao': response['cod_solicitacao']
+                }
+        else:
+            return {
+                'cod_empresa_principal': empresa_principal.cod,
+                'nome_empresa_principal': empresa_principal.nome,
+                'id_empresa': empresa.id_empresa,
+                'nome_empresa': empresa.razao_social,
+                'status': "erro request",
+                'cod_solicitacao': response['cod_solicitacao']
+            }
+
+
+class ConvExames(database.Model):
+    __tablename__ = 'ConvExames'
+    id_conv = database.Column(database.Integer, primary_key=True)
+    id_proc = database.Column(database.Integer, database.ForeignKey('PedidoProcessamento.id_proc'), nullable=False)
+    cod_empresa_principal = database.Column(database.Integer, database.ForeignKey('EmpresaPrincipal.cod'), nullable=False)
+    id_empresa = database.Column(database.Integer, database.ForeignKey('Empresa.id_empresa'), nullable=False)
+    id_unidade = database.Column(database.Integer, database.ForeignKey('Unidade.id_unidade'), nullable=False)
+    id_funcionario = database.Column(database.Integer, database.ForeignKey('Funcionario.id_funcionario'), nullable=False)
+    id_exame = database.Column(database.Integer, database.ForeignKey('Exame.id_exame'), nullable=False)
+    periodicidade = database.Column(database.Integer)
+    data_adm = database.Column(database.Date)
+    ult_pedido = database.Column(database.Date)
+    data_res = database.Column(database.Date)
+    refazer = database.Column(database.Date)
+
+    BASE_PPT = 'manager/modules/conv_exames/ppt/base_conv_exames_v2.pptx'
+
+    COLUNAS_PLANILHA = [
+        'cod_empresa',
+        'razao_social',
+        'unidade',
+        'setor',
+        'cargo',
+        'cod_funcionario',
+        'matricula',
+        'cpf',
+        'nome_funcionario',
+        'cod_exame',
+        'nome_exame',
+        'periodicidade',
+        'data_adm',
+        'ult_pedido',
+        'data_res',
+        'refazer',
+    ]
+
+    @classmethod
+    def inserir_conv_exames(self, id_proc: int) -> dict:
+        """
+        Consulta pedido de processamento e insere na database \
+        se houver retorno. Registra o retorno na tabela PedidoProcessamento.
+
+        Args:
+            id_proc (int): id do PedidoProcessamento
+
+        Returns:
+            dict: {
+                'cod_empresa_principal': int,
+                'nome_empresa_principal': str,
+                'id_empresa': int,
+                'nome_empresa': str,
+                'cod_solicitacao': int,
+                'status': str,
+                'qtd': int
+            }
+        """
+        ped_proc: PedidoProcessamento = PedidoProcessamento.query.get(id_proc)
+        empresa_principal: EmpresaPrincipal = EmpresaPrincipal.query.get(ped_proc.cod_empresa_principal)
+        empresa: Empresa = Empresa.query.get(ped_proc.id_empresa)
+        credenciais: dict = get_json_configs(empresa_principal.configs_exporta_dados)
+
+        # realizar consulta
+        parametro: dict = ExportaDadosWS.consulta_conv_exames_assync(
+            cod_empresa_principal = ped_proc.cod_empresa_principal,
+            cod_exporta_dados = credenciais['EXPORTADADOS_CONVEXAMESASSYNC_COD'],
+            chave = credenciais['EXPORTADADOS_CONVEXAMESASSYNC_KEY'],
+            cod_empresa_trab = ped_proc.cod_empresa,
+            cod_sol = ped_proc.cod_solicitacao
+        )
+
+        resp: dict = ExportaDadosWS.request_exporta_dados_ws(
+            parametro=parametro,
+            id_empresa=empresa.id_empresa,
+            obs='Convocação de Exames - Assíncrono'
+        )
+
+        if resp['response'].status_code == 200:
+            if not resp['erro_soc']:
+                df = ExportaDadosWS.xml_to_dataframe(resp['response'].text)
+                if not df.empty:
+                    df = ConvExames.tratar_df_conv_exames(
+                        df = df,
+                        cod_empresa_principal = ped_proc.cod_empresa_principal,
+                        id_proc = ped_proc.id_proc,
+                        id_empresa = ped_proc.id_empresa
+                    )
+                    df.to_sql(
+                        name = ConvExames.__tablename__,
+                        con = database.session.bind,
+                        index = False,
+                        if_exists = 'append'
+                    )
+                    ped_proc.resultado_importado = True
+                    ped_proc.obs = 'Consulta inserida'
+                    database.session.commit()
+                    return {
+                        'cod_empresa_principal': empresa_principal.cod,
+                        'nome_empresa_principal': empresa_principal.nome,
+                        'id_empresa': empresa.id_empresa,
+                        'nome_empresa': empresa.razao_social,
+                        'cod_solicitacao': ped_proc.cod_solicitacao,
+                        'status': 'ok',
+                        'qtd': len(df)
+                    }
+                else:
+                    ped_proc.resultado_importado = True
+                    ped_proc.obs = 'Retornou vazio'
+                    database.session.commit()
+                    return {
+                        'cod_empresa_principal': empresa_principal.cod,
+                        'nome_empresa_principal': empresa_principal.nome,
+                        'id_empresa': empresa.id_empresa,
+                        'nome_empresa': empresa.razao_social,
+                        'cod_solicitacao': ped_proc.cod_solicitacao,
+                        'status': 'vazio',
+                        'qtd': 0
+                    }
+            else:
+                ped_proc.resultado_importado = True
+                ped_proc.obs = f'Erro soc: {resp["msg_erro"]}'
+                database.session.commit()
+                return {
+                    'cod_empresa_principal': empresa_principal.cod,
+                    'nome_empresa_principal': empresa_principal.nome,
+                    'id_empresa': empresa.id_empresa,
+                    'nome_empresa': empresa.razao_social,
+                    'cod_solicitacao': ped_proc.cod_solicitacao,
+                    'status': f"erro soc: {resp['msg_erro']}",
+                    'qtd': 0
+                }
+        else:
+            return {
+                'cod_empresa_principal': empresa_principal.cod,
+                'nome_empresa_principal': empresa_principal.nome,
+                'id_empresa': empresa.id_empresa,
+                'nome_empresa': empresa.razao_social,
+                'cod_solicitacao': ped_proc.cod_solicitacao,
+                'status': 'erro no request',
+                'qtd': 0
+            }
+
+    @classmethod
+    def tratar_df_conv_exames(
+        self,
+        df: pd.DataFrame,
+        cod_empresa_principal,
+        id_proc: int,
+        id_empresa: int
+    ) -> pd.DataFrame:
+        '''
+        Recebe dataframe de convocacao de exames
+
+        Trata o dataframe
+
+        Retorna dataframe
+        '''
+        # validar possiveis colunas faltantes
+        for col in ['ULTIMOPEDIDO', 'DATARESULTADO', 'REFAZER']:
+            if col not in df.columns:
+                df[col] = None
+
+        df.replace('', None, inplace=True)
+
+        df.dropna(
+            axis=0,
+            subset=[
+                'CODIGOEMPRESA',
+                'UNIDADE', 
+                'CODIGOFUNCIONARIO',
+                'CODIGOEXAME'
+            ],
+            inplace=True
+        )
+
+        for col in ['CODIGOEMPRESA', 'CODIGOFUNCIONARIO', 'PERIODICIDADE']:
+            df[col] = df[col].fillna(0).astype(int)
+
+        # converter cols de data
+        for col in ['DATAADMISSAO', 'ULTIMOPEDIDO', 'DATARESULTADO', 'REFAZER']:
+            df[col] = pd.to_datetime(
+                df[col],
+                dayfirst=True,
+                errors='coerce' # substitui erros por NaT
+            ).dt.date
+
+        df['id_proc'] = id_proc
+        df['cod_empresa_principal'] = cod_empresa_principal
+
+        # buscar ids
+        query = (
+            database.session.query(
+                Funcionario.id_funcionario,
+                Funcionario.cod_funcionario,
+                Funcionario.id_empresa,
+                Funcionario.id_unidade
+            )
+            .filter(Funcionario.id_empresa == id_empresa)
+        )
+        df_database = pd.read_sql(sql=query.statement, con=database.session.bind)
+
+        df = df.merge(
+            df_database,
+            how='left',
+            left_on='CODIGOFUNCIONARIO',
+            right_on='cod_funcionario'
+        )
+
+        query = (
+            database.session.query(
+                Exame.id_exame,
+                Exame.cod_exame
+            )
+            .filter(Exame.cod_empresa_principal == cod_empresa_principal)
+        )
+        df_database = pd.read_sql(sql=query.statement, con=database.session.bind)
+
+        df = df.merge(
+            df_database,
+            how='left',
+            left_on='CODIGOEXAME',
+            right_on='cod_exame'
+        )
+
+        df.rename(
+            columns={
+                'PERIODICIDADE': 'periodicidade',
+                'DATAADMISSAO': 'data_adm',
+                'ULTIMOPEDIDO': 'ult_pedido',
+                'DATARESULTADO': 'data_res',
+                'REFAZER': 'refazer'
+            },
+            inplace=True
+        )
+
+        df = df[[
+            'id_proc',
+            'cod_empresa_principal',
+            'id_empresa',
+            'id_unidade',
+            'id_funcionario',
+            'id_exame',
+            'periodicidade',
+            'data_adm',
+            'ult_pedido',
+            'data_res',
+            'refazer'
+        ]]
+
+        df.dropna(
+            axis=0,
+            subset=[
+                'id_funcionario',
+                'id_exame',
+                'id_empresa',
+                'id_unidade',
+            ],
+            inplace=True
+        )
+
+        return df
+
+    @classmethod
+    def criar_relatorios(
+        self,
+        df: pd.DataFrame,
+        nome_empresa: str,
+        data_origem: datetime,
+        nome_unidade: str = None,
+        gerar_ppt: bool = True,
+        pasta: str = UPLOAD_FOLDER,
+        filtro_status: list[str] = None,
+        filtro_a_vencer: list[int] = None,
+        
+    ) -> str | None:
+        '''
+        Criar CSV e PPT ZIPADOS para o pedido_proc passado
+
+        Retorna nome do arquivo ZIP
+        '''
+        cols = [
+            'cod_empresa',
+            'razao_social',
+            'cod_unidade',
+            'nome_unidade',
+            'nome_setor',
+            'nome_cargo',
+            'cod_funcionario',
+            'cpf_funcionario',
+            'nome_funcionario',
+            'cod_exame',
+            'nome_exame',
+            'periodicidade',
+            'data_adm',
+            'ult_pedido',
+            'data_res',
+            'refazer',
+            'status',
+            'a_vencer'
+        ]
+
+        # checar se pasta existe
+        if not os.path.exists(pasta):
+            os.mkdir(pasta)
+
+        # START--------------------------------------------------------------------------
+        df['status'] = (
+            list(
+                map(
+                self.criar_status,
+                    df['ult_pedido'],
+                    df['data_res'],
+                    df['refazer']
+                )
+            )
+        )
+        
+        # calcular dias ate o vencimento
+        df['dias_vencer'] = list(map(self.dias_a_vencer, df['refazer']))
+        # substituir todos menores que 1 por NA
+        df.loc[df['dias_vencer'] <= 0, 'dias_vencer'] = pd.NA
+        
+        # criar categorias a vencer
+        df['a_vencer'] = pd.NA
+        df.loc[df['dias_vencer'].between(0, 30, 'both'), 'a_vencer'] = 30
+        df.loc[df['dias_vencer'].between(31, 60, 'both'), 'a_vencer'] = 60
+        df.loc[df['dias_vencer'].between(61, 90, 'both'), 'a_vencer'] = 90
+        df.loc[df['dias_vencer'].between(91, 365, 'both'), 'a_vencer'] = 365
+
+        if filtro_status:
+            df = df[df['status'].isin(filtro_status)]
+        
+        if filtro_a_vencer:
+            df = df[df['a_vencer'].isin(filtro_a_vencer)]
+        
+        if not df.empty:
+            nome_arquivos = (
+                secure_filename(nome_empresa)
+                .replace('.', '_')
+            )
+
+            timestamp = int(datetime.now().timestamp())
+
+            nome_csv = f'{pasta}/{nome_arquivos}_{timestamp}.xlsx'
+            df2 = df[cols]
+            df2.to_excel(
+                nome_csv,
+                index=False,
+                freeze_panes=(1,0)
+            )
+
+            arquivos_zipar = [nome_csv]
+
+            # gerar ppt apenas se houver mais de 50 exames para refazer
+            if gerar_ppt and len(df['refazer'].dropna()) >= 50:
+                nome_ppt = f'{pasta}/{nome_arquivos}_{timestamp}.pptx'
+                self.criar_ppt(
+                    df=df,
+                    data_origem=data_origem,
+                    nome_arquivo=nome_ppt,
+                    nome_empresa=nome_empresa,
+                    nome_unidade=nome_unidade
+                )
+                arquivos_zipar.append(nome_ppt)
+
+            nome_zip = f'{pasta}/{nome_arquivos}_{timestamp}.zip'
+            nome_zip = zipar_arquivos(caminhos_arquivos=arquivos_zipar, caminho_pasta_zip=nome_zip)
+
+            return nome_zip
+        else:
+            return None
+
+    @staticmethod
+    def criar_status(
+        data_ult_pedido: datetime,
+        data_res: datetime,
+        data_refazer: datetime
+    ):
+        today = datetime.now().date()
+        if data_ult_pedido and data_res and data_refazer:
+            # se data ja passou ou vence hoje
+            if data_refazer <= today:
+                return 'Vencido'
+            # se ainda vai vencer ate em 365 dias
+            elif data_refazer > today and (data_refazer - today).days <= 365:
+                return 'A vencer'
+            # se vai vencer em mais de 365 dias
+            elif data_refazer > today and (data_refazer - today).days > 365:
+                return 'Em dia'
+        # se nao tem data de resultado
+        elif data_ult_pedido and not data_res:
+            return 'Pendente'
+        # se nao tem ultimo pedido
+        elif not data_ult_pedido:
+            return 'Sem histórico'
+        else:
+            return None
+
+    @staticmethod
+    def dias_a_vencer(data: datetime):
+        if data:
+            dias = (data - datetime.now().date()).days
+            if dias > 0:
+                return int(dias)
+            else:
+                return pd.NA
+        else:
+            return pd.NA
+
+    @classmethod
+    def criar_ppt(
+        self,
+        df: pd.DataFrame,
+        nome_arquivo: str,
+        nome_empresa: str,
+        data_origem: datetime,
+        nome_unidade: str = None
+    ):
+        # CRIAR PPT--------------------------------------------------------------------
+        # para ver os nomes dos shapes
+        # for shape in slide.shapes:
+        #     print(shape.name)
+
+        df = df.copy()
+        # instanciar apresentacao
+        presentation = Presentation(self.BASE_PPT)
+
+
+        # SLIDE 1 - titulo--------------------------------------------------
+        slide = presentation.slides[0]
+
+        df['refazer'] = pd.to_datetime(df['refazer'])
+
+        inicio = df['refazer'].min(skipna=True).strftime('%d/%m/%Y')
+        fim = df['refazer'].max(skipna=True).strftime('%d/%m/%Y')
+        slide.shapes[4].text_frame.paragraphs[0].runs[-1].text = f'{inicio} - {fim}'
+
+        # nome empresa
+        slide.shapes[5].text_frame.paragraphs[0].runs[-1].text = nome_empresa
+
+        # nome unidade
+        if nome_unidade:
+            slide.shapes[6].text_frame.paragraphs[0].runs[-1].text = nome_unidade
+        else:
+            slide.shapes[6].text_frame.paragraphs[0].runs[-1].text = 'Todas'
+
+
+        # SLIDE 2 - cards --------------------------------------------------------
+        slide = presentation.slides[1]
+        shapes = slide.shapes
+
+        # total exames
+        shapes[3].shapes[1].text_frame.paragraphs[0].runs[0].text = str(len(df))
+
+        # total funcionarios
+        shapes[4].shapes[1].text_frame.paragraphs[0].runs[0].text = str(len(df['id_funcionario'].drop_duplicates()))
+
+        # media exames/funcionario
+        shapes[5].shapes[1].text_frame.paragraphs[0].runs[0].text = '{:.2f}'.format(len(df) / len(df['id_funcionario'].drop_duplicates()))
+
+        qtds = df[['id_funcionario', 'id_exame']].groupby('id_funcionario').count()
+
+        # max exames/funcionario
+        maximo = qtds.max(skipna=True).values[0]
+        shapes[6].shapes[1].text_frame.paragraphs[0].runs[0].text = str(maximo)
+
+        # min exames/funcionario
+        minimo = qtds.min(skipna=True).values[0]
+        shapes[7].shapes[1].text_frame.paragraphs[0].runs[0].text = str(minimo)
+
+        # media exames/unidade
+        shapes[8].shapes[1].text_frame.paragraphs[0].runs[0].text = '{:.2f}'.format(len(df) / len(df['id_unidade'].drop_duplicates()))
+
+        # media exames/setor
+        shapes[9].shapes[1].text_frame.paragraphs[0].runs[0].text = '{:.2f}'.format(len(df) / len(df['cod_setor'].drop_duplicates()))
+
+        # media exames/cargo
+        shapes[10].shapes[1].text_frame.paragraphs[0].runs[0].text = '{:.2f}'.format(len(df) / len(df['cod_cargo'].drop_duplicates()))
+
+
+        # SLIDE 3 exames por mesAno ----------------------------------------------------
+        slide = presentation.slides[2]
+        shapes = slide.shapes
+
+        df['mesAno'] = df['refazer'].dt.strftime('%m/%Y')
+
+        qtds = df[['mesAno', 'id_exame']].groupby(by='mesAno').count()
+
+        # media exames/mes
+        media = qtds.mean(skipna=True).values[0]
+        shapes[3].shapes[1].text_frame.paragraphs[0].runs[0].text = '{:.2f}'.format(media)
+
+        # min exames/mes
+        minimo = qtds.min(skipna=True).values[0]
+        shapes[4].shapes[1].text_frame.paragraphs[0].runs[0].text = str(minimo)
+
+        # max exames/mes
+        maximo = qtds.max(skipna=True).values[0]
+        shapes[5].shapes[1].text_frame.paragraphs[0].runs[0].text = str(maximo)
+
+        df['mes'] = df['refazer'].dt.month
+        df['ano'] = df['refazer'].dt.year
+
+        dados = (
+            df[['ano', 'mes', 'mesAno', 'status', 'id_exame']]
+            .pivot_table(
+                values='id_exame',
+                index=['ano', 'mes', 'mesAno'], # gera MultiIndex
+                columns='status',
+                aggfunc='count',
+            )
+            .fillna(0)
+        )
+        # resetar pasa single Index de MesAno
+        dados.reset_index(level=['ano', 'mes'], drop=True, inplace=True)
+        # organizar colunas para manter a ordem no grafico
+        dados.loc['Total'] = dados.sum(numeric_only=True)
+        dados = dados.sort_values(by='Total', axis=1, ascending=False)
+        dados.drop(labels=['Total'], axis=0, inplace=True)
+
+        self.editar_grafico( # barras empilhadas
+            chart=slide.shapes[6].chart,
+            categorias=list(dados.index),
+            series={col: list(dados[col].values) for col in dados.columns}
+        )
+
+
+        # SLIDE 4 - exames por status ------------------------------------------------------
+        slide = presentation.slides[3]
+        shapes = slide.shapes
+
+        qtds = df[['status', 'id_exame']].groupby(by='status').count()
+
+        # media
+        media = qtds.mean(skipna=True).values[0]
+        shapes[3].shapes[1].text_frame.paragraphs[0].runs[0].text = '{:.2f}'.format(media)
+
+        # min
+        minimo = qtds.min(skipna=True).values[0]
+        shapes[4].shapes[1].text_frame.paragraphs[0].runs[0].text = str(minimo)
+
+        # max
+        maximo = qtds.max(skipna=True).values[0]
+        shapes[5].shapes[1].text_frame.paragraphs[0].runs[0].text = str(maximo)
+
+        dados = df[['status', 'id_exame']].groupby('status').count()
+        dados['id_exame'] = dados['id_exame'] / dados['id_exame'].sum()
+        dados = dados.sort_values('id_exame', axis=0, ascending=False)
+
+        self.editar_grafico(
+            chart=slide.shapes[6].chart,
+            categorias=list(dados.index),
+            series={'qtd': list(dados['id_exame'].values)}
+        )
+
+
+        # SLIDES DE TABELA 5-9 ------------------------------------------------------
+        infos_slides_tabelas = [
+            (4, 'nome_unidade'),
+            (5, 'nome_setor'),
+            (6, 'nome_cargo'),
+            (7, 'nome_funcionario'),
+            (8, 'nome_exame')
+        ]
+
+        for num_slide, nome_col in infos_slides_tabelas:
+            slide = presentation.slides[num_slide]
+            shapes = slide.shapes
+
+            dados = (
+                df[[nome_col, 'a_vencer', 'id_exame']]
+                .pivot_table(
+                    values='id_exame',
+                    index=nome_col,
+                    columns='a_vencer',
+                    aggfunc='count',
+                )
+                .fillna(0)
+            )
+            dados['Total'] = dados.sum(axis=1, numeric_only=True)
+            dados = dados.sort_values(by='Total', axis=0, ascending=False)
+            dados.reset_index(inplace=True)
+
+            # checar e organizar as colunas para a tabela do ppt
+            for col in [30, 60, 90, 365, 'Total']:
+                if col in dados.columns:
+                    dados[col] = dados[col].astype(int)
+                else:
+                    dados[col] = 0
+            
+            dados = dados[[nome_col, 30, 60, 90, 365, 'Total']]
+
+            self.editar_tabela(
+                shape=shapes[3].table,
+                df=dados[:10]
+            )
+
+
+        # SLIDE 10 referecias ------------------------------------------------------
+        slide = presentation.slides[9]
+        shapes = slide.shapes
+
+        # data de origem dos dados
+        slide.shapes[6].text_frame.paragraphs[0].runs[-1].text = data_origem.strftime('%d/%m/%Y')
+
+        presentation.save(nome_arquivo)
+        return None
+
+    @staticmethod
+    def editar_grafico(
+        chart,
+        categorias: list,
+        series: dict[list]
+    ):
+        chart_data = ChartData()
+        chart_data.categories = categorias
+        if series:
+            for nome_serie, vals in series.items():
+                chart_data.add_series(nome_serie, vals)
+        else:
+            chart_data.add_series('Sem dados', [0])
+        chart.replace_data(chart_data)
+        return None
+
+    @staticmethod
+    def editar_tabela(
+        shape: object,
+        df: pd.DataFrame,
+        font_size: int=14
+    ):
+        for coluna in range(len(df.columns)):
+            # pular duas primeiras celulas de cada coluna
+            dados_coluna = [None, None] + list(df[df.columns[coluna]].values)
+            for linha in range(2, len(dados_coluna)):
+                shape.cell(linha, coluna).text_frame.paragraphs[0].text = str(dados_coluna[linha])
+                shape.cell(linha, coluna).text_frame.paragraphs[0].runs[0].font.size = Pt(font_size)
+        return None
+
+    @classmethod
+    def rotina_conv_exames(
+        self,
+        id_proc: int,
+        corpo_email: str,
+        id_unidade: int | None = None,
+        testando: bool = True,
+        gerar_ppt: bool = True,
+        filtro_status: list[str] | None = None,
+        filtro_a_vencer: list[int] | None = None
+    ) -> dict[str, any]:
+        """
+        Cria os relatorios de Convocacao de Exames e envia para \
+        o email da Empresa/Unidade 
+
+        Gera ppt apenas se a qtd de linhas for maior que 50
+
+        Registra o envio em PedidoProcessamento
+        Registra o Email em EmailConnect
+
+        Returns:
+            dict[str, any]: {
+            'cod_empresa_principal': int,
+            'nome_empresa_principal': str,
+            'id_proc': int,
+            'id_empresa': int,
+            'id_unidade': int | None,
+            'nome_unidade': str | None,
+            'razao_social': str,
+            'data_pedido_proc': datetime,
+            'emails': str,
+            'nome_arquivo': str,
+            'status': str,
+            'tempo_execucao': int
+        }
+        """
+        start = time.time()
+
+        pedido_proc: PedidoProcessamento = PedidoProcessamento.query.get(id_proc)
+
+        empresa_principal: EmpresaPrincipal = EmpresaPrincipal.query.get(pedido_proc.cod_empresa_principal)
+        empresa: Empresa = Empresa.query.get(pedido_proc.id_empresa)
+
+        infos = {
+            'cod_empresa_principal': empresa_principal.cod,
+            'nome_empresa_principal': empresa_principal.nome,
+            'id_proc': pedido_proc.id_proc,
+            'id_empresa': empresa.id_empresa,
+            'razao_social': empresa.razao_social,
+            'data_pedido_proc': pedido_proc.data_criacao,
+            'emails': empresa.conv_exames_emails
+        }
+
+        filtros_query = [(ConvExames.id_proc == pedido_proc.id_proc)]
+
+        if id_unidade:
+            unidade: Unidade = Unidade.query.get(id_unidade)
+
+            infos['id_unidade'] = unidade.id_unidade
+            infos['nome_unidade'] = unidade.nome_unidade
+            infos['emails'] = unidade.conv_exames_emails
+
+            filtros_query.append((ConvExames.id_unidade == infos['id_unidade']))
+        
+        query_conv_exames = (
+            database.session.query(
+                ConvExames,
+                Empresa,
+                Unidade,
+                Exame,
+                Funcionario
+            )
+            .filter(*filtros_query)
+            .outerjoin(Empresa, Empresa.id_empresa == ConvExames.id_empresa)
+            .outerjoin(Unidade, Unidade.id_unidade == ConvExames.id_unidade)
+            .outerjoin(Exame, Exame.id_exame == ConvExames.id_exame)
+            .outerjoin(Funcionario, Funcionario.id_funcionario == ConvExames.id_funcionario)
+        )
+
+        df_conv_exames = pd.read_sql_query(sql=query_conv_exames.statement, con=database.session.bind)
+
+        if not df_conv_exames.empty:
+            infos['nome_arquivo'] = self.criar_relatorios(
+                df=df_conv_exames,
+                nome_empresa=infos['razao_social'],
+                nome_unidade=infos.get('nome_unidade', None),
+                data_origem=pedido_proc.data_criacao,
+                gerar_ppt=gerar_ppt,
+                filtro_status=filtro_status,
+                filtro_a_vencer=filtro_a_vencer
+            )
+
+            if infos['nome_arquivo'] and infos['emails']:
+                if testando:
+                    enviar_para: list[str] = ['gabrielsantos@grsnucleo.com.br']
+                else:
+                    enviar_para: list[str] = infos['emails'].split(';')
+
+                if id_unidade:
+                    assunto: str = f"Convocação de Exames Unidades - {infos['nome_unidade']}"
+                else:
+                    assunto: str = f"Convocação de Exames Empresas - {infos['razao_social']}"
+
+                try:
+                    EmailConnect.send_email(
+                        to_addr=enviar_para,
+                        reply_to=['gabrielsantos@grsnucleo.com.br', 'relacionamento@grsnucleo.com.br'],
+                        message_subject=assunto,
+                        message_body=corpo_email,
+                        message_imgs=[EmailConnect.ASSINATURA_BOT],
+                        message_attachments=[infos['nome_arquivo']]
+                    )
+
+                    # registrar envio
+                    log_email = EmailConnect(
+                        email_to = ','.join(enviar_para),
+                        email_subject = assunto,
+                        attachments = infos['nome_arquivo'],
+                        status = True,
+                        df_len = len(df_conv_exames),
+                        ped_proc = pedido_proc.id_proc,
+                        email_date = datetime.now(tz=TIMEZONE_SAO_PAULO)
+                    )
+                    database.session.add(log_email)
+
+                    infos['status'] = 'OK'
+                    pedido_proc.obs = 'OK'
+                    pedido_proc.relatorio_enviado = True
+                    database.session.commit()
+                except Exception as erro:
+                    log_email = EmailConnect(
+                        email_to = ','.join(enviar_para),
+                        email_subject = assunto,
+                        attachments = infos['nome_arquivo'],
+                        status = False,
+                        error = type(erro).__name__,
+                        df_len = len(df_conv_exames),
+                        ped_proc = pedido_proc.id_proc,
+                        email_date = datetime.now(tz=TIMEZONE_SAO_PAULO)
+                    )
+                    database.session.add(log_email)
+
+                    infos['status'] = 'Erro ao enviar email'
+                    pedido_proc.obs = 'Erro ao enviar email'
+                    database.session.commit()
+            else:
+                infos['status'] = 'Não enviado, Sem arquivo/Email'
+                pedido_proc.obs = 'Não enviado, Sem arquivo/Email'
+                database.session.commit()
+        else:
+            infos['status'] = 'Tabela ConvExames vazia'
+            infos['nome_arquivo'] = None
+            pedido_proc.obs = 'Tabela ConvExames vazia'
+            database.session.commit()
+
+
+        infos['tempo_execucao'] = int(time.time() - start)
+
+        return infos
+

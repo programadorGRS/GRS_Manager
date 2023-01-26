@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container justify-content-center d-flex mt-2 mb-2">
+    <div class="card p-4">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <div class="d-flex">
+                <legend>Criar Pedido</legend>
+                <img src="{{ url_for('static', filename='images/grs/logo_grs.png') }}" alt="Icone GRS" height="30px" width="70px">
+            </div>
+            <fieldset>
+                <!-- seq_ficha cod funcionario -->
+                <div class="d-flex justify-content-between">
+                    <!-- seq ficha -->
+                    <div class="form-group w-49">
+                        {{ form.seq_ficha.label(class="form-control-label") }}
+                        {% if form.seq_ficha.errors %}
+                            {{ form.seq_ficha(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.seq_ficha.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.seq_ficha(class="form-control") }}
+                        {% endif %}
+                    </div>
+                    <!-- cod_funcionario -->
+                    <div class="form-group w-49">
+                        {{ form.cod_funcionario.label(class="form-control-label") }}
+                        {% if form.cod_funcionario.errors %}
+                            {{ form.cod_funcionario(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.cod_funcionario.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                            {% else %}
+                                {{ form.cod_funcionario(class="form-control") }}
+                            {% endif %}
+                    </div>
+                </div>
+                <!-- nome cpf -->
+                <div class="d-flex justify-content-between">
+                    <!-- cpf -->
+                    <div class="form-group w-49">
+                        {{ form.cpf.label(class="form-control-label") }}
+                        {% if form.cpf.errors %}
+                            {{ form.cpf(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.cpf.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.cpf(class="form-control") }}
+                        {% endif %}
+                    </div>
+                    <!-- nome_funcionario -->
+                    <div class="form-group w-49">
+                        {{ form.nome_funcionario.label(class="form-control-label") }}
+                        {% if form.nome_funcionario.errors %}
+                            {{ form.nome_funcionario(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.nome_funcionario.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.nome_funcionario(class="form-control") }}
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- data ficha tipo exame -->
+                <div class="d-flex justify-content-between">
+                    <!-- data ficha -->
+                    <div class="form-group w-49">
+                        {{ form.data_ficha.label(class="form-control-label") }}
+                        {% if form.data_ficha.errors %}
+                            {{ form.data_ficha(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.data_ficha.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.data_ficha(class="form-control") }}
+                        {% endif %}
+                    </div>
+                    <!-- tipo exame -->
+                    <div class="form-group w-49">
+                    {{ form.tipo_exame.label(class="form-control-label") }}
+                    {% if form.tipo_exame.errors %}
+                        {{ form.tipo_exame(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                            {% for erro in form.tipo_exame.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                            </div>
+                    {% else %}
+                        {{ form.tipo_exame(class="form-control") }}
+                    {% endif %}
+                </div>
+                </div>
+                <!-- prazo prev lib -->
+                <div class="d-flex justify-content-between">
+                    <!-- prazo -->
+                    <div class="form-group w-49">
+                        {{ form.prazo.label(class="form-control-label") }}
+                        {% if form.prazo.errors %}
+                            {{ form.prazo(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.prazo.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.prazo(class="form-control") }}
+                        {% endif %}
+                    </div>
+                    <!-- prev liberacao -->
+                    <div class="form-group w-49">
+                        {{ form.prev_liberacao.label(class="form-control-label") }}
+                        {% if form.prev_liberacao.errors %}
+                            {{ form.prev_liberacao(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.prev_liberacao.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.prev_liberacao(class="form-control") }}
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- EMPRESA -->
+                <div class="form-group">
+                    {{ form.empresa.label(class="form-control-label") }}
+                    {% if form.empresa.errors %}
+                        {{ form.empresa(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.empresa.errors %}
+                            {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.empresa(class="form-control") }}
+                    {% endif %}
+                </div>
+                <!-- UNIDADE -->
+                <div class="form-group">
+                    {{ form.unidade.label(class="form-control-label") }}
+                    {% if form.unidade.errors %}
+                        {{ form.unidade(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.unidade.errors %}
+                            {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.unidade(class="form-control") }}
+                    {% endif %}
+                </div>
+                <!-- PRESTADOR -->
+                <div class="form-group">
+                    {{ form.prestador.label(class="form-control-label") }}
+                    {% if form.prestador.errors %}
+                        {{ form.prestador(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.prestador.errors %}
+                            {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.prestador(class="form-control") }}
+                    {% endif %}
+                </div>
+                <!-- status data rec -->
+                <div class="d-flex justify-content-between">
+                    <!-- STATUS -->
+                    <div class="form-group w-49">
+                        {{ form.status.label(class="form-control-label") }}
+                        {% if form.status.errors %}
+                            {{ form.status(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.status.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.status(class="form-control") }}
+                        {% endif %}
+                    </div>
+                    <!-- data recebido -->
+                    <div class="form-group w-49">
+                        {{ form.data_recebido.label(class="form-control-label") }}
+                        {% if form.data_recebido.errors %}
+                            {{ form.data_recebido(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.data_recebido.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.data_recebido(class="form-control") }}
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- obs -->
+                <div class="form-group">
+                    {{ form.obs.label(class="form-control-label") }}
+                    {% if form.obs.errors %}
+                        {{ form.obs(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                            {% for erro in form.obs.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                            </div>
+                    {% else %}
+                        {{ form.obs(class="form-control") }}
+                    {% endif %}
+                </div>
+            </fieldset>
+            <!-- BOTAO -->
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="btn btn-success text-nowrap mt-2" id="botao_salvar" name="botao_salvar" type="submit" value="Salvar">
+                    <span class="material-icons align-middle">save</span> Salvar
+                </button>
+            </div>
+            <script>
+                let empresa_select = document.getElementById('empresa');
+                let unidade_select = document.getElementById('unidade');
+
+                window.onload = function() {
+                    unidade_select.innerHTML = '<option value="">Selecione</option>';
+                }
+
+                empresa_select.onchange = function() {
+                    empresa = empresa_select.value;
+                    if (empresa == '') {
+                        unidade_select.innerHTML = '<option value="">Selecione</option>';
+                    } else {
+                        fetch('/fetch_unidades/' + empresa).then(function(response) {
+                            response.json().then(function(data){
+                                let optionHTML = '<option value="">Selecione</option>';
+        
+                                for (let unidade of data.unidades) {
+                                    optionHTML += '<option value="' + unidade.id_unidade + '">' + unidade.nome_unidade + '</option>';
+                                }
+                                unidade_select.innerHTML = optionHTML;
+                            });
+                        });
+                    }
+                }
+            </script>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

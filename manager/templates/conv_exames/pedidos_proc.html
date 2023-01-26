@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container">
+    <h1>Pedidos de Processamento Assincrono</h1>
+    <div class="accordion my-2" id="accordion01">
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                    <b>Como funciona</b>
+                </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordion01">
+                <div class="accordion-body">
+                    <p>1. A solicitação do processamento é realizada através do Web Service Solicitação de Processamento Assíncrono, informando a empresa, tipo de processamento desejado e respectivos parâmetros.</p>
+                    <p>2. A solicitação é adicionada à fila, para que sejam executados a partir da <b>01h00 do dia subsequente</b>.</p>
+                    <p>3. O SOC retorna o <b>código do processamento</b>, o qual será resultado_importado para a consulta dos dados processados.</p>
+                    <p>Referência:</p>
+                    <p>SOC: 280 - Manual de Procedimentos > 156.1 Processamento Assíncrono</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h5>Qtd Pedidos: {{ qtd }}</h5>
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th scope="col">Id</th>
+                <th scope="col">Cód. Proc</th>
+                <th scope="col">Cód. Empresa</th>
+                <th scope="col">Data Criação</th>
+                <th scope="col">Importado</th>
+                <th scope="col">relatorio_enviado</th>
+                <th scope="col">Relatórios</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ped_proc in lista_pedidos_proc %}
+                <tr>
+                    <td>{{ ped_proc.id_proc }}</td>
+                    <td>{{ ped_proc.cod_solicitacao }}</td>
+                    <td>{{ ped_proc.cod_empresa }}</td>
+                    <td>{{ ped_proc.data_criacao.strftime('%d/%m/%Y') }}</td>
+                    <td>
+                        {% if ped_proc.resultado_importado %}
+                            <span class="material-icons align-middle">done</span> <span style="color:green; font-weight:bold">Sim</span> <br>
+                        {% else %}
+                            <span class="material-icons align-middle">close</span> <span style="color:red; font-weight:bold">Não</span> <br>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ped_proc.relatorio_enviado %}
+                            <span class="material-icons align-middle">done</span> <span style="color:green; font-weight:bold">Sim</span> <br>
+                        {% else %}
+                            <span class="material-icons align-middle">close</span> <span style="color:red; font-weight:bold">Não</span> <br>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('ped_proc_gerar_relatorio', id_proc=ped_proc.id_proc) }}">
+                            <button type="button" class="btn btn-primary text-nowrap" style="width: fit-content;">
+                                <span class="material-icons align-middle">download</span> Relatórios
+                            </button>
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
+{% endblock %}
