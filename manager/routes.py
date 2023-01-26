@@ -7,14 +7,14 @@ from random import randint
 from time import sleep
 
 import pandas as pd
-from flask import (abort, flash, redirect, render_template,
-                   request, send_from_directory, session, url_for)
+from flask import (abort, flash, redirect, render_template, request,
+                   send_from_directory, session, url_for)
 from flask_login import (confirm_login, current_user, fresh_login_required,
                          login_fresh, login_required, login_user, logout_user)
 from flask_mail import Attachment, Message
 from pytz import timezone
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy import delete, insert
+from sqlalchemy.exc import IntegrityError
 
 from manager import UPLOAD_FOLDER, app, bcrypt, database, mail
 from manager.email import corpo_email_otp
@@ -23,26 +23,14 @@ from manager.forms import (FormAlterarChave, FormAlterarSenha,
                            FormCriarStatus, FormEditarPerfil,
                            FormGrupoPrestadores, FormLogAcoes, FormLogin,
                            FormOTP)
-from manager.models import (Empresa, Grupo, LogAcoes, Login,
-                            Prestador, Status, TipoUsuario, Usuario,
-                            grupo_empresa,
+from manager.models import (Empresa, Grupo, LogAcoes, Login, Prestador, Status,
+                            TipoUsuario, Usuario, grupo_empresa,
                             grupo_prestador, grupo_usuario)
 from manager.models_socnet import EmpresaSOCNET, grupo_empresa_socnet
 from manager.utils import admin_required, is_safe_url, zipar_arquivos
 
 # TODO: verificar duplicidade de pedidos
-# TODO: incluir colunas de grupo no relatorio de ASOs
-
-# TODO: criar pag para emitir relatorios de absenteismo no site (igual aos exames realizados)
-
-# TODO: incluir funcao para atualizar os pedidos SOCNET que ja existem quando a planilha for inserida
-
 # TODO: refazer telas de associacao de Grupos (basear na route de prestadores)
-# TODO: incluir funcoes de tag prev liberacao para SOCNET
-# TODO: incluir funcao de atualizar status via CSV
-# TODO: incluir funcao do executavel de emails nao compareceu para o criador da ficha
-# TODO: criar tabela para registrar envios das convocacaoes de exames
-# TODO: criar tabela para registrar requests e responses entre Connect e SOC (eliminar necessidade de reports via email)
 
 # NOTE: ao importar modulos de fora do pacote "manager",
 # manter import dentro da funcao para evitar conflitos de importacao
@@ -592,31 +580,24 @@ def grupos_usuarios():
     form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
     
     if form.validate_on_submit():
-        selected = request.form.getlist(key='select', type=int)
-        to_include = [i for i in selected if i not in pre_selected]
-        to_remove = [i for i in pre_selected if i not in selected]
-       
-        if to_remove:
-            for i in to_remove:
-                try:
-                    member = Usuario.query.get(i)
-                    grupo.usuarios.remove(member)
-                    database.session.commit()
-                except ValueError:
-                    pass
-        
-        if to_include:
-            for i in to_include:
-                try:
-                    member = Usuario.query.get(i)
-                    grupo.usuarios.append(member)
-                    database.session.commit()
-                except ValueError:
-                    pass
-        
+        # reset current group
+        delete_query = database.session.execute(
+            delete(grupo_usuario).
+            where(grupo_usuario.c.id_grupo == grupo.id_grupo)
+        )
+
+        # insert all the selected objects
+        insert_items = [
+            {'id_grupo': grupo.id_grupo, 'id_usuario': i}
+            for i in request.form.getlist(key='select', type=int)
+        ]
+        insert_query = database.session.execute(
+            insert(grupo_usuario).
+            values(insert_items)
+        )
+
         grupo.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
         grupo.alterado_por = current_user.username
-        database.session.add(grupo)
         database.session.commit()
 
         # registrar acao
@@ -700,44 +681,37 @@ def grupos_prestadores():
 def grupos_empresas():
     grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
     
-    #  already in group
+    # already in group
     pre_selected = [i.id_empresa for i in grupo.empresas]
     
     # create form with pre selected values
     form = FormGrupoPrestadores(select=pre_selected)
     form.select.choices = [
         (i.id_empresa, i.razao_social)
-        for i in Empresa.query.order_by(Empresa.razao_social).all()
+        for i in Empresa.query.all()
     ]
     # sort choices by name, ascending
     form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
     
     if form.validate_on_submit():
-        selected = request.form.getlist(key='select', type=int)
-        to_include = [i for i in selected if i not in pre_selected]
-        to_remove = [i for i in pre_selected if i not in selected]
-    
-        if to_remove:
-            for i in to_remove:
-                try:
-                    member = Empresa.query.get(i)
-                    grupo.empresas.remove(member)
-                    database.session.commit()
-                except ValueError:
-                    pass
-    
-        if to_include:
-            for i in to_include:
-                try:
-                    member = Empresa.query.get(i)
-                    grupo.empresas.append(member)
-                    database.session.commit()
-                except ValueError:
-                    pass
+        # reset current group
+        delete_query = database.session.execute(
+            delete(grupo_empresa).
+            where(grupo_empresa.c.id_grupo == grupo.id_grupo)
+        )
+
+        # insert all the selected objects
+        insert_items = [
+            {'id_grupo': grupo.id_grupo, 'id_empresa': i}
+            for i in request.form.getlist(key='select', type=int)
+        ]
+        insert_query = database.session.execute(
+            insert(grupo_empresa).
+            values(insert_items)
+        )
 
         grupo.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
         grupo.alterado_por = current_user.username
-        database.session.add(grupo)
         database.session.commit()
 
         # registrar acao

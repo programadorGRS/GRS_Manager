@@ -9,6 +9,7 @@ from flask import (flash, redirect, render_template, request,
 from flask_login import current_user, login_required
 from flask_mail import Attachment, Message
 from pytz import timezone
+from sqlalchemy import delete, insert
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
@@ -23,7 +24,8 @@ from manager.forms_socnet import (FormBuscarPedidoSOCNET,
                                   FormEditarPedidoSOCNET, FormUpload)
 from manager.models import (EmpresaPrincipal, Grupo, LogAcoes, Prestador,
                             Status, StatusLiberacao, TipoExame)
-from manager.models_socnet import EmpresaSOCNET, PedidoSOCNET
+from manager.models_socnet import (EmpresaSOCNET, PedidoSOCNET,
+                                   grupo_empresa_socnet)
 from manager.utils import admin_required
 
 # NOTE: ainda nao e possivel implantar as funcoes de prvisao de liberacao e tag_prev_liberacao \
@@ -748,7 +750,7 @@ def excluir_empresa_socnet():
 def grupos_empresas_socnet():
     grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
     
-    #  already in group
+    # already in group
     pre_selected = [i.id_empresa for i in grupo.empresas_socnet]
     
     # create form with pre selected values
@@ -761,31 +763,24 @@ def grupos_empresas_socnet():
     form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
     
     if form.validate_on_submit():
-        selected = request.form.getlist(key='select', type=int)
-        to_include = [i for i in selected if i not in pre_selected]
-        to_remove = [i for i in pre_selected if i not in selected]
-    
-        if to_remove:
-            for i in to_remove:
-                try:
-                    member = EmpresaSOCNET.query.get(i)
-                    grupo.empresas_socnet.remove(member)
-                    database.session.commit()
-                except ValueError:
-                    pass
-    
-        if to_include:
-            for i in to_include:
-                try:
-                    member = EmpresaSOCNET.query.get(i)
-                    grupo.empresas_socnet.append(member)
-                    database.session.commit()
-                except ValueError:
-                    pass
+        # reset current group
+        delete_query = database.session.execute(
+            delete(grupo_empresa_socnet).
+            where(grupo_empresa_socnet.c.id_grupo == grupo.id_grupo)
+        )
+
+        # insert all the selected objects
+        insert_items = [
+            {'id_grupo': grupo.id_grupo, 'id_empresa': i}
+            for i in request.form.getlist(key='select', type=int)
+        ]
+        insert_query = database.session.execute(
+            insert(grupo_empresa_socnet).
+            values(insert_items)
+        )
 
         grupo.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
         grupo.alterado_por = current_user.username
-        database.session.add(grupo)
         database.session.commit()
 
         # registrar acao
