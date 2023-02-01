@@ -8,12 +8,20 @@ if __name__ == '__main__':
 
     import pandas as pd
 
-    from manager import TIMEZONE_SAO_PAULO
+    from manager import TIMEZONE_SAO_PAULO, database
     from manager.email_connect import EmailConnect
     from manager.models import Empresa
-    from manager.modules.conv_exames.models import PedidoProcessamento
+    from manager.modules.conv_exames.models import PedidoProcessamento, ConvExames
 
 
+    # deletar pedidos anteriores
+    PedidoProcessamento.query.delete()
+    # deletar Convocacoes anteriores
+    ConvExames.query.delete()
+    database.session.commit()
+
+
+    # criar pedidos novos
     empresas: list[Empresa] = Empresa.query.all()
 
     responses: list[dict] = []
