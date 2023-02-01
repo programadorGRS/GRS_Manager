@@ -61,7 +61,7 @@
                     {% else %}
                         {{ form.empresa(class="form-control") }}
                     {% endif %}
-                </div>                
+                </div>
                 <!-- UNIDADE -->
                 <div class="form-group">
                     {{ form.unidade.label(class="form-control-label") }}
@@ -92,16 +92,16 @@
                 </div>
                 <!-- EMAILS -->
                 <div class="form-group">
-                    {{ form.emails.label(class="form-control-label") }}
-                    {% if form.emails.errors %}
-                        {{ form.emails(class="form-control is-invalid") }}
+                    {{ form.emails_conv_exames.label(class="form-control-label") }}
+                    {% if form.emails_conv_exames.errors %}
+                        {{ form.emails_conv_exames(class="form-control is-invalid") }}
                         <div class="invalid-feedback">
-                            {% for erro in form.emails.errors %}
+                            {% for erro in form.emails_conv_exames.errors %}
                                 {{ erro }}
                             {% endfor %}
                         </div>
                     {% else %}
-                        {{ form.emails(class="form-control") }}
+                        {{ form.emails_conv_exames(class="form-control") }}
                     {% endif %}
                 </div>
                 <!-- disclaimer -->

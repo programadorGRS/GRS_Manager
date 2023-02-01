@@ -370,7 +370,7 @@ class FormManservAtualiza(FlaskForm):
     empresa = SelectField('Empresa', choices=[], validators=[DataRequired()], render_kw={'onchange': "carregarOpcoesUnidadePublic('cod_empresa_principal', 'empresa', 'unidade')"})
     unidade = SelectField('Unidade', choices=[], validators=[DataRequired()], coerce=int, validate_choice=False)
     nome = StringField('Nome', validators=[DataRequired(), Length(0, 255)])
-    emails = StringField('E-mails  (Se houver mais de 1 email separar por ";")', validators=[DataRequired(), Length(0, 500)])
+    emails_conv_exames = StringField('E-mails (se houver mais de um separar por ";")', validators=[DataRequired(), Length(0, 500)])
     disclaimer = BooleanField('Declaração', validators=[DataRequired()])
     botao_salvar = SubmitField('Enviar')
 

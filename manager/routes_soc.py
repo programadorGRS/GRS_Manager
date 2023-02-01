@@ -1107,9 +1107,13 @@ def unidades_atualizar_emails_manserv():
     )
 
     if form.validate_on_submit():
-        unidade = Unidade.query.get(int(form.unidade.data))
+        unidade: Unidade = Unidade.query.get(int(form.unidade.data))
 
-        unidade.emails = unidade.emails + ';' + tratar_emails(form.emails.data)
+        if unidade.conv_exames_emails:
+            unidade.conv_exames_emails = unidade.conv_exames_emails + ';' + tratar_emails(form.emails_conv_exames.data)
+        else:
+            unidade.conv_exames_emails = tratar_emails(form.emails_conv_exames.data)
+
         unidade.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
         unidade.alterado_por = f'Guest/Cliente: {form.nome.data}'
         database.session.commit()
@@ -1123,7 +1127,7 @@ def unidades_atualizar_emails_manserv():
             username=f'Guest/Cliente: {form.nome.data}'
         )
 
-        flash(f'Dados enviados com sucesso! {form.nome.data}: {form.emails.data}', 'alert-success')
+        flash(f'Dados enviados com sucesso! {form.nome.data} - {unidade.nome_unidade}', 'alert-success')
         return redirect(url_for('unidades_atualizar_emails_manserv'))
 
     return render_template(
