@@ -71,6 +71,9 @@ def get_token():
 def get_pedido():
     seq_ficha = request.args.get(key='seq_ficha', type=int)
 
+    if not seq_ficha:
+        return {"message": "Providencie seq_ficha (Integer)"}, 400 # bad request
+
     pedido = Pedido.query.filter_by(seq_ficha=seq_ficha).first()
 
     if pedido:
@@ -116,6 +119,11 @@ def patch_pedido():
     id_status = request.args.get(key='id_status', type=int)
     data_recebido = request.args.get(key='data_recebido', type=str)
     obs = request.args.get(key='obs', type=str)
+
+    if not seq_ficha:
+        return {"message": "seq_ficha é obrigatório (Integer)"}, 400 # bad request
+    if not id_status:
+        return {"message": "id_status é obrigatório (Integer)"}, 400 # bad request
 
     pedido = Pedido.query.filter_by(seq_ficha=seq_ficha).first()
 
