@@ -15,6 +15,7 @@ from flask_mail import Attachment, Message
 from pytz import timezone
 from sqlalchemy import delete, insert
 from sqlalchemy.exc import IntegrityError
+from werkzeug.exceptions import HTTPException
 
 from manager import UPLOAD_FOLDER, app, bcrypt, database, mail
 from manager.email import corpo_email_otp
@@ -29,7 +30,6 @@ from manager.models import (Empresa, Grupo, LogAcoes, Login, Prestador, Status,
 from manager.models_socnet import EmpresaSOCNET, grupo_empresa_socnet
 from manager.utils import admin_required, is_safe_url, zipar_arquivos
 
-# TODO: verificar duplicidade de pedidos
 
 # NOTE: ao importar modulos de fora do pacote "manager",
 # manter import dentro da funcao para evitar conflitos de importacao
@@ -1048,7 +1048,7 @@ def erro404(erro):
 
 
 @app.errorhandler(Exception)
-def erro500(erro):
+def internalExceptions(erro):
     if current_user.is_authenticated:
         return render_template(
             'erro.html',
@@ -1058,4 +1058,11 @@ def erro500(erro):
             texto_erro=traceback.format_exc()
         ), 500
     else:
-        return {"message": "Erro interno"}, 500
+        return {"message": "Internal Server Error"}, 500
+
+
+@app.errorhandler(HTTPException)
+def httpExeptions(error: HTTPException):
+    """Return JSON instead of HTML for HTTP errors."""
+    return {"message": error.name}, error.code
+
