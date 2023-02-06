@@ -727,6 +727,9 @@ def criar_empresa():
             cnpj=form.cnpj.data,
             uf=form.uf.data,
             emails=form.emails.data,
+            conv_exames_emails=form.emails_conv_exames.data,
+            absenteismo_emails=form.emails_absenteismo.data,
+            exames_realizados_emails=form.emails_exames_realizados.data,
             conv_exames=form.conv_exames.data,
             ativo=form.ativo.data,
             data_inclusao=dt.datetime.now(tz=timezone('America/Sao_Paulo')),
@@ -753,7 +756,7 @@ def criar_empresa():
 @login_required
 def editar_empresa():
     # query empresa da pag atual
-    empresa = Empresa.query.get(request.args.get(key='id_empresa', type=int))
+    empresa: Empresa = Empresa.query.get(request.args.get(key='id_empresa', type=int))
 
     form = FormEditarEmpresa(
         cod_empresa_principal = empresa.cod_empresa_principal,
@@ -764,6 +767,9 @@ def editar_empresa():
         cnpj = empresa.cnpj,
         uf = empresa.uf,
         emails = empresa.emails,
+        emails_conv_exames = empresa.conv_exames_emails,
+        emails_absenteismo = empresa.absenteismo_emails,
+        emails_exames_realizados = empresa.exames_realizados_emails,
         ativo = empresa.ativo,
         conv_exames = empresa.conv_exames,
         data_inclusao = empresa.data_inclusao,
@@ -786,6 +792,9 @@ def editar_empresa():
         empresa.cnpj = form.cnpj.data
         empresa.uf = form.uf.data
         empresa.emails = form.emails.data
+        empresa.conv_exames_emails = form.emails_conv_exames.data
+        empresa.absenteismo_emails = form.emails_absenteismo.data
+        empresa.exames_realizados_emails = form.emails_exames_realizados.data
         empresa.ativo = form.ativo.data
         empresa.conv_exames = form.conv_exames.data
 

@@ -1,6 +1,7 @@
 from flask import request
 from flask_wtf import FlaskForm, RecaptchaField
 from flask_wtf.file import FileAllowed, FileField, FileRequired
+from manager.utils import tratar_emails
 from wtforms import (BooleanField, DateField, DateTimeField, FileField,
                      IntegerField, PasswordField, SelectField,
                      SelectMultipleField, StringField, SubmitField, TelField,
@@ -30,6 +31,9 @@ class FormCriarEmpresa(FlaskForm):
     cnpj = StringField('CNPJ (Opcional)', validators=[Length(0, 100), Optional()])
     uf = StringField('UF (Opcional)', validators=[Length(0, 4), Optional()])
     emails = StringField('E-mails (Opcional)', validators=[Length(0, 500)])
+    emails_conv_exames = StringField('E-mails Convocação Exames (Opcional)', validators=[Length(0, 500)])
+    emails_absenteismo = StringField('E-mails Absenteísmo (Opcional)', validators=[Length(0, 500)])
+    emails_exames_realizados = StringField('E-mails Exames Realizados (Opcional)', validators=[Length(0, 500)])
     ativo = BooleanField('Ativo')
     conv_exames = BooleanField('Conv. de Exames')
     
@@ -49,21 +53,14 @@ class FormCriarEmpresa(FlaskForm):
         )
         if empresa:
             raise ValidationError('Já existe uma empresa com esse código')
-    
-    def validate_emails(self, emails):
-        try:
-            emails_str = str(emails.data)
-            emails_str = emails_str.replace(',', ';')
-            emails_str = emails_str.replace(' ', '')
-            emails_str = emails_str.lower()
-            emails_str = emails_str.split(';')
 
-            for indice, email in enumerate(emails_str):
-                if not email:
-                    emails_str.pop(indice)
-            emails.data = ';'.join(emails_str)
-        except:
-            raise ValidationError('Erro ao validar Emails')
+    def validate_emails(self, emails):
+        for field_name, field in self._fields.items():
+            if 'email' in field_name and field.type == 'StringField':
+                try:
+                    field.data = tratar_emails(field.data)
+                except:
+                    raise ValidationError('Erro ao validar Emails')
 
 
 class FormEditarEmpresa(FormCriarEmpresa):
