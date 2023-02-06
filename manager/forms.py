@@ -108,6 +108,9 @@ class FormCriarUnidade(FlaskForm):
     cnpj = StringField('CNPJ (Opcional)', validators=[Length(0, 100), Optional()])
     uf = StringField('UF (Opcional)', validators=[Length(0, 4), Optional()])
     emails = StringField('E-mails (Opcional)', validators=[Length(0, 500), Optional()])
+    emails_conv_exames = StringField('E-mails Convocação Exames (Opcional)', validators=[Length(0, 500)])
+    emails_absenteismo = StringField('E-mails Absenteísmo (Opcional)', validators=[Length(0, 500)])
+    emails_exames_realizados = StringField('E-mails Exames Realizados (Opcional)', validators=[Length(0, 500)])
     ativo = BooleanField('Ativo')
     conv_exames = BooleanField('Conv. de Exames')
     

@@ -965,6 +965,9 @@ def criar_unidade():
             cnpj=form.cnpj.data,
             uf=form.uf.data,
             emails=form.emails.data,
+            conv_exames_emails=form.emails_conv_exames.data,
+            absenteismo_emails=form.emails_absenteismo.data,
+            exames_realizados_emails=form.emails_exames_realizados.data,
             ativo=form.ativo.data,
             conv_exames=form.conv_exames.data,
             data_inclusao=dt.datetime.now(tz=timezone('America/Sao_Paulo')),
@@ -994,7 +997,7 @@ def criar_unidade():
 @app.route('/unidades/editar', methods=['GET', 'POST'])
 @login_required
 def editar_unidade():
-    unidade = Unidade.query.get(request.args.get(key='id_unidade', type=int))
+    unidade: Unidade = Unidade.query.get(request.args.get(key='id_unidade', type=int))
 
     form = FormEditarUnidade(
         cod_empresa_principal=unidade.cod_empresa_principal,
@@ -1006,6 +1009,9 @@ def editar_unidade():
         cnpj=unidade.cnpj,
         uf=unidade.uf,
         emails=unidade.emails,
+        emails_conv_exames = unidade.conv_exames_emails,
+        emails_absenteismo = unidade.absenteismo_emails,
+        emails_exames_realizados = unidade.exames_realizados_emails,
         ativo=unidade.ativo,
         conv_exames=unidade.conv_exames,
         data_inclusao=unidade.data_inclusao,
@@ -1037,6 +1043,9 @@ def editar_unidade():
         unidade.nome_unidade = form.nome_unidade.data
         unidade.ativo = form.ativo.data
         unidade.emails = form.emails.data
+        unidade.conv_exames_emails = form.emails_conv_exames.data
+        unidade.absenteismo_emails = form.emails_absenteismo.data
+        unidade.exames_realizados_emails = form.emails_exames_realizados.data
         unidade.conv_exames = form.conv_exames.data
 
         unidade.cod_rh = form.cod_rh.data
