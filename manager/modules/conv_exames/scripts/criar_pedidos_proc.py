@@ -14,10 +14,10 @@ if __name__ == '__main__':
     from manager.modules.conv_exames.models import PedidoProcessamento, ConvExames
 
 
-    # deletar pedidos anteriores
-    PedidoProcessamento.query.delete()
     # deletar Convocacoes anteriores
     ConvExames.query.delete()
+    # deletar pedidos anteriores
+    PedidoProcessamento.query.delete()
     database.session.commit()
 
 
