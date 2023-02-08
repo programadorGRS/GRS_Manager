@@ -34,8 +34,8 @@ class FormCriarEmpresaSOCNET(FlaskForm):
     def validate_cod_empresa(self, cod_empresa):
         empresa = (
             database.session.query(EmpresaSOCNET)
-            .filter(EmpresaSOCNET.cod_empresa_principal == self.cod_empresa_principal.data)
-            .filter(EmpresaSOCNET.cod_empresa_referencia == self.cod_empresa_referencia.data)
+            .filter(EmpresaSOCNET.cod_empresa_principal == int(self.cod_empresa_principal.data))
+            .filter(EmpresaSOCNET.cod_empresa_referencia == int(self.cod_empresa_referencia.data))
             .filter(EmpresaSOCNET.cod_empresa == cod_empresa.data)
             .first()
         )
@@ -55,8 +55,8 @@ class FormEditarEmpresaSOCNET(FormCriarEmpresaSOCNET):
         # verificar se cod inputado e diferente do cod original da empresa
         if (
             empresa_x.cod_empresa != cod_empresa.data or
-            empresa_x.cod_empresa_principal != self.cod_empresa_principal.data or
-            empresa_x.cod_empresa_referencia != self.cod_empresa_referencia.data
+            empresa_x.cod_empresa_principal != int(self.cod_empresa_principal.data) or
+            empresa_x.cod_empresa_referencia != int(self.cod_empresa_referencia.data)
         ):
             empresa_y = (
                 database.session.query(EmpresaSOCNET)
