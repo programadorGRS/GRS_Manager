@@ -508,3 +508,15 @@ class FormImportarDados(FlaskForm):
         ]
     )
     btn_upload = SubmitField('Upload')
+
+
+class FormPedidoBulkUpdate(FlaskForm):
+    csv = FileField(
+        'Escolher arquivo',
+        validators=[
+            FileRequired(),
+            FileAllowed(['csv'], message='Apenas arquivos CSV')
+        ]
+    )
+    btn_upload = SubmitField('Upload')
+

@@ -20,11 +20,28 @@
                                         <span class="material-icons align-middle">arrow_right</span>
                                     </a>
                                     <ul class="dropdown-menu">
-
-                                        <li>
-                                            <a class="dropdown-item" href="{{ url_for('busca') }}">
-                                                <span class="material-icons align-middle">manage_search</span> Busca - ASO
+                                        
+                                        <!-- ASO -->
+                                        <li class="dropdown-submenu">
+                                            <a class="drop dropdown-item" href="#">
+                                                <span class="material-icons align-middle">task</span> 
+                                                ASO 
+                                                <span class="material-icons align-middle">arrow_right</span>
                                             </a>
+
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ url_for('busca') }}">
+                                                        <span class="material-icons align-middle">manage_search</span> Buscar ASO
+                                                    </a>
+                                                </li>
+        
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ url_for('pedidos_bulk_update') }}">
+                                                        <span class="material-icons align-middle">done_all</span> Atualizar em Massa (CSV)
+                                                    </a>
+                                                </li>
+                                            </ul>
                                         </li>
 
                                         <!-- CADASTROS   -->
@@ -86,13 +103,13 @@
                                                 <li>
                                                     <a class="dropdown-item" href="{{ url_for('carregar_pedidos') }}">
                                                         <span class="material-icons align-middle">sync</span> 
-                                                        Carregar pedidos (SOC)
+                                                        Carregar ASOs (SOC)
                                                     </a>
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item" href="{{ url_for('importar_dados_atualizar') }}">
                                                         <span class="material-icons align-middle">upload</span> 
-                                                        Atualizar tabelas
+                                                        Atualizar Tabelas
                                                     </a>
                                                 </li>
                                             </ul>
@@ -102,7 +119,7 @@
                                         <li class="dropdown-submenu">
                                             <a class="drop dropdown-item" href="#">
                                                 <span class="material-icons align-middle">fact_check</span>
-                                                Conv. de exames 
+                                                Conv. de Exames 
                                                 <span class="material-icons align-middle">arrow_right</span>
                                             </a>
                                             <ul class="dropdown-menu">
@@ -123,7 +140,7 @@
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item" href="{{ url_for('buscar_pedidos_proc') }}">
-                                                        <span class="material-icons align-middle">format_list_numbered_rtl</span> Pedidos processamento
+                                                        <span class="material-icons align-middle">format_list_numbered_rtl</span> Pedidos Processamento
                                                     </a>
                                                 </li>
                                             </ul>
@@ -161,7 +178,7 @@
                                     <ul class="dropdown-menu">
                                         <li>
                                             <a class="dropdown-item" href="{{ url_for('busca_socnet') }}">
-                                                <span class="material-icons align-middle">manage_search</span> Busca - ASO
+                                                <span class="material-icons align-middle">manage_search</span> Buscar ASO
                                             </a>
                                         </li>
 
@@ -185,7 +202,7 @@
                                         <li class="dropdown-submenu">
                                             <a class="drop dropdown-item" href="#">
                                                 <span class="material-icons align-middle">cloud_upload</span> 
-                                                Importar dados 
+                                                Importar Dados 
                                                 <span class="material-icons align-middle">arrow_right</span>
                                             </a>
 
@@ -197,7 +214,7 @@
                                                 </li>
                                                 <li>
                                                     <a class="dropdown-item" href="{{ url_for('carregar_pedidos_socnet') }}">
-                                                        <span class="material-icons align-middle">refresh</span> Carregar pedidos
+                                                        <span class="material-icons align-middle">refresh</span> Carregar ASOs
                                                     </a>
                                                 </li>
                                             </ul>
@@ -254,22 +271,22 @@
                             </li>
 							<li>
                                 <a class="dropdown-item" href="{{ url_for('editar_perfil', id_usuario=current_user.id_usuario) }}">
-                                    <span class="material-icons align-middle">badge</span> Editar perfil
+                                    <span class="material-icons align-middle">badge</span> Editar Perfil
                                 </a>
                             </li>
 							<li>
                                 <a class="dropdown-item" href="{{ url_for('alterar_senha', id_usuario=current_user.id_usuario) }}">
-                                    <span class="material-icons align-middle">lock</span> Alterar senha
+                                    <span class="material-icons align-middle">lock</span> Alterar Senha
                                 </a>
                             </li>
 							<li>
                                 <a class="dropdown-item" href="{{ url_for('alterar_chave', id_usuario=current_user.id_usuario) }}">
-                                    <span class="material-icons align-middle">vpn_key</span> Alterar chave API
+                                    <span class="material-icons align-middle">vpn_key</span> Alterar Chave API
                                 </a>
                             </li>
 							<li>
                                 <a class="dropdown-item" href="{{ url_for('config_usuario', id_usuario=current_user.id_usuario) }}">
-                                    <span class="material-icons align-middle">manage_accounts</span> Confirgurações
+                                    <span class="material-icons align-middle">manage_accounts</span> Configurações
                                 </a>
                             </li>
 							<li><hr class="dropdown-divider"></li>

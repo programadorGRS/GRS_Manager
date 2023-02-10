@@ -1672,7 +1672,6 @@ class Pedido(database.Model):
 
     # colunas para a planilha de pedidos
     colunas_planilha = [
-        'id_ficha',
         'cod_empresa_principal',
         'seq_ficha',
         'cpf',
@@ -1686,19 +1685,20 @@ class Pedido(database.Model):
         'prazo',
         'prev_liberacao',
         'nome_status_lib',
-        'data_recebido',
-        'obs',
         'cod_funcionario',
         'cod_tipo_exame',
         'cod_prestador',
         'cod_empresa',
         'cod_unidade',
-        'id_status',
         'id_status_lib',
         'data_inclusao',
         'data_alteracao',
         'incluido_por',
         'alterado_por',
+        'id_ficha',
+        'id_status',
+        'data_recebido',
+        'obs',
     ]
 
     # colunas para a tabela enviada no email

@@ -1,5 +1,4 @@
 import datetime as dt
-import re
 from io import StringIO
 from sys import getsizeof
 from xml.parsers.expat import ExpatError
@@ -10,10 +9,11 @@ from flask import (flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import current_user, login_required
 from flask_mail import Attachment, Message
+from pandas.errors import IntCastingNaNError
 from pytz import timezone
 from sqlalchemy.exc import IntegrityError
 
-from manager import UPLOAD_FOLDER, app, database, mail
+from manager import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app, database, mail
 from manager.email import corpo_email_padrao
 from manager.forms import (FormAtualizarStatus, FormBuscarASO,
                            FormBuscarEmpresa, FormBuscarExames,
@@ -24,7 +24,7 @@ from manager.forms import (FormAtualizarStatus, FormBuscarASO,
                            FormEditarExame, FormEditarPedido,
                            FormEditarPrestador, FormEditarUnidade,
                            FormEnviarEmails, FormImportarDados,
-                           FormManservAtualiza)
+                           FormManservAtualiza, FormPedidoBulkUpdate)
 from manager.models import (Empresa, EmpresaPrincipal, Exame, LogAcoes, Pedido,
                             Prestador, Status, StatusLiberacao, TipoExame,
                             Unidade)
@@ -1642,3 +1642,182 @@ def importar_dados_atualizar():
                         return redirect(url_for('importar_dados_atualizar'))
 
     return render_template('/importar_dados.html', title='GRS+Connect', form=form)
+
+
+# ATUALIZAR STATUS EM MASSA-----------------------------------------------------------
+@app.route('/pedidos/bulk_update', methods=['GET', 'POST'])
+@login_required
+def pedidos_bulk_update():
+    form = FormPedidoBulkUpdate()
+
+    lista_status: list[Status] = (
+        database.session.query(
+            Status.id_status, Status.nome_status
+        )
+        .all()
+    )
+
+    if form.validate_on_submit():
+        # ler arquivo
+        arqv = request.files['csv']
+        data = arqv.read().decode('iso-8859-1')
+
+        # tamnho maximo
+        max_size_mb = app.config['MAX_UPLOAD_SIZE_MB']
+        max_bytes = max_size_mb * 1024 * 1024
+
+        if getsizeof(data) <= max_bytes:
+            # ler string como objeto para csv
+            df: pd.DataFrame = pd.read_csv(
+                filepath_or_buffer=StringIO(data),
+                sep=';',
+                encoding='iso-8859-1',
+            )
+
+            colunas_permitidas = ['id_ficha', 'id_status', 'data_recebido', 'obs']
+            colunas_obrigatorias = ['id_ficha', 'id_status'] # integer not null
+            
+            # remover colunas inuteis
+            for col in df.columns:
+                if col not in colunas_permitidas:
+                    df.drop(columns=col, inplace=True)
+
+            # validar colunas obrigatorias
+            for col in colunas_obrigatorias:
+                if col in df.columns:
+                    try:
+                        df[col] = df[col].astype(int)
+                    except (IntCastingNaNError, ValueError):
+                        flash(f'A coluna {col} deve conter apenas números inteiros', 'alert-danger')
+                        return redirect(url_for('pedidos_bulk_update'))
+                else:
+                    flash(f'A coluna {col} é obrigatória', 'alert-danger')
+                    return redirect(url_for('pedidos_bulk_update'))
+
+            # validar status
+            status_validos: list[int] = [stt.id_status for stt in Status.query.all()]
+            status_invalidos: list[int] = []
+            for stt in df['id_status'].drop_duplicates():
+                if stt not in status_validos:
+                    status_invalidos.append(str(stt))
+
+            if status_invalidos:
+                flash(f'A coluna id_status contém Status inválidos. id_status: {", ".join(status_invalidos)}', 'alert-danger')
+                return redirect(url_for('pedidos_bulk_update'))
+
+            df.drop_duplicates(subset='id_ficha', inplace=True, ignore_index=True)
+            
+            # tratar col de datas, se houver
+            if 'data_recebido' in df.columns:
+                try:
+                    df['data_recebido'] = df['data_recebido'].astype(str)
+                    df['data_recebido'] = pd.to_datetime(df['data_recebido'], dayfirst=True).dt.date
+                    # remover pd.NaT, databases aceitam apenas None como valor nulo
+                    df['data_recebido'] = df['data_recebido'].astype(object).replace(pd.NaT, None)
+                except: # numero excessivo de exceptions para importar
+                    flash(f'A coluna data_recebido contém valores inválidos. Utilize o formato dd/mm/yyyy', 'alert-danger')
+                    return redirect(url_for('pedidos_bulk_update'))
+            
+            # tratar col str
+            if 'obs' in df.columns:
+                df['obs'] = df['obs'].astype(object).replace(np.nan, None)
+
+            # validar se pedidos existem
+            query_pedidos_db = (
+                database.session.query(Pedido.id_ficha, Pedido.prev_liberacao)
+                .filter(Pedido.id_ficha.in_(df['id_ficha']))
+            )
+            df_pedidos_db = pd.read_sql(query_pedidos_db.statement, con=database.session.bind)
+
+            inexistentes: list[str] = (
+                df[~df['id_ficha'].isin(df_pedidos_db['id_ficha'])]['id_ficha']
+                .astype(str)
+                .tolist()
+            )
+
+            df = df[df['id_ficha'].isin(df_pedidos_db['id_ficha'])]
+
+            # calcular tags
+            df = df.merge(df_pedidos_db, how='left', on='id_ficha')
+            df['id_status_lib'] = list(map(Pedido.calcular_tag_prev_lib, df['prev_liberacao']))
+
+            status_finaliza_processo: list[int] = (
+                database.session.query(Status.id_status)
+                .filter(Status.finaliza_processo == True)
+                .all()
+            )
+            status_finaliza_processo = [status.id_status for status in status_finaliza_processo]
+
+            df.loc[df['id_status'].isin(status_finaliza_processo), 'id_status_lib'] = 2 # tag ok
+
+            # registrar alterador
+            df['data_alteracao'] = dt.datetime.now(tz=TIMEZONE_SAO_PAULO)
+            df['alterado_por'] = current_user.username
+
+            # manter apenas colunas finais necessarias apos o tratamento do df
+            cols_finais = [
+                'id_ficha',
+                'id_status',
+                'id_status_lib',
+                'data_recebido',
+                'obs',
+                'data_alteracao',
+                'alterado_por'
+            ]
+            for col in df.columns:
+                if col not in cols_finais:
+                    df.drop(columns=col, inplace=True)
+
+            # commit update
+            df_dicts: list[dict[str, any]] = df.to_dict(orient='records')
+            database.session.bulk_update_mappings(Pedido, df_dicts)
+            database.session.commit()
+
+            flash(f'Pedidos atualizados com sucesso! Total: {len(df)}, Colunas: {", ".join(list(df.columns))}', 'alert-success')
+            if inexistentes:
+                flash(f'Alguns pedidos na planilha não foram encontrados no banco de dados. Total: {len(inexistentes)}, Ex: {", ".join(inexistentes[:6])}', 'alert-danger')
+
+            # logar acoes
+            query_acoes: list[Pedido] = (
+                database.session.query(
+                    Pedido.id_ficha,
+                    Pedido.nome_funcionario,
+                    Pedido.data_recebido,
+                    Pedido.obs,
+                    Pedido.id_status,
+                    Status.nome_status
+                )
+                .filter(Pedido.id_ficha.in_(df['id_ficha']))
+                .join(Status, Pedido.id_status == Status.id_status)
+                .all()
+            )
+
+            logs_acoes: list[dict[str, any]] = [
+                {
+                    'id_usuario': current_user.id_usuario,
+                    'username': current_user.username,
+                    'tabela': 'Pedido',
+                    'acao': 'Atualizar Status em Massa',
+                    'id_registro': pedido.id_ficha,
+                    'nome_registro': pedido.nome_funcionario,
+                    'obs': f'status_novo: {pedido.id_status}-{pedido.nome_status}, obs: {pedido.obs}, data_recebido: {pedido.data_recebido}',
+                    'data': dt.datetime.now(tz=TIMEZONE_SAO_PAULO).date(),
+                    'hora': dt.datetime.now(tz=TIMEZONE_SAO_PAULO).time()
+                } for pedido in query_acoes
+            ]
+
+            database.session.bulk_insert_mappings(LogAcoes, logs_acoes)
+            database.session.commit()
+
+            return redirect(url_for('pedidos_bulk_update'))
+        else:
+            flash(f'O arquivo deve ser menor que {max_size_mb} MB', 'alert-danger')
+            return redirect(url_for('pedidos_bulk_update'))
+
+    return render_template(
+        'pedido/bulk_update.html',
+        title='GRS+Connect',
+        form=form,
+        lista_status=lista_status
+    )
+
