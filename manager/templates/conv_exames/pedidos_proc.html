@@ -24,40 +24,42 @@
     </div>
 
     <h5>Qtd Pedidos: {{ qtd }}</h5>
-    <table class="table table-sm">
+    <table class="table table-sm table-striped small_font">
         <thead>
             <tr>
-                <th scope="col">Id</th>
-                <th scope="col">Cód. Proc</th>
-                <th scope="col">Cód. Empresa</th>
-                <th scope="col">Data Criação</th>
-                <th scope="col">Importado</th>
-                <th scope="col">relatorio_enviado</th>
+                <th scope="col">Pedido Proc</th>
+                <th scope="col">Empresa</th>
+                <th scope="col">Status</th>
+                <th scope="col" style="width: 20%;">Parâmetro</th>
+                <th scope="col">Obs</th>
                 <th scope="col">Relatórios</th>
             </tr>
         </thead>
         <tbody>
             {% for ped_proc in lista_pedidos_proc %}
                 <tr>
-                    <td>{{ ped_proc.id_proc }}</td>
-                    <td>{{ ped_proc.cod_solicitacao }}</td>
-                    <td>{{ ped_proc.cod_empresa }}</td>
-                    <td>{{ ped_proc.data_criacao.strftime('%d/%m/%Y') }}</td>
-                    <td>
-                        {% if ped_proc.resultado_importado %}
-                            <span class="material-icons align-middle">done</span> <span style="color:green; font-weight:bold">Sim</span> <br>
-                        {% else %}
-                            <span class="material-icons align-middle">close</span> <span style="color:red; font-weight:bold">Não</span> <br>
+                    <td style="white-space: nowrap;">
+                        ID: {{ped_proc.id_proc}} <br>
+                        Número do Pedido: <b>{{ped_proc.cod_solicitacao}}</b> <br>
+                        Data criação: <b>{{ped_proc.data_criacao.strftime('%d/%m/%Y')}}</b>
+                    </td>
+                    <td>{{ped_proc.empresa.razao_social}} <span class="fw-lighter">#{{ ped_proc.empresa.cod_empresa }}</span></td>
+                    <td style="white-space: nowrap;">
+                        Importado: 
+                        <b>{% if ped_proc.resultado_importado %}Sim{% else %}Não{% endif %}</b>
+                        <br>
+                        Relatório enviado: 
+                        <b>{% if ped_proc.relatorio_enviado %}Sim{% else %}Não{% endif %}</b>
+                    </td>
+                    <td style="font-size: 10px;">
+                        <div style="overflow:scroll; height: 50px">{{ped_proc.parametro}}</div>
+                    </td>
+                    <td class="align-middle">
+                        {% if ped_proc.obs %}
+                            <span class="material-icons" style="font-size: 14px;" data-bs-toggle="tooltip" data-bs-title="{{ped_proc.obs}}">info</span>
                         {% endif %}
                     </td>
-                    <td>
-                        {% if ped_proc.relatorio_enviado %}
-                            <span class="material-icons align-middle">done</span> <span style="color:green; font-weight:bold">Sim</span> <br>
-                        {% else %}
-                            <span class="material-icons align-middle">close</span> <span style="color:red; font-weight:bold">Não</span> <br>
-                        {% endif %}
-                    </td>
-                    <td>
+                    <td class="align-middle">
                         <a href="{{ url_for('ped_proc_gerar_relatorio', id_proc=ped_proc.id_proc) }}">
                             <button type="button" class="btn btn-primary text-nowrap" style="width: fit-content;">
                                 <span class="material-icons align-middle">download</span> Relatórios

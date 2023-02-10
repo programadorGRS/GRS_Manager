@@ -71,7 +71,7 @@ class PedidoProcessamento(database.Model):
         query = (
             database.session.query(self)
             .filter(*parametros)
-            .order_by(self.data_criacao, self.id_empresa)
+            .order_by(self.id_proc.desc(), self.id_empresa)
         )
         return query
     

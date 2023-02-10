@@ -396,6 +396,7 @@ class Empresa(database.Model):
     uf = database.Column(database.String(5))
     
     pedidos = database.relationship('Pedido', backref='empresa', lazy=True) # one to many
+    pedidos_proc = database.relationship('PedidoProcessamento', backref='empresa', lazy=True) # one to many
     grupo = database.relationship('Grupo', secondary=grupo_empresa, backref='empresas', lazy=True) # many to many
     unidades = database.relationship('Unidade', backref='empresa', lazy=True) # one to many
 
