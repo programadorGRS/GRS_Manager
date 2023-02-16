@@ -4,11 +4,13 @@ import jwt
 import numpy as np
 import pandas as pd
 from flask import jsonify, request
+from flask_sqlalchemy import BaseQuery
 from pytz import timezone
+from sqlalchemy import or_
 
 from manager import app, bcrypt, database
-from manager.models import (Empresa, Exame, Funcionario, LogAcoes, Pedido,
-                            Status, Unidade, Usuario)
+from manager.models import (Empresa, EmpresaPrincipal, Exame, Funcionario,
+                            LogAcoes, Pedido, Status, Unidade, Usuario)
 from manager.models_socnet import PedidoSOCNET
 from manager.modules.absenteismo.models import Licenca
 from manager.modules.conv_exames.models import ConvExames, PedidoProcessamento
@@ -324,72 +326,89 @@ def get_pedidos_data_socnet():
 
 
 # GET LICENCAS-----------------------------------------------------
-# TODO: refazer get licencas por empresa (igual a get conv_xames)
 @app.route('/get_licencas')
 @token_required
 def get_licencas():
+    id_empresa = request.args.get(key='id_empresa', type=int)
     data_inicio = request.args.get(key='data_inicio', type=str)
     data_fim = request.args.get(key='data_fim', type=str)
 
-    if data_inicio and data_fim:
-        try:
-            inicio = datetime.strptime(data_inicio, '%d-%m-%Y').date()
-            fim = datetime.strptime(data_fim, '%d-%m-%Y').date()
-        except ValueError:
-            return {"message": "Formato de data invalido, utilize dd-mm-yyyy"}, 400
-        
-        query = (
-            database.session.query(
-                Licenca,
-                Empresa,
-                Unidade,
-                Funcionario
-            )
-            .join(Empresa, Licenca.id_empresa == Empresa.id_empresa)
-            .join(Unidade, Licenca.id_unidade == Unidade.id_unidade)
-            .join(Funcionario, Licenca.id_funcionario == Funcionario.id_funcionario)
-            .filter(Licenca.data_inicio_licenca >= inicio)
-            .filter(Licenca.data_fim_licenca <= fim)
-        )
+    if not id_empresa or not data_inicio or not data_fim:
+        return {"message": "Os campos id_empresa (int), data_inicio e data_fim (str) sao obrigatorios"}, 400
 
-        dados = []
-        for linha in query:
-            dados.append({
-                'cod_empresa_principal': linha.Licenca.cod_empresa_principal,
-                'cod_empresa': linha.Empresa.cod_empresa,
-                'razao_social': linha.Empresa.razao_social,
-                'cod_unidade': linha.Unidade.cod_unidade,
-                'nome_unidade': linha.Unidade.nome_unidade,
-                'nome_setor': linha.Funcionario.nome_setor,
-                'nome_cargo': linha.Funcionario.nome_cargo,
-                'id_funcionario': linha.Funcionario.id_funcionario,
-                'situacao': linha.Funcionario.situacao,
-                'cod_funcionario': linha.Funcionario.cod_funcionario,
-                'nome_funcionario': linha.Funcionario.nome_funcionario,
-                'tipo_licenca': linha.Licenca.tipo_licenca,
-                'motivo_licenca': linha.Licenca.motivo_licenca,
-                'cod_cid': linha.Licenca.cod_cid,
-                'cid_contestado': linha.Licenca.cid_contestado,
-                'cid': linha.Licenca.cid,
-                'tipo_cid': linha.Licenca.tipo_cid,
-                'cod_medico': linha.Licenca.cod_medico,
-                'nome_medico': linha.Licenca.nome_medico,
-                'solicitante': linha.Licenca.solicitante,
-                'data_inclusao_licenca': str(linha.Licenca.data_inclusao_licenca),
-                'data_ficha': str(linha.Licenca.data_ficha),
-                'data_inicio_licenca': str(linha.Licenca.data_inicio_licenca) if linha.Licenca.data_inicio_licenca else None,
-                'data_fim_licenca': str(linha.Licenca.data_fim_licenca) if linha.Licenca.data_fim_licenca else None,
-                'dias_afastado': linha.Licenca.dias_afastado,
-                'afast_horas': linha.Licenca.afast_horas,
-                'periodo_afastado': linha.Licenca.periodo_afastado,
-                'hora_inicio_licenca': linha.Licenca.hora_inicio_licenca,
-                'hora_fim_licenca': linha.Licenca.hora_fim_licenca,
-                'abonado': linha.Licenca.abonado
-            })
-        
-        return jsonify(dados), 200
-    else:
-        return {"message": "Indique data_inicio e data_fim"}, 400
+    try:
+        inicio = datetime.strptime(data_inicio, '%d-%m-%Y').date()
+        fim = datetime.strptime(data_fim, '%d-%m-%Y').date()
+    except ValueError:
+        return {"message": "Formato de data invalido, utilize dd-mm-yyyy"}, 400
+    
+    query: BaseQuery = (
+        database.session.query(
+            Licenca,
+            EmpresaPrincipal.nome,
+            Empresa.cod_empresa,
+            Empresa.razao_social,
+            Unidade.cod_unidade,
+            Unidade.nome_unidade,
+            Funcionario.nome_setor,
+            Funcionario.nome_cargo,
+            Funcionario.id_funcionario,
+            Funcionario.cod_funcionario,
+            Funcionario.nome_funcionario,
+            Funcionario.situacao
+        )
+        .join(EmpresaPrincipal, Licenca.cod_empresa_principal == EmpresaPrincipal.cod)
+        .join(Empresa, Licenca.id_empresa == Empresa.id_empresa)
+        .join(Unidade, Licenca.id_unidade == Unidade.id_unidade)
+        .join(Funcionario, Licenca.id_funcionario == Funcionario.id_funcionario)
+        .filter(Empresa.id_empresa == id_empresa)
+        .filter(Licenca.data_inicio_licenca >= inicio)
+        .filter(or_(
+            Licenca.data_fim_licenca <= fim,
+            Licenca.data_fim_licenca == None
+        ))
+    )
+
+    dados: pd.DataFrame = pd.read_sql(sql=query.statement, con=database.session.bind)
+    dados = dados[[
+            'cod_empresa_principal',
+            'nome',
+            'cod_empresa',
+            'razao_social',
+            'cod_unidade',
+            'nome_unidade',
+            'nome_setor',
+            'nome_cargo',
+            'cod_funcionario',
+            'nome_funcionario',
+            'situacao',
+            'tipo_licenca',
+            'motivo_licenca',
+            'cod_cid',
+            'cid_contestado',
+            'cid',
+            'tipo_cid',
+            'cod_medico',
+            'nome_medico',
+            'solicitante',
+            'data_inclusao_licenca',
+            'data_ficha',
+            'data_inicio_licenca',
+            'data_fim_licenca',
+            'dias_afastado',
+            'afast_horas',
+            'periodo_afastado',
+            'hora_inicio_licenca',
+            'hora_fim_licenca',
+            'abonado'
+    ]]
+
+    for col in ['data_inclusao_licenca','data_ficha', 'data_inicio_licenca', 'data_fim_licenca']:
+        dados[col] = dados[col].astype(str).replace('None', None)
+
+    dados_json: list[dict[str, any]] = dados.to_dict(orient='records')
+
+    return jsonify(dados_json), 200
 
 
 # GET CONV EXAMES-----------------------------------------------------
