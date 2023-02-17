@@ -496,7 +496,7 @@ def get_conv_exames():
 @token_required
 def get_empresas():
 
-    query = database.session.query(Empresa.id_empresa, Empresa.razao_social)
+    query = database.session.query(Empresa.cod_empresa_principal, Empresa.id_empresa, Empresa.razao_social)
 
     df = pd.read_sql(sql=query.statement, con=database.session.bind)
 
