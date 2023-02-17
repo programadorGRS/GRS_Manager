@@ -4,7 +4,7 @@ import ssl
 from email.message import EmailMessage
 from email.utils import make_msgid
 
-from manager import TIMEZONE_SAO_PAULO, database
+from manager import database
 from manager.utils import get_json_configs
 
 
@@ -30,7 +30,8 @@ class EmailConnect(database.Model):
 
     # CONFIGS EMAIL------------------------------------------------------------------
     DEFAULT_SENDER: str = get_json_configs('configs/config_email.json')['MAIL_USERNAME']
-    EMAIL_PASSWORD: str = get_json_configs('configs/config_email.json')['MAIL_PASSWORD']
+    EMAIL_PASSWORD: str = get_json_configs('configs/config_email.json')['MAIL_PASSWORD'] # gmail
+    OUTLOOK_PASSWORD: str = get_json_configs('configs/config_email.json')['OUTLOOK_PASSWORD'] # office365
     ASSINATURA_BOT: dict[str, str] = {
         'img_path': 'manager/static/images/ass_bot2.png',
         'cid_placeholder': 'AssEmail'
@@ -53,7 +54,8 @@ class EmailConnect(database.Model):
         cc_addr: list[str] | None = None,
         bcc_addr: list[str] | None = None,
         reply_to: list[str] | None = None,
-        message_attachments: list[str] | None = None
+        message_attachments: list[str] | None = None,
+        use_outlook: bool = False
     ) -> None:
         """Envia email em plaintext ou html. Aceita imagens inline (HTML) e anexos.
 
@@ -142,15 +144,27 @@ class EmailConnect(database.Model):
 
 
         # ENVIAR
-        # Log in to server using secure context and send email
-        context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(host="smtp.gmail.com", port=465, context=context) as server:
-            server.login(user=from_addr, password=email_password)
-            server.send_message(
-                from_addr=from_addr,
-                to_addrs=to_addr,
-                msg=message
-            )
+        if use_outlook:
+            # using Office365
+            with smtplib.SMTP(host="smtp.office365.com", port=587) as server:
+                server.ehlo()
+                server.starttls()
+                server.login(user=from_addr, password=self.OUTLOOK_PASSWORD)
+                server.send_message(
+                    from_addr=from_addr,
+                    to_addrs=to_addr,
+                    msg=message
+                )
+        else:
+            # using Gmail
+            context = ssl.create_default_context()
+            with smtplib.SMTP_SSL(host="smtp.gmail.com", port=465, context=context) as server:
+                server.login(user=from_addr, password=email_password)
+                server.send_message(
+                    from_addr=from_addr,
+                    to_addrs=to_addr,
+                    msg=message
+                )
         return None
 
 
