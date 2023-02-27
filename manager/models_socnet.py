@@ -317,7 +317,6 @@ class PedidoSOCNET(database.Model):
         ) # pegar ids de: Prestador
 
         df['id_status'] = 1
-        df['id_status_lib'] = 1
 
         df.rename(columns={
             'Sequencial Ficha': 'seq_ficha',
@@ -338,8 +337,7 @@ class PedidoSOCNET(database.Model):
             'cod_tipo_exame',
             'id_prestador',
             'id_empresa',
-            'id_status',
-            'id_status_lib'
+            'id_status'
         ]]
 
         df.drop_duplicates(subset='seq_ficha', inplace=True)
