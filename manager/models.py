@@ -363,6 +363,24 @@ class Status(database.Model):
         return f'<{self.id_status}> {self.nome_status}'
 
 
+class StatusRAC(database.Model):
+    __tablename__ = 'StatusRAC'
+    id_status = database.Column(database.Integer, primary_key=True)
+    nome_status = database.Column(database.String(100), nullable=False)
+    status_padrao = database.Column(database.Boolean) # se for padrao, nunca exluir nem editar
+
+    pedidos = database.relationship('Pedido', backref='status_rac', lazy=True) # one to many
+    pedidos_socnet = database.relationship('PedidoSOCNET', backref='status_rac', lazy=True) # one to many
+    
+    data_inclusao = database.Column(database.DateTime)
+    incluido_por = database.Column(database.String(50))
+    data_alteracao = database.Column(database.DateTime)
+    alterado_por = database.Column(database.String(50))
+
+    def __repr__(self) -> str:
+        return f'<{self.id_status}> {self.nome_status}'
+
+
 class StatusLiberacao(database.Model):
     '''
     Status da previsão de liberacao do ASO
@@ -1660,12 +1678,14 @@ class Pedido(database.Model):
     id_empresa = database.Column(database.Integer, database.ForeignKey('Empresa.id_empresa'), nullable=False)
     id_unidade = database.Column(database.Integer, database.ForeignKey('Unidade.id_unidade'), nullable=False)
     id_status = database.Column(database.Integer, database.ForeignKey('Status.id_status'), default=1, nullable=False)
+    id_status_rac = database.Column(database.Integer, database.ForeignKey('StatusRAC.id_status'), default=1, nullable=False)
     prazo = database.Column(database.Integer, default=0)
     prev_liberacao = database.Column(database.Date)
     id_status_lib = database.Column(database.Integer, database.ForeignKey('StatusLiberacao.id_status_lib'), default=1, nullable=False)
     data_recebido = database.Column(database.Date)
+    data_comparecimento = database.Column(database.Date)
     obs = database.Column(database.String(255))
-   
+
     data_inclusao = database.Column(database.DateTime, nullable=False, default=datetime.now(tz=timezone('America/Sao_Paulo')))
     data_alteracao = database.Column(database.DateTime)
     incluido_por = database.Column(database.String(50))
@@ -1683,6 +1703,7 @@ class Pedido(database.Model):
         'razao_social',
         'nome_unidade',
         'nome_status',
+        'nome_status_rac',
         'prazo',
         'prev_liberacao',
         'nome_status_lib',
@@ -1698,8 +1719,10 @@ class Pedido(database.Model):
         'alterado_por',
         'id_ficha',
         'id_status',
+        'id_status_rac',
         'data_recebido',
-        'obs',
+        'data_comparecimento',
+        'obs'
     ]
 
     # colunas para a tabela enviada no email
@@ -1725,22 +1748,22 @@ class Pedido(database.Model):
         'Status'
     ]
 
-    # definir query com valores vazios (obs: '' é diferente de None)
     @classmethod
     def buscar_pedidos(
         self,
-        cod_empresa_principal: int,
-        pesquisa_geral: bool=False,
-        inicio: str=None,
-        fim: str=None,
-        status: int=None,
-        tag: int=None,
-        empresa: int=None,
-        unidade: int=None,
-        prestador: int=None,
-        seq_ficha: int=None,
-        nome: str=None,
-        obs: str=None
+        pesquisa_geral:  int | None = None,
+        cod_empresa_principal: int | None = None,
+        data_inicio: date | None = None,
+        data_fim: date | None = None,
+        id_status: int | None = None,
+        id_status_rac: int | None = None,
+        id_tag: int | None = None,
+        id_empresa: int | None = None,
+        id_unidade: int | None = None,
+        id_prestador: int | None = None,
+        seq_ficha: int | None = None,
+        nome_funcionario: str | None = None,
+        obs: str | None = None
     ):
         '''
         Realiza query filtrada pelos parametros passados
@@ -1750,7 +1773,7 @@ class Pedido(database.Model):
         models = [
             (Pedido.id_ficha),
             (Pedido.cod_empresa_principal), (Pedido.seq_ficha), (Pedido.data_ficha),
-            (Pedido.prazo), (Pedido.prev_liberacao), (Pedido.data_recebido),
+            (Pedido.prazo), (Pedido.prev_liberacao), (Pedido.data_recebido), (Pedido.data_comparecimento),
             (Pedido.obs), (Pedido.data_inclusao), (Pedido.data_alteracao),
             (Pedido.incluido_por), (Pedido.alterado_por), (Pedido.cpf),
             (Pedido.cod_funcionario), (Pedido.nome_funcionario),
@@ -1758,48 +1781,52 @@ class Pedido(database.Model):
             (Empresa.cod_empresa), (Empresa.razao_social),
             (Unidade.cod_unidade), (Unidade.nome_unidade),
             (Prestador.cod_prestador), (Prestador.nome_prestador),
-            (Status.id_status), (Status.nome_status),
-            (StatusLiberacao.id_status_lib), (StatusLiberacao.nome_status_lib), (StatusLiberacao.cor_tag),
-            
+            (Pedido.id_status), (Status.nome_status),
+            (Pedido.id_status_rac), (StatusRAC.nome_status.label('nome_status_rac')),
+            (StatusLiberacao.id_status_lib), (StatusLiberacao.nome_status_lib), (StatusLiberacao.cor_tag)
         ]
 
-        filtros = [(self.cod_empresa_principal == cod_empresa_principal)]
-       
         joins = [
             (Empresa, Pedido.id_empresa == Empresa.id_empresa),
             (Unidade, Pedido.id_unidade == Unidade.id_unidade),
             (Prestador, Pedido.id_prestador == Prestador.id_prestador),
             (TipoExame, Pedido.cod_tipo_exame == TipoExame.cod_tipo_exame),
             (Status, Pedido.id_status == Status.id_status),
+            (StatusRAC, Pedido.id_status_rac == StatusRAC.id_status),
             (StatusLiberacao, Pedido.id_status_lib == StatusLiberacao.id_status_lib)
         ]
         
-        if inicio:
-            filtros.append(self.data_ficha >= inicio)
-        if fim:
-            filtros.append(self.data_ficha <= fim)
-        if empresa:
-            filtros.append(self.id_empresa == empresa)
-        if unidade:
-            filtros.append(self.id_unidade == unidade)
-        if prestador != None:
-            if prestador == 0:
+        filtros = []
+        if cod_empresa_principal:
+            filtros.append(self.cod_empresa_principal == cod_empresa_principal)
+        if data_inicio:
+            filtros.append(self.data_ficha >= data_inicio)
+        if data_fim:
+            filtros.append(self.data_ficha <= data_fim)
+        if id_empresa:
+            filtros.append(self.id_empresa == id_empresa)
+        if id_unidade:
+            filtros.append(self.id_unidade == id_unidade)
+        if id_prestador != None:
+            if id_prestador == 0:
                 filtros.append(self.id_prestador == None)
             else:
-                filtros.append(self.id_prestador == prestador)
-        if nome:
-            filtros.append(self.nome_funcionario.like(f'%{nome}%'))
+                filtros.append(self.id_prestador == id_prestador)
+        if nome_funcionario:
+            filtros.append(self.nome_funcionario.like(f'%{nome_funcionario}%'))
         if seq_ficha:
             filtros.append(self.seq_ficha == seq_ficha)
-        if status:
-            filtros.append(self.id_status == status)
+        if id_status:
+            filtros.append(self.id_status == id_status)
+        if id_status_rac:
+            filtros.append(self.id_status_rac == id_status_rac)
         if obs:
             filtros.append(self.obs.like(f'%{obs}%'))
-        if tag:
-            filtros.append(self.id_status_lib == tag)
+        if id_tag:
+            filtros.append(self.id_status_lib == id_tag)
         
+        # se nao for pesquisa geral, usar grupos do usuario atual
         if not pesquisa_geral:
-            # grupos do usuario atual
             subquery_grupos = [grupo.id_grupo for grupo in current_user.grupo]
 
             joins.append((grupo_empresa, self.id_empresa == grupo_empresa.columns.id_empresa))
@@ -1811,7 +1838,7 @@ class Pedido(database.Model):
             database.session.query(*models)
             .filter(*filtros)
             .outerjoin(*joins)
-            .order_by(Pedido.data_ficha, Pedido.nome_funcionario)
+            .order_by(Pedido.data_ficha.desc(), Pedido.nome_funcionario)
         )
         
         return query

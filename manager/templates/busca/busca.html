@@ -15,182 +15,190 @@
                 {{ form.pesquisa_geral.label(class="form-check-label", for="flexSwitch") }}
             </div>
             <fieldset>
-            <!-- EMPRESA PRINCIPAL-->
-            <div class="form-group">
-                {{ form.cod_empresa_principal.label(class="form-control-label") }}
-                {% if form.cod_empresa_principal.errors %}
-                {{ form.cod_empresa_principal(class="form-control is-invalid") }}
-                <div class="invalid-feedback">
-                    {% for erro in form.cod_empresa_principal.errors %}
-                    {{ erro }}
-                    {% endfor %}
-                </div>
-                {% else %}
-                {{ form.cod_empresa_principal(class="form-control") }}
-                {% endif %}
-            </div>
-            
-            <div class="d-flex justify-content-between">
-                <!-- INICIO -->
-                <div class="form-group w-49">
-                    {{ form.data_inicio.label(class="form-control-label") }}
-                    {% if form.data_inicio.errors %}
-                    {{ form.data_inicio(class="form-control is-invalid") }}
-                    <div class="invalid-feedback">
-                        {% for erro in form.data_inicio.errors %}
-                        {{ erro }}
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    {{ form.data_inicio(class="form-control") }}
-                    {% endif %}
-                </div>
-                <!-- FIM -->
-                <div class="form-group w-49">
-                    {{ form.data_fim.label(class="form-control-label") }}
-                    {% if form.data_fim.errors %}
-                    {{ form.data_fim(class="form-control is-invalid") }}
-                    <div class="invalid-feedback">
-                        {% for erro in form.data_fim.errors %}
-                        {{ erro }}
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    {{ form.data_fim(class="form-control") }}
-                    {% endif %}
-                </div>
-            </div>
-            <div class="d-flex justify-content-between">
-                <!-- STATUS -->
-                <div class="form-group w-49">
-                    {{ form.status.label(class="form-control-label") }}
-                    {% if form.status.errors %}
-                    {{ form.status(class="form-control is-invalid") }}
+                <div class="form-group">
+                    {{ form.cod_empresa_principal.label(class="form-control-label") }}
+                    {% if form.cod_empresa_principal.errors %}
+                        {{ form.cod_empresa_principal(class="form-control is-invalid") }}
                         <div class="invalid-feedback">
-                        {% for erro in form.status.errors %}
-                            {{ erro }}
-                        {% endfor %}
+                            {% for erro in form.cod_empresa_principal.errors %}
+                                {{ erro }}
+                            {% endfor %}
                         </div>
                     {% else %}
-                    {{ form.status(class="form-control") }}
+                        {{ form.cod_empresa_principal(class="form-control") }}
                     {% endif %}
                 </div>
-            <!-- TAG -->
-            <div class="form-group w-49">
-                {{ form.tag.label(class="form-control-label") }}
-                {% if form.tag.errors %}
-                    {{ form.tag(class="form-control is-invalid") }}
-                    <div class="invalid-feedback">
-                        {% for erro in form.tag.errors %}
-                            {{ erro }}
-                        {% endfor %}
+
+                <div class="d-flex justify-content-between">
+                    <div class="form-group w-49">
+                        {{ form.data_inicio.label(class="form-control-label") }}
+                        {% if form.data_inicio.errors %}
+                            {{ form.data_inicio(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.data_inicio.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.data_inicio(class="form-control") }}
+                        {% endif %}
                     </div>
-                {% else %}
-                    {{ form.tag(class="form-control") }}
-                {% endif %}
-            </div>
-            </div>
-            <div class="accordion mt-3" id="accordion01">
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="headingOne">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
-                            <b>Mais opções</b>
-                        </button>
-                    </h2>
-                    <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordion01">
-                        <div class="accordion-body">
-                            <!-- EMPRESA -->
-                            <div class="form-group">
-                                {{ form.empresa.label(class="form-control-label") }}
-                                {% if form.empresa.errors %}
-                                {{ form.empresa(class="form-control is-invalid") }}
-                                <div class="invalid-feedback">
-                                    {% for erro in form.empresa.errors %}
+                    <div class="form-group w-49">
+                        {{ form.data_fim.label(class="form-control-label") }}
+                        {% if form.data_fim.errors %}
+                            {{ form.data_fim(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.data_fim.errors %}
                                     {{ erro }}
-                                    {% endfor %}
-                                </div>
-                                {% else %}
-                                {{ form.empresa(class="form-control") }}
-                                {% endif %}
+                                {% endfor %}
                             </div>
-                            <!-- UNIDADE -->
-                            <div class="form-group">
-                                {{ form.unidade.label(class="form-control-label") }}
-                                {% if form.unidade.errors %}
-                                {{ form.unidade(class="form-control is-invalid") }}
+                        {% else %}
+                            {{ form.data_fim(class="form-control") }}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <div class="form-group w-49">
+                        {{ form.id_status.label(class="form-control-label") }}
+                        {% if form.id_status.errors %}
+                            {{ form.id_status(class="form-control is-invalid") }}
                                 <div class="invalid-feedback">
-                                    {% for erro in form.unidade.errors %}
+                                {% for erro in form.id_status.errors %}
                                     {{ erro }}
-                                    {% endfor %}
+                                {% endfor %}
                                 </div>
-                                {% else %}
-                                {{ form.unidade(class="form-control") }}
-                                {% endif %}
+                        {% else %}
+                            {{ form.id_status(class="form-control") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group w-49">
+                        {{ form.id_status_rac.label(class="form-control-label") }}
+                        {% if form.id_status_rac.errors %}
+                            {{ form.id_status_rac(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.id_status_rac.errors %}
+                                    {{ erro }}
+                                {% endfor %}
                             </div>
-                            <!-- PRESTADOR -->
-                            <div class="form-group">
-                                {{ form.prestador.label(class="form-control-label") }}
-                                {% if form.prestador.errors %}
-                                {{ form.prestador(class="form-control is-invalid") }}
+                        {% else %}
+                            {{ form.id_status_rac(class="form-control") }}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <div class="form-group w-49">
+                        {{ form.seq_ficha.label(class="form-control-label") }}
+                        {% if form.seq_ficha.errors %}
+                            {{ form.seq_ficha(class="form-control is-invalid") }}
                                 <div class="invalid-feedback">
-                                    {% for erro in form.prestador.errors %}
+                                {% for erro in form.seq_ficha.errors %}
                                     {{ erro }}
-                                    {% endfor %}
+                                {% endfor %}
                                 </div>
-                                {% else %}
-                                {{ form.prestador(class="form-control") }}
-                                {% endif %}
+                        {% else %}
+                            {{ form.seq_ficha(class="form-control") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group w-49">
+                        {{ form.id_tag.label(class="form-control-label") }}
+                        {% if form.id_tag.errors %}
+                            {{ form.id_tag(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.id_tag.errors %}
+                                    {{ erro }}
+                                {% endfor %}
                             </div>
-                            <div class="d-flex justify-content-between">
-                                <!-- SEQ FICHA -->
-                                <div class="form-group w-49">
-                                    {{ form.seq_ficha.label(class="form-control-label") }}
-                                    {% if form.seq_ficha.errors %}
-                                    {{ form.seq_ficha(class="form-control is-invalid") }}
+                        {% else %}
+                            {{ form.id_tag(class="form-control") }}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="accordion mt-3" id="accordion01">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header" id="headingOne">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                                <b>Mais opções</b>
+                            </button>
+                        </h2>
+                        <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordion01">
+                            <div class="accordion-body">
+                                <div class="form-group">
+                                    {{ form.id_empresa.label(class="form-control-label") }}
+                                    {% if form.id_empresa.errors %}
+                                        {{ form.id_empresa(class="form-control is-invalid") }}
                                         <div class="invalid-feedback">
-                                        {% for erro in form.seq_ficha.errors %}
+                                            {% for erro in form.id_empresa.errors %}
                                             {{ erro }}
-                                        {% endfor %}
+                                            {% endfor %}
                                         </div>
                                     {% else %}
-                                    {{ form.seq_ficha(class="form-control") }}
+                                        {{ form.id_empresa(class="form-control") }}
                                     {% endif %}
                                 </div>
-                                <!-- FUNCIONARIO -->
-                                <div class="form-group w-49">
-                                    {{ form.funcionario.label(class="form-control-label") }}
-                                    {% if form.funcionario.errors %}
-                                    {{ form.funcionario(class="form-control is-invalid") }}
+                                <div class="form-group">
+                                    {{ form.id_unidade.label(class="form-control-label") }}
+                                    {% if form.id_unidade.errors %}
+                                        {{ form.id_unidade(class="form-control is-invalid") }}
                                         <div class="invalid-feedback">
-                                        {% for erro in form.funcionario.errors %}
-                                            {{ erro }}
-                                        {% endfor %}
+                                            {% for erro in form.id_unidade.errors %}
+                                                {{ erro }}
+                                            {% endfor %}
                                         </div>
                                     {% else %}
-                                    {{ form.funcionario(class="form-control") }}
+                                        {{ form.id_unidade(class="form-control") }}
                                     {% endif %}
                                 </div>
-                            </div>
-                            <!-- OBS -->
-                            <div class="form-group">
-                                {{ form.obs.label(class="form-control-label") }}
-                                {% if form.obs.errors %}
-                                {{ form.obs(class="form-control is-invalid") }}
-                                    <div class="invalid-feedback">
-                                    {% for erro in form.obs.errors %}
-                                        {{ erro }}
-                                    {% endfor %}
+                                <div class="form-group">
+                                    {{ form.id_prestador.label(class="form-control-label") }}
+                                    {% if form.id_prestador.errors %}
+                                        {{ form.id_prestador(class="form-control is-invalid") }}
+                                        <div class="invalid-feedback">
+                                            {% for erro in form.id_prestador.errors %}
+                                                {{ erro }}
+                                            {% endfor %}
+                                        </div>
+                                    {% else %}
+                                        {{ form.id_prestador(class="form-control") }}
+                                    {% endif %}
+                                </div>
+
+                                <div class="d-flex justify-content-between">
+                                    <div class="form-group w-49">
+                                        {{ form.nome_funcionario.label(class="form-control-label") }}
+                                        {% if form.nome_funcionario.errors %}
+                                            {{ form.nome_funcionario(class="form-control is-invalid") }}
+                                                <div class="invalid-feedback">
+                                                    {% for erro in form.nome_funcionario.errors %}
+                                                        {{ erro }}
+                                                    {% endfor %}
+                                                    </div>
+                                        {% else %}
+                                            {{ form.nome_funcionario(class="form-control") }}
+                                        {% endif %}
                                     </div>
-                                {% else %}
-                                {{ form.obs(class="form-control") }}
-                                {% endif %}
+                                    <div class="form-group w-49">
+                                        {{ form.obs.label(class="form-control-label") }}
+                                        {% if form.obs.errors %}
+                                            {{ form.obs(class="form-control is-invalid") }}
+                                                <div class="invalid-feedback">
+                                                    {% for erro in form.obs.errors %}
+                                                        {{ erro }}
+                                                    {% endfor %}
+                                                </div>
+                                        {% else %}
+                                            {{ form.obs(class="form-control") }}
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
             </fieldset>
-            <!-- BOTOES -->
+
             <div class="d-flex mt-3 justify-content-between">
                 <button type="submit" class="btn btn-primary text-nowrap" style="width: fit-content;" name="btn_buscar">
                     <span class="material-icons align-middle">manage_search</span> Buscar
@@ -208,9 +216,14 @@
         </form>
         <script>
             function limpar() {
-              document.getElementById("formBusca").reset();
-              CarregarOpcoesBuscaPedido('cod_empresa_principal', 'empresa', 'prestador', 'unidade', 'flexSwitch');
+                document.getElementById("formBusca").reset();
+                CarregarOpcoesBuscaPedido('cod_empresa_principal', 'id_empresa', 'id_prestador', 'id_unidade', 'flexSwitch');
             }
+        </script>
+        <script>
+            document.addEventListener("DOMContentLoaded", function() {
+                CarregarOpcoesBuscaPedido('cod_empresa_principal', 'id_empresa', 'id_prestador', 'id_unidade', 'flexSwitch');
+            })
         </script>
     </div>
 </div>

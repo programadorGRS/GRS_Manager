@@ -6,7 +6,7 @@
     <div class="card p-4">
         <form method="POST">
             {{ form.csrf_token }}
-            <legend>Criar Status ASO</legend>
+            <legend>Criar Status RAC</legend>
             <fieldset>
                 <div class="form-group">
                     {{ form.nome_status.label(class="form-control-label") }}
@@ -20,10 +20,6 @@
                     {% else %}
                         {{ form.nome_status(class="form-control") }}
                     {% endif %}
-                </div>
-                <div class="form-group my-3">
-                    {{ form.finaliza_processo(class="form-check-input") }}
-                    {{ form.finaliza_processo.label(class="form-check-label") }}
                 </div>
             </fieldset>
             {{ form.botao_salvar(class="btn btn-success mt-2") }}

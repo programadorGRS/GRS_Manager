@@ -73,11 +73,27 @@
                                                         <span class="material-icons align-middle">local_hospital</span> Prestadores
                                                     </a>
                                                 </li>
-                                                <li>
-                                                    <a class="dropdown-item" href="{{ url_for('status') }}">
-                                                        <span class="material-icons align-middle">checklist</span> Status
+
+                                                <li class="dropdown-submenu">
+                                                    <a class="drop dropdown-item" href="#">
+                                                        <span class="material-icons align-middle">task</span> 
+                                                        Status 
+                                                        <span class="material-icons align-middle">arrow_right</span>
                                                     </a>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a class="dropdown-item" href="{{ url_for('status') }}">
+                                                                <span class="material-icons align-middle">description</span> Status ASO
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="dropdown-item" href="{{ url_for('status_rac') }}">
+                                                                <span class="material-icons align-middle">description</span> Status RAC
+                                                            </a>
+                                                        </li>
+                                                    </ul>
                                                 </li>
+
                                                 <li>
                                                     <a class="dropdown-item" href="{{ url_for('grupos') }}">
                                                         <span class="material-icons align-middle">groups</span> Grupos

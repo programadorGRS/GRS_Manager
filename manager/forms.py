@@ -1,7 +1,6 @@
 from flask import request
 from flask_wtf import FlaskForm, RecaptchaField
 from flask_wtf.file import FileAllowed, FileField, FileRequired
-from manager.utils import tratar_emails
 from wtforms import (BooleanField, DateField, DateTimeField, FileField,
                      IntegerField, PasswordField, SelectField,
                      SelectMultipleField, StringField, SubmitField, TelField,
@@ -11,6 +10,7 @@ from wtforms.validators import (DataRequired, Email, EqualTo, InputRequired,
 
 from manager import database
 from manager.models import Empresa, Exame, Prestador, Unidade, Usuario
+from manager.utils import tratar_emails
 
 
 class FormBuscarEmpresa(FlaskForm):
@@ -404,19 +404,19 @@ class FormGrupoPrestadores(FlaskForm):
 
 class FormBuscarASO(FlaskForm):
     opcoes = [('', 'Selecione')]
-    pesquisa_geral = BooleanField('Busca Geral', render_kw={'onchange': "CarregarOpcoesBuscaPedido('cod_empresa_principal', 'empresa', 'prestador', 'unidade', 'flexSwitch')"}) # flexSwitch
-    cod_empresa_principal = SelectField('Empresa Principal', choices=[], validators=[DataRequired()], render_kw={'onchange': "CarregarOpcoesBuscaPedido('cod_empresa_principal', 'empresa', 'prestador', 'unidade', 'flexSwitch')"})
-    empresa = SelectField('Empresa', choices=opcoes, validators=[Optional()], render_kw={'onchange':"carregarOpcoesUnidade('cod_empresa_principal', 'empresa', 'unidade')"}, validate_choice=False)
-    unidade = SelectField('Unidade', choices=opcoes, validators=[Optional()], validate_choice=False)
-    prestador = SelectField('Prestador', choices=opcoes, validators=[Optional()], validate_choice=False)
+    pesquisa_geral = BooleanField('Busca Geral', render_kw={'onchange': "CarregarOpcoesBuscaPedido('cod_empresa_principal', 'id_empresa', 'id_prestador', 'id_unidade', 'flexSwitch')"}) # flexSwitch
+    cod_empresa_principal = SelectField('Empresa Principal', choices=[], validators=[Optional()], render_kw={'onchange': "CarregarOpcoesBuscaPedido('cod_empresa_principal', 'id_empresa', 'id_prestador', 'id_unidade', 'flexSwitch')"})
+    id_empresa = SelectField('Empresa', choices=opcoes, validators=[Optional()], render_kw={'onchange':"carregarOpcoesUnidade('cod_empresa_principal', 'id_empresa', 'id_unidade')"}, validate_choice=False)
+    id_unidade = SelectField('Unidade', choices=opcoes, validators=[Optional()], validate_choice=False)
+    id_prestador = SelectField('Prestador', choices=opcoes, validators=[Optional()], validate_choice=False)
     data_inicio = DateField('Inicio', validators=[Optional()])
     data_fim = DateField('Fim', validators=[Optional()])
-    funcionario = StringField('Nome Funcionário', validators=[Optional(), Length(0, 255)])
+    nome_funcionario = StringField('Nome Funcionário', validators=[Optional(), Length(0, 255)])
     seq_ficha = IntegerField('Seq. Ficha', validators=[Optional()])
-    cod_funcionario = IntegerField('Cód. Funcionário', validators=[Optional()])
     obs = StringField('Observação', validators=[Optional(), Length(0, 100)])
-    status = SelectField('Status', choices=[], validators=[Optional()])
-    tag = SelectField('Tag Prazo Liberação', choices=[], validators=[Optional()])
+    id_status = SelectField('Status ASO', choices=[], validators=[Optional()])
+    id_status_rac = SelectField('Status RAC', choices=[], validators=[Optional()])
+    id_tag = SelectField('Tag Prazo Liberação', choices=[], validators=[Optional()])
     
     def validate_data_inicio(self, data_inicio):
         if data_inicio.data and self.data_fim.data:
@@ -425,8 +425,10 @@ class FormBuscarASO(FlaskForm):
 
 
 class FormAtualizarStatus(FlaskForm):
-    status_novo = SelectField('Status', choices=[], validators=[DataRequired()])
-    data_recebido = DateField('Data de Recebimento', validators=[Optional()])
+    status_aso = SelectField('Status ASO', choices=[], validators=[DataRequired()])
+    status_rac = SelectField('Status RAC (Opcional)', choices=[], validators=[Optional()])
+    data_recebido = DateField('Data Recebimento (Opcional)', validators=[Optional()])
+    data_comparecimento = DateField('Data Comparecimento (Opcional)', validators=[Optional()])
     obs = TextAreaField('Observação (Max 255 caracteres)', validators=[Optional(), Length(0, 255)])
 
 

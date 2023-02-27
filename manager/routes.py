@@ -25,7 +25,7 @@ from manager.forms import (FormAlterarChave, FormAlterarSenha,
                            FormGrupoPrestadores, FormLogAcoes, FormLogin,
                            FormOTP)
 from manager.models import (Empresa, Grupo, LogAcoes, Login, Prestador, Status,
-                            TipoUsuario, Usuario, grupo_empresa,
+                            StatusRAC, TipoUsuario, Usuario, grupo_empresa,
                             grupo_prestador, grupo_usuario)
 from manager.models_socnet import EmpresaSOCNET, grupo_empresa_socnet
 from manager.utils import admin_required, is_safe_url, zipar_arquivos
@@ -971,6 +971,116 @@ def excluir_status():
         return redirect(url_for('status'))
 
 
+# STATUS RAC-----------------------------------------------
+@app.route('/status_rac')
+@login_required
+def status_rac():
+    lista_status = StatusRAC.query.all()
+    return render_template('status/status_rac.html', title='GRS+Connect', lista_status=lista_status)
+
+
+@app.route('/status_rac/criar', methods=['GET', 'POST'])
+@login_required
+def criar_status_rac():
+    form = FormCriarStatus()
+
+    if form.validate_on_submit():
+        status = StatusRAC(
+            nome_status=form.nome_status.data,
+            data_inclusao=dt.datetime.now(tz=timezone('America/Sao_Paulo')),
+            incluido_por=current_user.username
+        )
+
+        database.session.add(status)
+        database.session.commit()
+
+        LogAcoes.registrar_acao(
+            nome_tabela = 'StatusRAC',
+            tipo_acao = 'Inclusão',
+            id_registro = status.id_status,
+            nome_registro = status.nome_status,
+        )
+
+        flash('Status RAC criado com sucesso!', 'alert-success')
+        return redirect(url_for('status_rac'))
+    return render_template('status/status_rac_criar.html', title='GRS+Connect', form=form)
+
+
+# EDITAR STATUS-------------------------------------
+@app.route('/status_rac/editar', methods=['GET', 'POST'])
+@login_required
+def editar_status_rac():
+    status: StatusRAC = StatusRAC.query.get(request.args.get('id_status', type=int))
+
+    # se nao for status padrao
+    if not status.status_padrao:
+        form = FormCriarStatus(
+            nome_status=status.nome_status,
+            data_inclusao=status.data_inclusao,
+            data_alteracao=status.data_alteracao,
+            incluido_por=status.incluido_por,
+            alterado_por=status.alterado_por
+        )
+
+        if form.validate_on_submit():
+            status.nome_status = form.nome_status.data
+            status.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
+            status.alterado_por = current_user.username
+            database.session.commit()
+
+            # registar acao
+            LogAcoes.registrar_acao(
+                nome_tabela = 'StatusRAC',
+                tipo_acao = 'Alteração',
+                id_registro = status.id_status,
+                nome_registro = status.nome_status
+            )
+
+            flash('Status RAC editado com sucesso!', 'alert-success')
+            return redirect(url_for('status_rac'))
+
+        return render_template(
+            'status/status_rac_editar.html',
+            title='GRS+Connect',
+            form=form,
+            status=status
+        )
+    else:
+        flash(f'O Status RAC "{status.nome_status}" não pode ser editado', 'alert-danger')
+        return redirect(url_for('status_rac'))
+
+
+# EXCLUIR STATUS---------------------------------------------------------------
+@app.route('/status_rac/excluir', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def excluir_status_rac():
+    status: StatusRAC = StatusRAC.query.get(request.args.get('id_status', type=int))
+
+    # se nao for status padrao
+    if not status.status_padrao:
+        try:
+            database.session.delete(status)
+            database.session.commit()
+
+            LogAcoes.registrar_acao(
+                nome_tabela = 'StatusRAC',
+                tipo_acao = 'Exclusão',
+                id_registro = status.id_status,
+                nome_registro = status.nome_status,
+            )
+
+            flash(f'Status RAC excluído! Status: {status.id_status} - {status.nome_status}', 'alert-danger')
+            return redirect(url_for('status_rac'))
+        except IntegrityError:
+            database.session.rollback()
+            flash(f'O Status RAC: {status.id_status} - {status.nome_status} não pode ser excluído, pois há outros registros associados a ele', 'alert-danger')
+            return redirect(url_for('status_rac'))
+    else:
+        flash(f'O Status RAC"{status.nome_status}" não pode ser excluído', 'alert-danger')
+        return redirect(url_for('status_rac'))
+
+
 # LOG ACOES--------------------------------------------------------------------
 @app.route('/log_acoes', methods=['GET', 'POST'])
 @login_required
@@ -1037,6 +1147,7 @@ def logout():
     return redirect(url_for('login'))
 
 
+# ERROR HANDLERS----------------------------------------------
 @app.errorhandler(404)
 def erro404(erro):
     return render_template(
