@@ -742,7 +742,6 @@ def grupos_empresas_socnet():
 # UPLOAD PEDIDOS SOCNET----------------------------------------------------
 @app.route('/pedidos_socnet/upload',  methods=['GET', 'POST'])
 @login_required
-@admin_required
 def upload_pedidos_socnet():
     form = FormUpload()
 
@@ -784,7 +783,6 @@ def upload_pedidos_socnet():
 # CARREGAR PEDIDOS SOCNET----------------------------------------------------
 @app.route('/pedidos_socnet/carregar',  methods=['GET', 'POST'])
 @login_required
-@admin_required
 def carregar_pedidos_socnet():
     form = FormCarregarPedidosSOCNET()
 
