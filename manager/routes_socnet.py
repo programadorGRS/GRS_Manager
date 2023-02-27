@@ -13,17 +13,18 @@ from sqlalchemy import delete, insert
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
-from manager import DOWNLOAD_FOLDER, UPLOAD_FOLDER, app, database, mail
+from manager import (DOWNLOAD_FOLDER, TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app,
+                     database, mail)
 from manager.email import corpo_email_padrao
 from manager.forms import (FormAtualizarStatus, FormEnviarEmails,
                            FormGrupoPrestadores)
-from manager.forms_socnet import (FormBuscarPedidoSOCNET,
+from manager.forms_socnet import (FormBuscarASOSOCNET,
                                   FormCarregarPedidosSOCNET,
                                   FormCriarEmpresaSOCNET,
                                   FormEditarEmpresaSOCNET,
                                   FormEditarPedidoSOCNET, FormUpload)
 from manager.models import (EmpresaPrincipal, Grupo, LogAcoes, Prestador,
-                            Status, StatusLiberacao, TipoExame)
+                            Status, StatusLiberacao, StatusRAC, TipoExame)
 from manager.models_socnet import (EmpresaSOCNET, PedidoSOCNET,
                                    grupo_empresa_socnet)
 from manager.utils import admin_required
@@ -34,121 +35,66 @@ from manager.utils import admin_required
 @app.route('/busca_socnet', methods=['GET', 'POST'])
 @login_required
 def busca_socnet():
-    print(UPLOAD_FOLDER)
-    form = FormBuscarPedidoSOCNET()
+    form = FormBuscarASOSOCNET()
     # opcoes dinamicas de busca, como empresa, unidade \
     # prestador etc, sao incluidas via fetch no javascript
     
     # opcoes emp principal
     form.cod_empresa_principal.choices = (
-        [('', 'Selecione')] +
         [(i.cod, i.nome) for i in EmpresaPrincipal.query.all()]
     )
     # opcoes status
-    form.status.choices = (
+    form.id_status.choices = (
         [('', 'Selecione')] +
         [(i.id_status, i.nome_status) for i in Status.query.all()]
     )
+    form.id_status_rac.choices = (
+        [('', 'Selecione')] +
+        [(i.id_status, i.nome_status) for i in StatusRAC.query.all()]
+    )
 
-    # opcoes tag
-    # form.tag.choices = (
-    #     [('', 'Selecione')] + 
-    #     [
-    #         (i.id_status_lib, i.nome_status_lib)
-    #         for i in StatusLiberacao.query
-    #         .order_by(StatusLiberacao.nome_status_lib)
-    #         .all()
-    #     ]
-    # )
-    
-    # BUSCAR --------------------------------------------------------
-    if form.validate_on_submit() and 'btn_buscar' in request.form:
-        try:
-            prestador = int(form.prestador.data)
-        except ValueError:
-            prestador = None
+    if form.validate_on_submit():
+        parametros:  dict[str, any] = {
+            'pesquisa_geral': int(form.pesquisa_geral.data),
+            'cod_empresa_principal': form.cod_empresa_principal.data,
+            'data_inicio': form.data_inicio.data,
+            'data_fim': form.data_fim.data,
+            'id_status': form.id_status.data,
+            'id_status_rac': form.id_status_rac.data,
+            'seq_ficha': form.seq_ficha.data,
+            'id_empresa': form.id_empresa.data,
+            'id_prestador': form.id_prestador.data,
+            'nome_funcionario': form.nome_funcionario.data,
+            'obs': form.obs.data
+        }
 
-        return redirect(
-            url_for(
-                'atualizar_status_socnet',
-                cod_empresa_principal=form.cod_empresa_principal.data,
-                pesquisa_geral=form.pesquisa_geral.data,
-                inicio=form.data_inicio.data,
-                fim=form.data_fim.data,
-                status=form.status.data,
-                # tag=form.tag.data,
-                empresa=form.empresa.data,
-                # unidade=form.unidade.data,
-                prestador=prestador,
-                seq_ficha=form.seq_ficha.data,
-                nome=form.funcionario.data,
-                obs=form.obs.data
+        parametros2: dict[str, any] = {}
+        for chave, valor in parametros.items():
+            if valor not in (None, ''):
+                parametros2[chave] = valor
+
+        if 'btn_buscar' in request.form:
+            return redirect(url_for('atualizar_status_socnet', **parametros2))
+
+        elif 'btn_emails' in request.form:
+            return redirect(url_for('enviar_emails_socnet', **parametros2))
+
+        elif 'btn_csv' in request.form:
+            query = PedidoSOCNET.buscar_pedidos(**parametros2)
+            
+            df = pd.read_sql(sql=query.statement, con=database.session.bind)
+            df = df[PedidoSOCNET.colunas_planilha]
+            
+            nome_arqv = f'Pedidos_exames_SOCNET_{int(dt.datetime.now().timestamp())}'
+            camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
+            df.to_csv(
+                f'{camihno_arqv}.zip',
+                sep=';',
+                index=False,
+                encoding='iso-8859-1',
+                compression={'method': 'zip', 'archive_name': f'{nome_arqv}.csv'}
             )
-        )
-
-    # CRIAR CSV-----------------------------------------------
-    elif form.validate_on_submit() and 'btn_csv' in request.form:
-        try:
-            prestador = int(form.prestador.data)
-        except ValueError:
-            prestador = None
-
-        query = PedidoSOCNET.buscar_pedidos(
-            cod_empresa_principal=form.cod_empresa_principal.data,
-            pesquisa_geral=form.pesquisa_geral.data,
-            inicio=form.data_inicio.data,
-            fim=form.data_fim.data,
-            status=form.status.data,
-            # tag=form.tag.data,
-            empresa=form.empresa.data,
-            # unidade=form.unidade.data,
-            prestador=prestador,
-            seq_ficha=form.seq_ficha.data,
-            nome=form.funcionario.data,
-            obs=form.obs.data
-        )
-        
-        # gerar dataframa a partir do statement SQL
-        df = pd.read_sql(sql=query.statement, con=database.session.bind)
-        # organizar colunas do df
-        df = df[PedidoSOCNET.colunas_planilha]
-        
-        # criar arquivo dentro da pasta
-        nome_arqv = f'Pedidos_exames_SOCNET_{int(dt.datetime.now().timestamp())}'
-        camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
-        df.to_csv(
-            f'{camihno_arqv}.zip',
-            sep=';',
-            index=False,
-            encoding='iso-8859-1',
-            compression={'method': 'zip', 'archive_name': f'{nome_arqv}.csv'}
-        )
-        return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=f'{nome_arqv}.zip')
-    
-    # EMAILS---------------------------------------------------------
-    elif form.validate_on_submit() and 'btn_emails' in request.form:
-        try:
-            prestador = int(form.prestador.data)
-        except ValueError:
-            prestador = None
-
-        return redirect(
-            url_for(
-                'enviar_emails_socnet',
-                cod_empresa_principal=form.cod_empresa_principal.data,
-                pesquisa_geral=form.pesquisa_geral.data,
-                inicio=form.data_inicio.data,
-                fim=form.data_fim.data,
-                status=form.status.data,
-                # tag=form.tag.data,
-                empresa=form.empresa.data,
-                # unidade=form.unidade.data,
-                prestador=prestador,
-                seq_ficha=form.seq_ficha.data,
-                nome=form.funcionario.data,
-                obs=form.obs.data
-            )
-        )
+            return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=f'{nome_arqv}.zip')
 
     return render_template('busca/busca_socnet.html', form=form, title='GRS+Connect')
 
@@ -158,31 +104,34 @@ def busca_socnet():
 @login_required
 def atualizar_status_socnet():
     form = FormAtualizarStatus()
-    
-    # opcoes status
-    form.status_novo.choices = (
+    form.status_aso.choices = (
         [('', 'Selecione')] + 
         [(status.id_status, status.nome_status) for status in Status.query.all()]
     )
+    form.status_rac.choices = (
+        [('', 'Selecione')] + 
+        [(status.id_status, status.nome_status) for status in StatusRAC.query.all()]
+    )
 
-    geral = request.args.get(key='pesquisa_geral', default=None)
-    if geral == 'False':
-        geral = False
-    elif geral == 'True':
-        geral = True
+    datas = {
+        'data_inicio': request.args.get('data_inicio', type=str, default=None),
+        'data_fim': request.args.get('data_fim', type=str, default=None)
+    }
+    for chave, valor in datas.items():
+        if valor:
+            datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
 
     query_pedidos = PedidoSOCNET.buscar_pedidos(
-        cod_empresa_principal=request.args.get('cod_empresa_principal', type=int),
-        pesquisa_geral=geral,
-        inicio=request.args.get('inicio', default=None),
-        fim=request.args.get('fim', default=None),
-        status=request.args.get('status', type=int, default=None),
-        # tag=request.args.get('tag', type=int, default=None),
-        empresa=request.args.get('empresa', type=int, default=None),
-        # unidade=request.args.get('unidade', type=int, default=None),
-        prestador=request.args.get('prestador', type=int, default=None),
+        pesquisa_geral=request.args.get('pesquisa_geral', type=int, default=None),
+        cod_empresa_principal=request.args.get('cod_empresa_principal', type=int, default=None),
+        data_inicio=datas['data_inicio'],
+        data_fim=datas['data_fim'],
+        id_status=request.args.get('id_status', type=int, default=None),
+        id_status_rac=request.args.get('id_status_rac', type=int, default=None),
+        id_empresa=request.args.get('id_empresa', type=int, default=None),
+        id_prestador=request.args.get('id_prestador', type=int, default=None),
         seq_ficha=request.args.get('seq_ficha', type=int, default=None),
-        nome=request.args.get('nome', type=str, default=None),
+        nome_funcionario=request.args.get('nome_funcionario', type=str, default=None),
         obs=request.args.get('obs', type=str, default=None)
     )
 
@@ -197,8 +146,6 @@ def atualizar_status_socnet():
         query_dados_antigos = (
             database.session.query(
                 PedidoSOCNET.id_ficha,
-                PedidoSOCNET.prev_liberacao,
-                PedidoSOCNET.id_status_lib,
                 PedidoSOCNET.nome_funcionario
             )
             .filter(PedidoSOCNET.id_ficha.in_(lista_atualizar))
@@ -206,44 +153,35 @@ def atualizar_status_socnet():
         )
 
         # dados novos---------------------------------------------
-        hoje = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
+        hoje = dt.datetime.now(tz=TIMEZONE_SAO_PAULO)
 
         dados_novos = [
             {
                 'id_ficha': pedido.id_ficha,
-                'id_status': int(form.status_novo.data),
+                'id_status': int(form.status_aso.data),
                 'data_alteracao': hoje,
-                'alterado_por': current_user.username,
-                'id_status_lib': pedido.id_status_lib
+                'alterado_por': current_user.username
             } for pedido in query_dados_antigos
         ]
 
-        if form.obs.data:
+        if form.status_rac.data:
             for pedido in dados_novos:
-                pedido['obs'] = form.obs.data
+                pedido['id_status_rac'] = int(form.status_rac.data)
         if form.data_recebido.data:
             for pedido in dados_novos:
                 pedido['data_recebido'] = form.data_recebido.data
-        
-        # se status novo finaliza processo, mudar tag para ok (2)
-        # se nao, calcular a nova tag
-        status_novo = Status.query.get(int(form.status_novo.data))
-        if status_novo.finaliza_processo:
+        if form.data_comparecimento.data:
             for pedido in dados_novos:
-                pedido['id_status_lib'] = 2
-        
-        # NOTE: ainda nao ativar as funcoes de tag para PedidoSOCNET
-        else:
-        #     for i, dados_antigos in enumerate(query_dados_antigos):
-        #         dados_novos[i]['id_status_lib'] = PedidoSOCNET.calcular_tag_prev_lib(dados_antigos.prev_liberacao)
+                pedido['data_comparecimento'] = form.data_comparecimento.data
+        if form.obs.data:
             for pedido in dados_novos:
-                pedido['id_status_lib'] = 1
-        
-        
+                pedido['obs'] = form.obs.data
+
         database.session.bulk_update_mappings(PedidoSOCNET, dados_novos)
         database.session.commit()
 
         # log acoes---------------------------------------------------
+        status_novo = Status.query.get(int(form.status_aso.data))
         logs_acoes = [
             {
                 'id_usuario': current_user.id_usuario,
@@ -278,30 +216,31 @@ def atualizar_status_socnet():
 def enviar_emails_socnet():
     form = FormEnviarEmails()
 
-    geral = request.args.get(key='pesquisa_geral', default=None)
-    if geral == 'False':
-        geral = False
-    elif geral == 'True':
-        geral = True
+    datas = {
+        'data_inicio': request.args.get('data_inicio', type=str, default=None),
+        'data_fim': request.args.get('data_fim', type=str, default=None)
+    }
+    for chave, valor in datas.items():
+        if valor:
+            datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
 
     query_pedidos = PedidoSOCNET.buscar_pedidos(
-        cod_empresa_principal=request.args.get('cod_empresa_principal', type=int),
-        pesquisa_geral=geral,
-        inicio=request.args.get('inicio', default=None),
-        fim=request.args.get('fim', default=None),
-        status=request.args.get('status', type=int, default=None),
-        # tag=request.args.get('tag', type=int, default=None),
-        empresa=request.args.get('empresa', type=int, default=None),
-        # unidade=request.args.get('unidade', type=int, default=None),
-        prestador=request.args.get('prestador', type=int, default=None),
+        pesquisa_geral=request.args.get('pesquisa_geral', type=int, default=None),
+        cod_empresa_principal=request.args.get('cod_empresa_principal', type=int, default=None),
+        data_inicio=datas['data_inicio'],
+        data_fim=datas['data_fim'],
+        id_status=request.args.get('id_status', type=int, default=None),
+        id_status_rac=request.args.get('id_status_rac', type=int, default=None),
+        id_empresa=request.args.get('id_empresa', type=int, default=None),
+        id_prestador=request.args.get('id_prestador', type=int, default=None),
         seq_ficha=request.args.get('seq_ficha', type=int, default=None),
-        nome=request.args.get('nome', type=str, default=None),
+        nome_funcionario=request.args.get('nome_funcionario', type=str, default=None),
         obs=request.args.get('obs', type=str, default=None)
     )
 
     # total de resultados na query
     total = query_pedidos.count()
-    
+
     if form.validate_on_submit():
         lista_enviar = request.form.getlist('checkItem', type=int)
         
@@ -313,9 +252,8 @@ def enviar_emails_socnet():
                 Prestador.solicitar_asos,
                 EmpresaSOCNET.nome_empresa,
                 TipoExame.nome_tipo_exame,
-                StatusLiberacao.nome_status_lib
             )
-            .outerjoin(Prestador, EmpresaSOCNET, TipoExame, StatusLiberacao)
+            .outerjoin(Prestador, EmpresaSOCNET, TipoExame)
             .filter(PedidoSOCNET.id_ficha.in_(lista_enviar))
         )
 

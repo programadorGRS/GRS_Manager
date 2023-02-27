@@ -1,11 +1,12 @@
+from datetime import date
 from io import StringIO
 
 import pandas as pd
 from flask_login import current_user
 
 from manager import database
-from manager.models import (Prestador, Status, StatusLiberacao, TipoExame,
-                            grupo_prestador)
+from manager.models import (Prestador, Status, StatusLiberacao, StatusRAC,
+                            TipoExame, grupo_prestador)
 
 grupo_empresa_socnet = database.Table('grupo_empresa_socnet',
     database.Column('id_grupo', database.Integer, database.ForeignKey('Grupo.id_grupo')),
@@ -64,12 +65,11 @@ class PedidoSOCNET(database.Model):
     id_prestador = database.Column(database.Integer, database.ForeignKey('Prestador.id_prestador'))
     id_empresa = database.Column(database.Integer, database.ForeignKey('EmpresaSOCNET.id_empresa'), nullable=False)
     id_status = database.Column(database.Integer, database.ForeignKey('Status.id_status'), default=1, nullable=False)
-    prazo = database.Column(database.Integer, default=0)
-    prev_liberacao = database.Column(database.Date)
-    id_status_lib = database.Column(database.Integer, database.ForeignKey('StatusLiberacao.id_status_lib'), default=1, nullable=False)
+    id_status_rac = database.Column(database.Integer, database.ForeignKey('StatusRAC.id_status'), default=1, nullable=False)
     data_recebido = database.Column(database.Date)
+    data_comparecimento = database.Column(database.Date)
     obs = database.Column(database.String(255))
-   
+
     data_inclusao = database.Column(database.DateTime)
     data_alteracao = database.Column(database.DateTime)
     incluido_por = database.Column(database.String(50))
@@ -85,19 +85,21 @@ class PedidoSOCNET(database.Model):
         'nome_prestador',
         'nome_empresa',
         'nome_status',
-        'prazo',
-        'prev_liberacao',
-        'data_recebido',
-        'obs',
+        'nome_status_rac',
         'cod_funcionario',
         'cod_tipo_exame',
         'cod_prestador',
         'cod_empresa',
-        'id_status',
         'data_inclusao',
         'data_alteracao',
         'incluido_por',
         'alterado_por',
+        'id_ficha',
+        'id_status',
+        'id_status_rac',
+        'data_recebido',
+        'data_comparecimento',
+        'obs'
     ]
 
     # colunas para a tabela enviada no email
@@ -124,18 +126,17 @@ class PedidoSOCNET(database.Model):
     @classmethod
     def buscar_pedidos(
         self,
-        cod_empresa_principal: int,
-        pesquisa_geral: bool=False,
-        inicio: str=None,
-        fim: str=None,
-        status: int=None,
-        # tag: int=None,
-        empresa: int=None,
-        # unidade: int=None,
-        prestador: int=None,
-        seq_ficha: int=None,
-        nome: str=None,
-        obs: str=None
+        pesquisa_geral:  int | None = None,
+        cod_empresa_principal: int | None = None,
+        data_inicio: date | None = None,
+        data_fim: date | None = None,
+        id_status: int | None = None,
+        id_status_rac: int | None = None,
+        id_empresa: int | None = None,
+        id_prestador: int | None = None,
+        seq_ficha: int | None = None,
+        nome_funcionario: str | None = None,
+        obs: str | None = None
     ):
         '''
         Realiza query filtrada pelos parametros passados
@@ -145,53 +146,52 @@ class PedidoSOCNET(database.Model):
         models = [
             (PedidoSOCNET.id_ficha),
             (PedidoSOCNET.cod_empresa_principal), (PedidoSOCNET.seq_ficha), (PedidoSOCNET.data_ficha),
-            (PedidoSOCNET.prazo), (PedidoSOCNET.prev_liberacao), (PedidoSOCNET.data_recebido),
+            (PedidoSOCNET.data_recebido), (PedidoSOCNET.data_comparecimento),
             (PedidoSOCNET.obs), (PedidoSOCNET.data_inclusao), (PedidoSOCNET.data_alteracao),
             (PedidoSOCNET.incluido_por), (PedidoSOCNET.alterado_por), (PedidoSOCNET.cpf),
             (PedidoSOCNET.cod_funcionario), (PedidoSOCNET.nome_funcionario),
             (TipoExame.nome_tipo_exame), (TipoExame.cod_tipo_exame),
             (EmpresaSOCNET.cod_empresa), (EmpresaSOCNET.nome_empresa),
             (Prestador.cod_prestador), (Prestador.nome_prestador),
-            (Status.id_status), (Status.nome_status),
-            (StatusLiberacao.id_status_lib), (StatusLiberacao.nome_status_lib), (StatusLiberacao.cor_tag),            
+            (PedidoSOCNET.id_status), (Status.nome_status),
+            (PedidoSOCNET.id_status_rac), (StatusRAC.nome_status.label('nome_status_rac'))
         ]
 
-        filtros = [(self.cod_empresa_principal == cod_empresa_principal)]
-       
         joins = [
             (EmpresaSOCNET, PedidoSOCNET.id_empresa == EmpresaSOCNET.id_empresa),
             (Prestador, PedidoSOCNET.id_prestador == Prestador.id_prestador),
             (TipoExame, PedidoSOCNET.cod_tipo_exame == TipoExame.cod_tipo_exame),
             (Status, PedidoSOCNET.id_status == Status.id_status),
-            (StatusLiberacao, PedidoSOCNET.id_status_lib == StatusLiberacao.id_status_lib)
+            (StatusRAC, PedidoSOCNET.id_status_rac == StatusRAC.id_status),
         ]
         
-        if inicio:
-            filtros.append(self.data_ficha >= inicio)
-        if fim:
-            filtros.append(self.data_ficha <= fim)
-        if empresa:
-            filtros.append(self.id_empresa == empresa)
-        # if unidade:
-        #     filtros.append(self.id_unidade == unidade)
-        if prestador != None:
-            if prestador == 0:
+        filtros = []
+        if cod_empresa_principal:
+            filtros.append(self.cod_empresa_principal == cod_empresa_principal)
+        if data_inicio:
+            filtros.append(self.data_ficha >= data_inicio)
+        if data_fim:
+            filtros.append(self.data_ficha <= data_fim)
+        if id_empresa:
+            filtros.append(self.id_empresa == id_empresa)
+        if id_prestador != None:
+            if id_prestador == 0:
                 filtros.append(self.id_prestador == None)
             else:
-                filtros.append(self.id_prestador == prestador)
-        if nome:
-            filtros.append(self.nome_funcionario.like(f'%{nome}%'))
+                filtros.append(self.id_prestador == id_prestador)
+        if nome_funcionario:
+            filtros.append(self.nome_funcionario.like(f'%{nome_funcionario}%'))
         if seq_ficha:
             filtros.append(self.seq_ficha == seq_ficha)
-        if status:
-            filtros.append(self.id_status == status)
+        if id_status:
+            filtros.append(self.id_status == id_status)
+        if id_status_rac:
+            filtros.append(self.id_status_rac == id_status_rac)
         if obs:
             filtros.append(self.obs.like(f'%{obs}%'))
-        # if tag:
-        #     filtros.append(self.id_status_lib == tag)
         
+        # se nao for pesquisa geral, usar grupos do usuario atual
         if not pesquisa_geral:
-            # grupos do usuario atual
             subquery_grupos = [grupo.id_grupo for grupo in current_user.grupo]
 
             joins.append((grupo_empresa_socnet, self.id_empresa == grupo_empresa_socnet.columns.id_empresa))
@@ -203,7 +203,7 @@ class PedidoSOCNET(database.Model):
             database.session.query(*models)
             .filter(*filtros)
             .outerjoin(*joins)
-            .order_by(PedidoSOCNET.data_ficha, PedidoSOCNET.nome_funcionario)
+            .order_by(PedidoSOCNET.data_ficha.desc(), PedidoSOCNET.nome_funcionario)
         )
         
         return query

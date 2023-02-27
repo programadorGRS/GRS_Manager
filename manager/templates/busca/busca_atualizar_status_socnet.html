@@ -1,65 +1,87 @@
 {% extends 'base.html' %}
 
-
 {% block body %}
-
-<div class="container mt-2">
-    <!--  form atualizar status -->
+<div class="mx-5 my-2">
     <form method="POST">
         {{ form.csrf_token }}
-        <!-- DIV FORM -->
         <div class="border p-4">
             <div class="d-flex">
                 <legend>Atualizar Status</legend>
-                <img src="{{ url_for('static', filename='images/logo_socnet.png') }}" alt="Icone GRS" height="25px" width="100px">
+                <img src="{{ url_for('static', filename='images/logo_socnet.png') }}" alt="Icone SOCNET" height="25px" width="100px">
             </div>
             <fieldset>
                 <div class="d-flex justify-content-between">
-                    <!-- STATUS -->
                     <div class="form-group w-49">
-                        {{ form.status_novo.label(class="form-control-label") }}
-                        {% if form.status_novo.errors %}
-                        {{ form.status_novo(class="form-control is-invalid") }}
-                        <div class="invalid-feedback">
-                            {% for erro in form.status_novo.errors %}
-                            {{ erro }}
-                            {% endfor %}
-                        </div>
+                        {{ form.status_aso.label(class="form-control-label") }}
+                        {% if form.status_aso.errors %}
+                            {{ form.status_aso(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.status_aso.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                            </div>
                         {% else %}
-                        {{ form.status_novo(class="form-control") }}
+                            {{ form.status_aso(class="form-control") }}
                         {% endif %}
                     </div>
-                    <!-- DATA RECEBIDO -->
+                    <div class="form-group w-49">
+                        {{ form.status_rac.label(class="form-control-label") }}
+                        {% if form.status_rac.errors %}
+                            {{ form.status_rac(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.status_rac.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.status_rac(class="form-control") }}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
                     <div class="form-group w-49">
                         {{ form.data_recebido.label(class="form-control-label") }}
                         {% if form.data_recebido.errors %}
-                        {{ form.data_recebido(class="form-control is-invalid") }}
-                        <div class="invalid-feedback">
-                            {% for erro in form.data_recebido.errors %}
-                            {{ erro }}
-                            {% endfor %}
-                        </div>
+                            {{ form.data_recebido(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.data_recebido.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                            </div>
                         {% else %}
-                        {{ form.data_recebido(class="form-control") }}
+                            {{ form.data_recebido(class="form-control") }}
+                        {% endif %}
+                    </div>
+                    <div class="form-group w-49">
+                        {{ form.data_comparecimento.label(class="form-control-label") }}
+                        {% if form.data_comparecimento.errors %}
+                            {{ form.data_comparecimento(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.data_comparecimento.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.data_comparecimento(class="form-control") }}
                         {% endif %}
                     </div>
                 </div>
-                <!-- OBS -->
+
                 <div class="form-group">
                     {{ form.obs.label(class="form-control-label") }}
                     {% if form.obs.errors %}
-                    {{ form.obs(class="form-control is-invalid") }}
-                    <div class="invalid-feedback">
-                        {% for erro in form.obs.errors %}
-                        {{ erro }}
-                        {% endfor %}
-                    </div>
+                        {{ form.obs(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.obs.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
                     {% else %}
-                    {{ form.obs(class="form-control") }}
+                        {{ form.obs(class="form-control") }}
                     {% endif %}
                 </div>
             </fieldset>
-            <!-- BOTOES -->
 
             <div class="d-flex mt-3 justify-content-between">
                 <a href="{{ url_for('busca_socnet') }}" id="botao_voltar">
@@ -72,67 +94,58 @@
                 </button>
             </div>
         </div>
-        <!-- DIV TABELA -->
+
         <div>
-            <p>Qtd de Resultados: {{ total }}</p>
-            <!-- tabela de resultados -->
+            <p>Total: {{ total }}</p>
             <table class="table table-sm table-striped small_font">
-                <!-- CABECALHO -->
                 <thead>
                     <tr>
-                        <td>
-                            <input class="form-check-input" type="checkbox" id="checkAll" onchange="toggleCheckBoxes(this, 'checkItem')">
-                        </td>
-                        <th scope="col">Seq. Ficha</th>
-                        <th scope="col">Funcionario</th>
+                        <td><input class="form-check-input" type="checkbox" id="checkAll" onchange="toggleCheckBoxes(this, 'checkItem')"></td>
                         <th scope="col">Ficha</th>
-                        <th scope="col">Empresa</th>
-                        <th scope="col">Prestador</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Previsão</th>
-                        <th scope="col">Obs</th>
-                        <th scope="col">Tag</th>
+                        <th scope="col">Funcionario</th>
+                        <th scope="col">Pedido Exames</th>
+                        <th scope="col">ASO</th>
+                        <th scope="col">RAC</th>
+                        <th scope="col"></th>
                     </tr>
                 </thead>
-                <!-- CORPO -->
                 <tbody>
                     {% for pedido in busca %}
                         <tr>
                             <td>
                                 <input class="form-check-input" type="checkbox" value="{{ pedido.id_ficha }}" id="checkItem" name="checkItem">
                             </td>
+                        
                             <td>
-                                {{pedido.seq_ficha}}
+                                <span class="text-nowrap">Seq: <b>{{pedido.seq_ficha}}</b></span> <br>
+                                <span class="text-nowrap">Tipo: <b>{{pedido.nome_tipo_exame}}</b></span> <br>
+                                <span class="text-nowrap">Data: {{pedido.data_ficha.strftime('%d/%m/%Y')}}</span>
                             </td>
+                        
                             <td>
-                                <a tabindex="-1" class="link-pedido" href="{{ url_for('pedido_socnet_editar', id_ficha=pedido.id_ficha) }}">{{pedido.nome_funcionario}}</a> <span class="fw-lighter">#{{ pedido.cod_prestador }}</span>
-                                <br>
-                                <b>CPF: </b>{{pedido.cpf}}
+                                Nome: <a tabindex="-1" class="link-pedido" href="{{ url_for('pedido_socnet_editar', id_ficha=pedido.id_ficha) }}"><b>{{pedido.nome_funcionario}}</b></a> <span class="fw-lighter">#{{pedido.cod_funcionario}}</span> <br>
+                                CPF: {{pedido.cpf}}
                             </td>
+                        
                             <td>
-                                {{pedido.data_ficha.strftime('%d/%m/%Y')}}
-                                <br>
-                                <b>{{ pedido.nome_tipo_exame }}</b>
+                                Empresa: {{pedido.nome_empresa}} <span class="fw-lighter">#{{pedido.cod_empresa}}</span> <br>
+                                Prestador: <b>{{pedido.nome_prestador}}</b> <span class="fw-lighter">#{{pedido.cod_prestador}}</span>
                             </td>
+                        
                             <td>
-                                {{pedido.nome_empresa}} <span class="fw-lighter">#{{ pedido.cod_empresa }}</span>
+                                <span class="text-nowrap">Status: <b>{{pedido.nome_status}}</b></span> <br>
+                                <span class="text-nowrap">Recebido: {% if pedido.data_recebido %}{{pedido.data_recebido.strftime('%d/%m/%Y')}}{% endif %}</span> <br>
+                                <span class="text-nowrap">Compareceu: {% if pedido.data_comparecimento %}{{pedido.data_comparecimento.strftime('%d/%m/%Y')}}{% endif %}</span>
                             </td>
+                        
                             <td>
-                                {{pedido.nome_prestador}} <span class="fw-lighter">#{{ pedido.cod_prestador }}</span>
+                                <span class="text-nowrap">Status: <b>{{pedido.nome_status_rac}}</b></span>
                             </td>
-                            <td>
-                                {{pedido.nome_status}}
-                            </td>
-                            <td>
-                                NULL
-                            </td>
-                            <td>
+                        
+                            <td class="align-middle">
                                 {% if pedido.obs %}
-                                    <span class="material-icons align-middle" style="font-size: 14px; cursor: help" data-bs-toggle="tooltip" data-bs-title="{{pedido.obs}}">info</span>
+                                    <span class="material-icons align-middle mx-2" style="font-size:medium; cursor: help" data-bs-toggle="tooltip" data-bs-title="{{pedido.obs}}">info</span>
                                 {% endif %}
-                            </td>
-                            <td>
-                                <span class="badge {{pedido.cor_tag}} align-middle">{{pedido.nome_status_lib}}</span>
                             </td>
                         </tr>
                     {% endfor %}
@@ -141,6 +154,5 @@
         </div>
     </form>
 </div>
-
-
 {% endblock %}
+

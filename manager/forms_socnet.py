@@ -6,15 +6,28 @@ from wtforms import (BooleanField, DateField, DateTimeField, IntegerField,
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 
 from manager import database
-from manager.forms import FormBuscarASO, FormCriarEmpresa, FormEditarPedido
+from manager.forms import FormCriarEmpresa, FormEditarPedido
 from manager.models_socnet import EmpresaSOCNET
 
 
-class FormBuscarPedidoSOCNET(FormBuscarASO):
+class FormBuscarASOSOCNET(FlaskForm):
     opcoes = [('', 'Selecione')]
-    pesquisa_geral = BooleanField('Busca Geral', render_kw={'onchange': "CarregarOpcoesBuscaSOCNET('cod_empresa_principal', 'empresa', 'prestador', 'unidade', 'flexSwitch')"}) # flexSwitch
-    cod_empresa_principal = SelectField('Empresa Principal', choices=[], validators=[DataRequired()], render_kw={'onchange': "CarregarOpcoesBuscaSOCNET('cod_empresa_principal', 'empresa', 'prestador', 'unidade', 'flexSwitch')"})
-    empresa = SelectField('Empresa', choices=opcoes, validators=[Optional()], validate_choice=False)
+    pesquisa_geral = BooleanField('Busca Geral', render_kw={'onchange': "CarregarOpcoesBuscaSOCNET('cod_empresa_principal', 'id_empresa', 'id_prestador', 'flexSwitch')"}) # flexSwitch
+    cod_empresa_principal = SelectField('Empresa Principal', choices=[], validators=[Optional()], render_kw={'onchange': "CarregarOpcoesBuscaSOCNET('cod_empresa_principal', 'id_empresa', 'id_prestador', 'flexSwitch')"})
+    id_empresa = SelectField('Empresa', choices=opcoes, validators=[Optional()], validate_choice=False)
+    id_prestador = SelectField('Prestador', choices=opcoes, validators=[Optional()], validate_choice=False)
+    data_inicio = DateField('Inicio', validators=[Optional()])
+    data_fim = DateField('Fim', validators=[Optional()])
+    nome_funcionario = StringField('Nome Funcionário', validators=[Optional(), Length(0, 255)])
+    seq_ficha = IntegerField('Seq. Ficha', validators=[Optional()])
+    obs = StringField('Observação', validators=[Optional(), Length(0, 100)])
+    id_status = SelectField('Status ASO', choices=[], validators=[Optional()])
+    id_status_rac = SelectField('Status RAC', choices=[], validators=[Optional()])
+    
+    def validate_data_inicio(self, data_inicio):
+        if data_inicio.data and self.data_fim.data:
+            if data_inicio.data > self.data_fim.data:
+                raise ValidationError('Inicio deve ser menor do que Fim')
 
 
 class FormCriarEmpresaSOCNET(FlaskForm):

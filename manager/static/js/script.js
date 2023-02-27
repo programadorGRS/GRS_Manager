@@ -14,13 +14,10 @@ function CarregarOpcoesBuscaSOCNET(
     idEmpresaPrincipal,
     idEmpresa,
     idPrestador,
-    idUnidade,
     idPesquisaGeral
-){    
+){
     carregarOpcoesEmpresaSOCNET(idEmpresaPrincipal, idEmpresa, idPesquisaGeral);
     carregarOpcoesPrestador(idEmpresaPrincipal, idPrestador, idPesquisaGeral);
-    
-    document.getElementById(idUnidade).innerHTML = '<option value="">Selecione</option>';
 }
 
 

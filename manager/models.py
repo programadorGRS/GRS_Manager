@@ -393,7 +393,6 @@ class StatusLiberacao(database.Model):
     cor_tag = database.Column(database.String(50))
     
     pedidos = database.relationship('Pedido', backref='status_lib', lazy=True) # one to many
-    pedidos_socnet = database.relationship('PedidoSOCNET', backref='status_lib', lazy=True) # one to many
 
     def __repr__(self) -> str:
         return f'<{self.id_status_lib}> {self.nome_status_lib}'

@@ -7,7 +7,7 @@
         <form method="POST">
             {{ form.csrf_token }}
             <div class="d-flex">
-                <legend><span>Pedido #{{pedido.id_ficha}}</span> <span class="badge {{pedido.status_lib.cor_tag}}">{{pedido.status_lib.nome_status_lib}}</span></legend>
+                <legend><span>Pedido #{{pedido.id_ficha}}</span></legend>
                 <img src="{{ url_for('static', filename='images/logo_socnet.png') }}" alt="Icone GRS" height="25px" width="100px">
             </div>
             <fieldset>
@@ -67,37 +67,6 @@
                         {{ form.tipo_exame(class="form-control editavel") }}
                     {% endif %}
                 </div>
-                </div>
-                <!-- prazo prev lib -->
-                <div class="d-flex justify-content-between">
-                    <!-- prazo -->
-                    <div class="form-group w-49">
-                        {{ form.prazo.label(class="form-control-label") }}
-                        {% if form.prazo.errors %}
-                            {{ form.prazo(class="form-control is-invalid", disabled=True) }}
-                                <div class="invalid-feedback">
-                                {% for erro in form.prazo.errors %}
-                                    {{ erro }}
-                                {% endfor %}
-                                </div>
-                        {% else %}
-                            {{ form.prazo(class="form-control", disabled=True) }}
-                        {% endif %}
-                    </div>
-                    <!-- prev liberacao -->
-                    <div class="form-group w-49">
-                        {{ form.prev_liberacao.label(class="form-control-label") }}
-                        {% if form.prev_liberacao.errors %}
-                            {{ form.prev_liberacao(class="form-control is-invalid", disabled=True) }}
-                            <div class="invalid-feedback">
-                            {% for erro in form.prev_liberacao.errors %}
-                                {{ erro }}
-                            {% endfor %}
-                            </div>
-                        {% else %}
-                            {{ form.prev_liberacao(class="form-control ", disabled=True) }}
-                        {% endif %}
-                    </div>
                 </div>
 
                 <div class="form-group">
