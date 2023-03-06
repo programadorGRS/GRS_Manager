@@ -10,6 +10,7 @@ from manager.models import Empresa, EmpresaPrincipal, Unidade
 from manager.modules.exames_realizados.forms import FormBuscarExamesRealizados
 from manager.modules.exames_realizados.models import ExamesRealizados
 from manager.utils import zipar_arquivos
+from werkzeug.utils import secure_filename
 
 
 # EXAMES REALIZADOS BUSCA---------------------------------------------
@@ -56,22 +57,8 @@ def exames_realizados_relatorios():
         data_fim=request.args.get(key='data_fim', default=None)
     )
 
-    # criar arquivos
-    caminho_arqvs = f'{UPLOAD_FOLDER}/ExamesRealizados_{int(dt.datetime.now().timestamp())}'
-
     df = pd.read_sql(sql=query.statement, con=database.session.bind)
     if not df.empty:
-        df2 = df[ExamesRealizados.colunas_planilha]
-
-        nome_excel = f'{caminho_arqvs}.xlsx'
-        df2.to_excel(nome_excel, index=False, freeze_panes=(1, 0))
-
-        id_unidade = request.args.get(key='id_unidade', default=None, type=int)
-        if id_unidade:
-            nome_unidade = Unidade.query.get(id_unidade).nome_unidade
-        else:
-            nome_unidade = None
-        
         id_empresa = request.args.get(key='id_empresa', default=None, type=int)
         if id_empresa:
             nome_empresa = Empresa.query.get(id_empresa).razao_social
@@ -80,23 +67,40 @@ def exames_realizados_relatorios():
                 request.args.get(key='cod_empresa_principal', default=None, type=int)
             ).nome
 
+        timestamp = int(dt.datetime.now().timestamp())
+        secure_nome = secure_filename(nome_empresa).replace('.','_')
+        caminho_arqvs = f"{UPLOAD_FOLDER}/ExamesRealizados_{secure_nome}_{timestamp}"
         
-        nome_ppt = f'{caminho_arqvs}.pptx'
-        ExamesRealizados.criar_ppt(
-            df=df,
-            nome_arquivo=nome_ppt,
-            nome_empresa=nome_empresa,
-            nome_unidade=nome_unidade
-        )
+        id_unidade = request.args.get(key='id_unidade', default=None, type=int)
+        if id_unidade:
+            nome_unidade = Unidade.query.get(id_unidade).nome_unidade
+            secure_nome = secure_filename(nome_unidade).replace('.','_')
+            caminho_arqvs = f"{UPLOAD_FOLDER}/ExamesRealizados_{secure_nome}_{timestamp}"
+        else:
+            nome_unidade = None
+
+        nome_excel = f'{caminho_arqvs}.xlsx'
+        df2 = df[ExamesRealizados.colunas_planilha]
+        df2.to_excel(nome_excel, index=False, freeze_panes=(1, 0))
+
+        arquivos_zipar = [nome_excel]
+
+        if len(df) >= 50:
+            nome_ppt = f'{caminho_arqvs}.pptx'
+            ExamesRealizados.criar_ppt(
+                df=df,
+                nome_arquivo=nome_ppt,
+                nome_empresa=nome_empresa,
+                nome_unidade=nome_unidade
+            )
+            arquivos_zipar.append(nome_ppt)
 
         pasta_zip = zipar_arquivos(
-            caminhos_arquivos=[nome_excel, nome_ppt],
+            caminhos_arquivos=arquivos_zipar,
             caminho_pasta_zip=f'{caminho_arqvs}.zip'
         )
         
         return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=pasta_zip.split('/')[-1])
-    
     else:
-        
         flash('A pesquisa não gerou dados', 'alert-info')
         return(redirect(url_for('exames_realizados_busca')))

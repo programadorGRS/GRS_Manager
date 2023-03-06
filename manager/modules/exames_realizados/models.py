@@ -597,16 +597,20 @@ class ExamesRealizados(database.Model):
         maximo = qtds.max(skipna=True).values[0]
         shapes[6].shapes[1].text_frame.paragraphs[0].runs[0].text = str(maximo)
 
+        df['mes'] = df['data_resultado'].dt.month
+        df['ano'] = df['data_resultado'].dt.year
+
         dados = (
-            df[['mesAno', 'nome_tipo_exame', 'nome_exame']]
+            df[['ano', 'mes', 'mesAno', 'nome_tipo_exame', 'nome_exame']]
             .pivot_table(
                 values='nome_exame',
-                index='mesAno',
+                index=['ano', 'mes', 'mesAno'],
                 columns='nome_tipo_exame',
                 aggfunc='count',
             )
             .fillna(0)
         )
+        dados.reset_index(level=['ano', 'mes'], drop=True, inplace=True)
         # organizar colunas para manter a ordem no grafico
         dados.loc['Total'] = dados.sum(numeric_only=True)
         dados = dados.sort_values(by='Total', axis=1, ascending=False)
