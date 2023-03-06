@@ -4,6 +4,7 @@ if __name__ == '__main__':
     sys.path.append('../GRS_Manager')
 
     import os
+    import time
     from datetime import datetime
 
     import pandas as pd
@@ -14,9 +15,15 @@ if __name__ == '__main__':
     from manager.modules.conv_exames.models import (ConvExames,
                                                     PedidoProcessamento)
 
-    registros: list[dict] = []
+    TENTATIVAS_EMAIL = 3
+    INTERVALO_EMAIL = 60 # segundos
 
-    empresas_manserv = [529769, 529768, 529759, 529765, 529766]
+    TESTANDO = False
+    DEST_REPORT = ['gabrielsantos@grsnucleo.com.br'] #'jlaranjeira@grsnucleo.com.br'
+
+    EMPRESAS_MANSERV = (529769, 529768, 529759, 529765, 529766)
+
+    registros: list[dict] = []
 
     empresas: list[Empresa] = (
         database.session.query(Empresa)
@@ -37,7 +44,7 @@ if __name__ == '__main__':
         )
 
         if ped_proc:
-            if empresa.cod_empresa in empresas_manserv:
+            if empresa.cod_empresa in EMPRESAS_MANSERV:
                 template = 'manager/email_templates/conv_exames_manserv.html'
                 filtro_a_vencer = [30, pd.NA]
                 filtro_status = ['Vencido', 'A vencer', 'Pendente', 'Sem histórico']
@@ -57,29 +64,31 @@ if __name__ == '__main__':
             dic = ConvExames.rotina_conv_exames(
                 id_proc=ped_proc.id_proc,
                 corpo_email=email_body,
-                testando=False,
+                testando=TESTANDO,
                 gerar_ppt=True,
                 filtro_a_vencer=filtro_a_vencer,
                 filtro_status=filtro_status
             )
-            
             registros.append(dic)
-    
+
+
     # enviar report
     df = pd.DataFrame(registros)
-
     nome_arquivo = f'report_conv_exames_empresas_{int(datetime.now().timestamp())}.xlsx'
     df.to_excel(nome_arquivo, index=False, freeze_panes=(1,0))
 
-    try:
-        EmailConnect.send_email(
-            to_addr=['gabrielsantos@grsnucleo.com.br', 'jlaranjeira@grsnucleo.com.br'],
-            message_subject=f"Report Conv Exames Empresas - {datetime.now(tz=TIMEZONE_SAO_PAULO).strftime('%d-%m-%Y %H:%M:%S')}",
-            message_body='',
-            message_attachments=[nome_arquivo]
-        )
-    except:
-        pass
+    for _ in range(TENTATIVAS_EMAIL):
+        try:
+            EmailConnect.send_email(
+                to_addr=DEST_REPORT,
+                message_subject=f"Report Envios Conv Exames Empresas - {datetime.now(tz=TIMEZONE_SAO_PAULO).strftime('%d-%m-%Y %H:%M:%S')}",
+                message_body='',
+                message_attachments=[nome_arquivo]
+            )
+            break
+        except:
+            time.sleep(INTERVALO_EMAIL)
+            continue
 
     try:
         os.remove(nome_arquivo)

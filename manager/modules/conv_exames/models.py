@@ -814,32 +814,36 @@ class ConvExames(database.Model):
         testando: bool = True,
         gerar_ppt: bool = True,
         filtro_status: list[str] | None = None,
-        filtro_a_vencer: list[int] | None = None
+        filtro_a_vencer: list[int] | None = None,
+        tentativas_email: int = 3,
+        intervalo_tentativas: int = 15
     ) -> dict[str, any]:
         """
         Cria os relatorios de Convocacao de Exames e envia para \
-        o email da Empresa/Unidade 
+        o email da Empresa/Unidade
 
         Gera ppt apenas se a qtd de linhas for maior que 50
 
-        Registra o envio em PedidoProcessamento
-        Registra o Email em EmailConnect
+        tentativas_email: numero de tentativas ao enviar o email
+        intervalo_tentativas: qtd de segundos entre cada tentaviva
 
         Returns:
             dict[str, any]: {
-            'cod_empresa_principal': int,
-            'nome_empresa_principal': str,
-            'id_proc': int,
-            'id_empresa': int,
-            'id_unidade': int | None,
-            'nome_unidade': str | None,
-            'razao_social': str,
-            'data_pedido_proc': datetime,
-            'emails': str,
-            'nome_arquivo': str,
-            'status': str,
-            'tempo_execucao': int
-        }
+                'cod_empresa_principal': int,
+                'nome_empresa_principal': str,
+                'id_proc': int,
+                'id_empresa': int,
+                'razao_social': str,
+                'id_unidade': int | None,
+                'nome_unidade': str | None,
+                'data_pedido_proc': datetime.date,
+                'emails': str | None,
+                'nome_arquivo': str,
+                'status': str,
+                'erro': str | None,
+                'df_len': int,
+                'tempo_execucao': int
+            }
         """
         start = time.time()
 
@@ -848,14 +852,21 @@ class ConvExames(database.Model):
         empresa_principal: EmpresaPrincipal = EmpresaPrincipal.query.get(pedido_proc.cod_empresa_principal)
         empresa: Empresa = Empresa.query.get(pedido_proc.id_empresa)
 
-        infos = {
+        infos: dict[str, any] = {
             'cod_empresa_principal': empresa_principal.cod,
             'nome_empresa_principal': empresa_principal.nome,
             'id_proc': pedido_proc.id_proc,
             'id_empresa': empresa.id_empresa,
             'razao_social': empresa.razao_social,
+            'id_unidade': None,
+            'nome_unidade': None,
             'data_pedido_proc': pedido_proc.data_criacao,
-            'emails': empresa.conv_exames_emails
+            'emails': empresa.conv_exames_emails,
+            'nome_arquivo': None,
+            'status': None,
+            'erro': None,
+            'df_len': None,
+            'tempo_execucao': None
         }
 
         filtros_query = [(ConvExames.id_proc == pedido_proc.id_proc)]
@@ -885,83 +896,61 @@ class ConvExames(database.Model):
         )
 
         df_conv_exames = pd.read_sql_query(sql=query_conv_exames.statement, con=database.session.bind)
+        infos['df_len'] = len(df_conv_exames)
 
-        if not df_conv_exames.empty:
-            infos['nome_arquivo'] = self.criar_relatorios(
-                df=df_conv_exames,
-                nome_empresa=infos['razao_social'],
-                nome_unidade=infos.get('nome_unidade', None),
-                data_origem=pedido_proc.data_criacao,
-                gerar_ppt=gerar_ppt,
-                filtro_status=filtro_status,
-                filtro_a_vencer=filtro_a_vencer
-            )
+        if df_conv_exames.empty:
+            infos['status'] = 'Query ConvExames vazia'
+            infos['tempo_execucao'] = int(time.time() - start)
+            return infos
+        
+        if not infos['emails']:
+            infos['status'] = 'Email vazio'
+            infos['tempo_execucao'] = int(time.time() - start)
+            return infos
 
-            if infos['nome_arquivo'] and infos['emails']:
-                if testando:
-                    enviar_para: list[str] = ['gabrielsantos@grsnucleo.com.br']
-                else:
-                    enviar_para: list[str] = infos['emails'].split(';')
+        infos['nome_arquivo'] = self.criar_relatorios(
+            df=df_conv_exames,
+            nome_empresa=infos['razao_social'],
+            nome_unidade=infos['nome_unidade'],
+            data_origem=pedido_proc.data_criacao,
+            gerar_ppt=gerar_ppt,
+            filtro_status=filtro_status,
+            filtro_a_vencer=filtro_a_vencer
+        )
 
-                if id_unidade:
-                    assunto: str = f"Convocação de Exames Unidades - {infos['nome_unidade']}"
-                else:
-                    assunto: str = f"Convocação de Exames Empresas - {infos['razao_social']}"
+        if not infos['nome_arquivo']:
+            infos['status'] = 'Sem arquivo'
+            infos['tempo_execucao'] = int(time.time() - start)
+            return infos
 
-                try:
-                    EmailConnect.send_email(
-                        to_addr=enviar_para,
-                        reply_to=['gabrielsantos@grsnucleo.com.br', 'relacionamento@grsnucleo.com.br'],
-                        message_subject=assunto,
-                        message_body=corpo_email,
-                        message_imgs=[EmailConnect.ASSINATURA_BOT],
-                        message_attachments=[infos['nome_arquivo']]
-                    )
+        enviar_para: list[str] = infos['emails'].split(';')
+        if testando:
+            enviar_para: list[str] = ['gabrielsantos@grsnucleo.com.br']
 
-                    # registrar envio
-                    log_email = EmailConnect(
-                        email_to = ','.join(enviar_para),
-                        email_subject = assunto,
-                        attachments = infos['nome_arquivo'],
-                        status = True,
-                        df_len = len(df_conv_exames),
-                        ped_proc = pedido_proc.id_proc,
-                        email_date = datetime.now(tz=TIMEZONE_SAO_PAULO)
-                    )
-                    database.session.add(log_email)
+        assunto: str = f"Convocação de Exames Empresas - {infos['razao_social']}"
+        if id_unidade:
+            assunto: str = f"Convocação de Exames Unidades - {infos['nome_unidade']}"
 
-                    infos['status'] = 'OK'
-                    pedido_proc.obs = 'OK'
-                    pedido_proc.relatorio_enviado = True
-                    database.session.commit()
-                except Exception as erro:
-                    log_email = EmailConnect(
-                        email_to = ','.join(enviar_para),
-                        email_subject = assunto,
-                        attachments = infos['nome_arquivo'],
-                        status = False,
-                        error = type(erro).__name__,
-                        df_len = len(df_conv_exames),
-                        ped_proc = pedido_proc.id_proc,
-                        email_date = datetime.now(tz=TIMEZONE_SAO_PAULO)
-                    )
-                    database.session.add(log_email)
-
-                    infos['status'] = 'Erro ao enviar email'
-                    pedido_proc.obs = 'Erro ao enviar email'
-                    database.session.commit()
-            else:
-                infos['status'] = 'Não enviado, Sem arquivo/Email'
-                pedido_proc.obs = 'Não enviado, Sem arquivo/Email'
-                database.session.commit()
-        else:
-            infos['status'] = 'Tabela ConvExames vazia'
-            infos['nome_arquivo'] = None
-            pedido_proc.obs = 'Tabela ConvExames vazia'
-            database.session.commit()
-
+        for i in range(tentativas_email):
+            print(f"Destinatario: {infos['emails']} - tentaviva: {i+1}/{tentativas_email}")
+            try:
+                EmailConnect.send_email(
+                    to_addr=enviar_para,
+                    reply_to=['gabrielsantos@grsnucleo.com.br', 'relacionamento@grsnucleo.com.br'],
+                    message_subject=assunto,
+                    message_body=corpo_email,
+                    message_imgs=[EmailConnect.ASSINATURA_BOT],
+                    message_attachments=[infos['nome_arquivo']]
+                )
+                infos['status'] = 'OK'
+                break
+            except Exception as erro:
+                print(f"Erro: {type(erro).__name__} - tentando novamente em {intervalo_tentativas} segundos...")
+                infos['status'] = 'Erro ao enviar email'
+                infos['erro'] = type(erro).__name__
+                time.sleep(intervalo_tentativas)
+                continue
 
         infos['tempo_execucao'] = int(time.time() - start)
-
         return infos
 
