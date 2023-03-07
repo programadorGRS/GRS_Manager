@@ -3,8 +3,6 @@ import datetime as dt
 import os
 import secrets
 import traceback
-from random import randint
-from time import sleep
 
 import pandas as pd
 from flask import (abort, flash, redirect, render_template, request,
@@ -44,8 +42,6 @@ def login():
         return redirect(url_for('home'))
 
     elif form.validate_on_submit():
-        sleep(randint(0, 5))
-        
         usuario = Usuario.query.filter_by(username=form.username.data).first()
         if usuario and usuario.is_active and bcrypt.check_password_hash(
             usuario.senha.encode('utf-8'),
@@ -116,8 +112,6 @@ def login_otp():
         usuario = Usuario.query.filter_by(username=session['username']).first()
         if usuario:
             if form.validate_on_submit():
-                sleep(randint(0, 5))
-                
                 if bcrypt.check_password_hash(
                     usuario.otp.encode('utf-8'),
                     form.otp.data
