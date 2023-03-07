@@ -816,7 +816,7 @@ class ConvExames(database.Model):
         filtro_status: list[str] | None = None,
         filtro_a_vencer: list[int] | None = None,
         tentativas_email: int = 3,
-        intervalo_tentativas: int = 15
+        intervalo_tentativas: int = 30
     ) -> dict[str, any]:
         """
         Cria os relatorios de Convocacao de Exames e envia para \
@@ -931,25 +931,22 @@ class ConvExames(database.Model):
         if id_unidade:
             assunto: str = f"Convocação de Exames Unidades - {infos['nome_unidade']}"
 
-        for i in range(tentativas_email):
-            print(f"Destinatario: {infos['emails']} - tentaviva: {i+1}/{tentativas_email}")
-            try:
-                EmailConnect.send_email(
-                    to_addr=enviar_para,
-                    reply_to=['gabrielsantos@grsnucleo.com.br', 'relacionamento@grsnucleo.com.br'],
-                    message_subject=assunto,
-                    message_body=corpo_email,
-                    message_imgs=[EmailConnect.ASSINATURA_BOT],
-                    message_attachments=[infos['nome_arquivo']]
-                )
-                infos['status'] = 'OK'
-                break
-            except Exception as erro:
-                print(f"Erro: {type(erro).__name__} - tentando novamente em {intervalo_tentativas} segundos...")
-                infos['status'] = 'Erro ao enviar email'
-                infos['erro'] = type(erro).__name__
-                time.sleep(intervalo_tentativas)
-                continue
+        status_email = EmailConnect.send_email(
+            to_addr=enviar_para,
+            reply_to=['gabrielsantos@grsnucleo.com.br', 'relacionamento@grsnucleo.com.br'],
+            message_subject=assunto,
+            message_body=corpo_email,
+            message_imgs=[EmailConnect.ASSINATURA_BOT],
+            message_attachments=[infos['nome_arquivo']],
+            send_attempts=tentativas_email,
+            attempt_delay=intervalo_tentativas
+        )
+
+        infos['status'] = 'OK'
+        # pegar erro do email mesmo que o status final seja ok
+        infos['erro'] = status_email['error']
+        if status_email['sent'] == 0:
+            infos['status'] = 'Erro ao enviar email'
 
         infos['tempo_execucao'] = int(time.time() - start)
         return infos
