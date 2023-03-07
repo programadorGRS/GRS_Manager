@@ -1,11 +1,10 @@
 import mimetypes
 import smtplib
-import ssl
+import time
 from email.message import EmailMessage
 from email.utils import make_msgid
 
-from manager import database
-from manager.utils import get_json_configs
+from manager import database, app
 
 
 class EmailConnect(database.Model):
@@ -29,9 +28,6 @@ class EmailConnect(database.Model):
     email_date = database.Column(database.DateTime, nullable=False)
 
     # CONFIGS EMAIL------------------------------------------------------------------
-    DEFAULT_SENDER: str = get_json_configs('configs/config_email.json')['MAIL_USERNAME']
-    EMAIL_PASSWORD: str = get_json_configs('configs/config_email.json')['MAIL_PASSWORD'] # gmail
-    OUTLOOK_PASSWORD: str = get_json_configs('configs/config_email.json')['OUTLOOK_PASSWORD'] # office365
     ASSINATURA_BOT: dict[str, str] = {
         'img_path': 'manager/static/images/ass_bot2.png',
         'cid_placeholder': 'AssEmail'
@@ -55,8 +51,9 @@ class EmailConnect(database.Model):
         bcc_addr: list[str] | None = None,
         reply_to: list[str] | None = None,
         message_attachments: list[str] | None = None,
-        use_outlook: bool = False
-    ) -> None:
+        send_attempts: int = 3,
+        attempt_delay: int = 30
+    ) -> int:
         """Envia email em plaintext ou html. Aceita imagens inline (HTML) e anexos.
 
         Args:
@@ -64,6 +61,8 @@ class EmailConnect(database.Model):
             message_body (str): corpo do email
             message_preamble (str | None, optional): preambulo do email . Defaults to None.
             message_attachments (list[str] | None, optional): lista de anexos. Defaults to None.
+            send_attempts (int, optional): numero de tentativas ao enviar o email. Defaults to 3.
+            attempt_delay (int, optional): tempo de espera (segundos) entre cada tentativa. Defaults to 30.
             
             message_imgs (list[dict[str, str]] | None, optional): imagens para inserir no corpo do Email se for HTML. \
             Deve seguir o modelo lista de dicionarios.
@@ -72,14 +71,21 @@ class EmailConnect(database.Model):
 
             [{'img_path': caminho_imagem, 'cid_placeholder': placeholder_para_cid}, \
             {'img_path': caminho_imagem, 'cid_placeholder': placeholder_para_cid}]
+
+        Returns:
+            dict[str, any]: {
+                sent: int 1 | 0,
+                error: str | None
+            }
         """
         message = EmailMessage()
-        from_addr = self.DEFAULT_SENDER
-        email_password = self.EMAIL_PASSWORD
-
+        from_addr: str = app.config['MAIL_DEFAULT_SENDER']
+        email_password: str = app.config['MAIL_PASSWORD']
+        mail_port: int = app.config['MAIL_PORT']
+        mail_server: str = app.config['MAIL_SERVER']
 
         # HEADERS
-        message["From"] = f'{sender_name} <{from_addr}>'
+        message["From"] = f"{sender_name} <{from_addr}>"
         message["To"] = ','.join(to_addr)
         message["Subject"] = message_subject
 
@@ -144,28 +150,40 @@ class EmailConnect(database.Model):
 
 
         # ENVIAR
-        if use_outlook:
-            # using Office365
-            with smtplib.SMTP(host="smtp.office365.com", port=587) as server:
-                server.ehlo()
-                server.starttls()
-                server.login(user=from_addr, password=self.OUTLOOK_PASSWORD)
-                server.send_message(
-                    from_addr=from_addr,
-                    to_addrs=to_addr,
-                    msg=message
-                )
-        else:
-            # using Gmail
-            context = ssl.create_default_context()
-            with smtplib.SMTP_SSL(host="smtp.gmail.com", port=465, context=context) as server:
-                server.login(user=from_addr, password=email_password)
-                server.send_message(
-                    from_addr=from_addr,
-                    to_addrs=to_addr,
-                    msg=message
-                )
-        return None
+        infos = {
+            "sent": None,
+            "error": None
+        }
+        for tentativa in range(send_attempts):
+            try:
+                print(f"Sending email, attempt: {tentativa + 1}/{send_attempts}...")
+                
+                # using Office365
+                with smtplib.SMTP(host=mail_server, port=mail_port) as server:
+                    server.ehlo()
+                    server.starttls()
+                    server.login(user=from_addr, password=email_password)
+                    server.send_message(
+                        from_addr=from_addr,
+                        to_addrs=to_addr,
+                        msg=message
+                    )
+
+                print("Sent")
+                infos["sent"] = 1
+                return infos
+
+            except smtplib.SMTPException as err:
+                print(f"Error: {type(err).__name__}")
+                infos["error"] = type(err).__name__
+                infos["sent"] = 0
+                
+                if tentativa + 1 < send_attempts:
+                    print(f"Trying again in {attempt_delay} secs...")
+                    time.sleep(attempt_delay)
+                
+                continue
+        return infos
 
 
     @staticmethod
