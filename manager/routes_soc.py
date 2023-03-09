@@ -569,27 +569,28 @@ def carregar_pedidos():
         ]
     )
     
-    if form.validate_on_submit():
-        try:
-            qtd_pedidos = Pedido.inserir_pedidos(
-                cod_empresa_principal=form.cod_empresa_principal.data,
-                dataInicio=form.data_inicio.data.strftime('%d/%m/%Y'),
-                dataFim=form.data_fim.data.strftime('%d/%m/%Y')
-            )
+    # if form.validate_on_submit():
+    #     try:
+    #         qtd_pedidos = Pedido.inserir_pedidos(
+    #             cod_empresa_principal=form.cod_empresa_principal.data,
+    #             dataInicio=form.data_inicio.data.strftime('%d/%m/%Y'),
+    #             dataFim=form.data_fim.data.strftime('%d/%m/%Y')
+    #         )
 
-            LogAcoes.registrar_acao(
-                nome_tabela='Pedido',
-                tipo_acao='Importação',
-                id_registro=1,
-                nome_registro=1,
-                observacao=f'Pedidos importdados: {qtd_pedidos}'
-            )
+    #         LogAcoes.registrar_acao(
+    #             nome_tabela='Pedido',
+    #             tipo_acao='Importação',
+    #             id_registro=1,
+    #             nome_registro=1,
+    #             observacao=f'Pedidos importdados: {qtd_pedidos}'
+    #         )
         
-            flash(f'Pedidos importados com sucesso! Qtd: {qtd_pedidos}', 'alert-success')
+    #         flash(f'Pedidos importados com sucesso! Qtd: {qtd_pedidos}', 'alert-success')
             
-            return redirect(url_for('carregar_pedidos'))
-        except ExpatError:
-            flash('Erro de comunicação com o SOC. Tente novamente mais tarde', 'alert-danger')
+    #         return redirect(url_for('carregar_pedidos'))
+    #     except ExpatError:
+    #         flash('Erro de comunicação com o SOC. Tente novamente mais tarde', 'alert-danger')
+    flash('Função temporariamente desativada', 'alert-danger')
 
     return render_template('pedido/pedidos_carregar.html', title='GRS+Connect', form=form)
 
