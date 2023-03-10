@@ -1,15 +1,11 @@
 from datetime import datetime
 
 import jinja2
+from werkzeug.utils import secure_filename
 
 from manager import UPLOAD_FOLDER, database
 from manager.models import Exame, Funcionario, Pedido
 from manager.utils import get_image_file_as_base64_data
-from werkzeug.utils import secure_filename
-
-
-# TODO: incluir data de admissao e demissao na tabela de Fucionario na base de producao
-# TODO: alimentar as tabelas de RTC na producao
 
 
 RTCExames = database.Table(
@@ -34,8 +30,11 @@ class RTC(database.Model):
 
     MAIN_TEMPLATE = 'manager/modules/RTC/templates/base_rtc.html'
 
+    # NOTE: em Windows, o tamanho de EMPTY_SQUR é diferente 
+    # do tamaho de MARKED_SQUR. Em Linux os dois tem o 
+    # mesmo tamanho. Portando, sempre manter os tamanhos iguais
     EMPTY_SQUR = '&#9633;'
-    EMPTY_SQUR_SIZE = '25pt'
+    EMPTY_SQUR_SIZE = '15pt'
     MARKED_SQUR = '&#9746;'
     MARKED_SQUR_SIZE = '15pt'
 
