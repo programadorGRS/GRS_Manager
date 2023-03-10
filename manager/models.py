@@ -1294,6 +1294,7 @@ class Funcionario(database.Model):
         if df_exporta_dados.empty:
             return 0
 
+        df_exporta_dados.replace('', None, inplace=True)
         df_exporta_dados['CODIGOEMPRESA'] = df_exporta_dados['CODIGOEMPRESA'].astype(int)
         df_exporta_dados['CODIGO'] = df_exporta_dados['CODIGO'].astype(int)
 
@@ -1306,7 +1307,7 @@ class Funcionario(database.Model):
             id_empresa=EMPRESA.id_empresa,
             df_exporta_dados=df_exporta_dados
         )
-        df_final = df_final[df_final['id_funcionario'] == None]
+        df_final = df_final[df_final['id_funcionario'].isna()]
         if df_final.empty:
             return 0
 
@@ -1377,6 +1378,7 @@ class Funcionario(database.Model):
         if df_exporta_dados.empty:
             return 0
 
+        df_exporta_dados.replace('', None, inplace=True)
         df_exporta_dados['CODIGOEMPRESA'] = df_exporta_dados['CODIGOEMPRESA'].astype(int)
         df_exporta_dados['CODIGO'] = df_exporta_dados['CODIGO'].astype(int)
 
@@ -1389,7 +1391,7 @@ class Funcionario(database.Model):
             id_empresa=EMPRESA.id_empresa,
             df_exporta_dados=df_exporta_dados
         )
-        df_final = df_final[df_final['id_funcionario'] != None]
+        df_final = df_final[~df_final['id_funcionario'].isna()]
         if df_final.empty:
             return 0
 
