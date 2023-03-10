@@ -11,7 +11,7 @@ from sqlalchemy import update
 from sqlalchemy.inspection import inspect
 from workalendar.america import Brazil
 
-from manager import app, bcrypt, database, login_manager, TIMEZONE_SAO_PAULO
+from manager import TIMEZONE_SAO_PAULO, app, bcrypt, database, login_manager
 
 
 # carregar usuario
@@ -1269,237 +1269,220 @@ class Funcionario(database.Model):
     cod_cargo = database.Column(database.String(100))
     nome_cargo = database.Column(database.String(100))
     situacao = database.Column(database.String(50))
+    data_adm = database.Column(database.Date)
+    data_dem = database.Column(database.Date)
     data_inclusao = database.Column(database.DateTime)
 
     @classmethod
-    def inserir_funcionarios(
-        self,
-        cod_empresa_principal: int,
-        lista_empresas: list[int]
-    ):
+    def inserir_funcionarios(self, id_empresa: int) -> int:
         from modules.exporta_dados import (cadastro_funcionarios,
                                            exporta_dados, get_json_configs)
 
-        empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
-        credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
+        EMPRESA: Empresa = Empresa.query.get(id_empresa)
+        EMPRESA_PRINCIPAL: EmpresaPrincipal = EmpresaPrincipal.query.get(EMPRESA.cod_empresa_principal)
+        CREDENCIAIS: dict[str, any] = get_json_configs(EMPRESA_PRINCIPAL.configs_exporta_dados)
 
-        total_inseridos = 0
-        for id_empresa in lista_empresas:
-            empresa = Empresa.query.get(id_empresa)
+        PARAMETRO = cadastro_funcionarios(
+            cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
+            cod_exporta_dados=CREDENCIAIS['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_COD'],
+            chave=CREDENCIAIS['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_KEY'],
+            empresaTrabalho=EMPRESA.cod_empresa
+        )
+        
+        df_exporta_dados = exporta_dados(parametro=PARAMETRO)
 
-            print(empresa)
+        if df_exporta_dados.empty:
+            return 0
 
-            par = cadastro_funcionarios(
-                cod_empresa_principal=empresa_principal.cod,
-                cod_exporta_dados=credenciais['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_COD'],
-                chave=credenciais['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_KEY'],
-                empresaTrabalho=empresa.cod_empresa
-            )
+        df_exporta_dados['CODIGOEMPRESA'] = df_exporta_dados['CODIGOEMPRESA'].astype(int)
+        df_exporta_dados['CODIGO'] = df_exporta_dados['CODIGO'].astype(int)
 
-            tentativas = 4
-            for i in range(tentativas):
-                try:
-                    df = exporta_dados(parametro=par)
-                    break
-                except:
-                    continue
-                
+        for col in ['DATA_ADMISSAO','DATA_DEMISSAO']:
+            df_exporta_dados[col] = pd.to_datetime(df_exporta_dados[col], dayfirst=True, errors='coerce').dt.date
+            df_exporta_dados[col] = df_exporta_dados[col].astype(object).replace(np.nan, None)
 
-            if not df.empty:
-                df['CODIGOEMPRESA'] = df['CODIGOEMPRESA'].astype(int)
-                df['CODIGO'] = df['CODIGO'].astype(int)
+        # pegar ids dos funcionarios e remover ja existentes
+        df_final: pd.DataFrame = self._buscar_infos_funcionarios(
+            id_empresa=EMPRESA.id_empresa,
+            df_exporta_dados=df_exporta_dados
+        )
+        df_final = df_final[df_final['id_funcionario'] == None]
+        if df_final.empty:
+            return 0
 
-                # pegar ids dos funcionarios e remover ja existentes
-                query = ( 
-                        database.session.query(
-                            Funcionario.id_funcionario,
-                            Funcionario.cod_funcionario
-                    )
-                    .filter(Funcionario.cod_empresa_principal == cod_empresa_principal)
-                    .filter(Funcionario.id_empresa == empresa.id_empresa)
-                )
-                df_database = pd.read_sql(query.statement, database.session.bind)
-            
-                df = pd.merge(
-                    df,
-                    df_database,
-                    how='left',
-                    left_on='CODIGO',
-                    right_on='cod_funcionario'
-                )
-                df = df[~df['id_funcionario'].isin(df_database['id_funcionario'])]
+        df_final = self._buscar_infos_unidades(
+            id_empresa=EMPRESA.id_empresa,
+            df_exporta_dados=df_final
+        )
 
-                # buscar ids das entidades
-                query = ( 
-                        database.session.query(
-                        Unidade.id_empresa,
-                        Unidade.id_unidade,
-                        Unidade.cod_unidade,
-                        Empresa.cod_empresa
-                    )
-                    .filter(Unidade.id_empresa == empresa.id_empresa)
-                    .filter(Empresa.id_empresa == empresa.id_empresa)
-                    .outerjoin(Empresa, Unidade.id_empresa == Empresa.id_empresa)
-                )
-                df_database = pd.read_sql(query.statement, database.session.bind)
+        df_final.dropna(axis=0, subset='id_unidade', inplace=True)
+        if df_final.empty:
+            return 0
 
-                df = pd.merge(
-                    df,
-                    df_database,
-                    how='left',
-                    left_on=['CODIGOEMPRESA', 'CODIGOUNIDADE'],
-                    right_on=['cod_empresa', 'cod_unidade']
-                )
+        df_final = df_final[[
+            'id_empresa',
+            'id_unidade',
+            'CODIGO',
+            'NOME',
+            'CPFFUNCIONARIO',
+            'CODIGOSETOR',
+            'NOMESETOR',
+            'CODIGOCARGO',
+            'NOMECARGO',
+            'SITUACAO',
+            'DATA_ADMISSAO',
+            'DATA_DEMISSAO'
+        ]]
 
-                # tratar df
-                df = df[[
-                    'id_empresa',
-                    'id_unidade',
-                    'CODIGO',
-                    'NOME',
-                    'CPFFUNCIONARIO',
-                    'CODIGOSETOR',
-                    'NOMESETOR',
-                    'CODIGOCARGO',
-                    'NOMECARGO',
-                    'SITUACAO'
-                ]]
-                df.dropna(
-                    axis=0,
-                    subset=['id_empresa', 'id_unidade'],
-                    inplace=True
-                )
-                df = df.rename(columns={
-                    'CODIGO': 'cod_funcionario',
-                    'NOME': 'nome_funcionario',
-                    'CPFFUNCIONARIO': 'cpf_funcionario',
-                    'CODIGOSETOR': 'cod_setor',
-                    'NOMESETOR': 'nome_setor',
-                    'CODIGOCARGO': 'cod_cargo',
-                    'NOMECARGO': 'nome_cargo',
-                    'SITUACAO': 'situacao'
-                })
-                df['cod_empresa_principal'] = cod_empresa_principal
-                df['data_inclusao'] = datetime.now(tz=timezone('America/Sao_Paulo'))
+        df_final.rename(
+            columns={
+                'CODIGO': 'cod_funcionario',
+                'NOME': 'nome_funcionario',
+                'CPFFUNCIONARIO': 'cpf_funcionario',
+                'CODIGOSETOR': 'cod_setor',
+                'NOMESETOR': 'nome_setor',
+                'CODIGOCARGO': 'cod_cargo',
+                'NOMECARGO': 'nome_cargo',
+                'SITUACAO': 'situacao',
+                'DATA_ADMISSAO': 'data_adm',
+                'DATA_DEMISSAO': 'data_dem'
+            },
+            inplace=True
+        )
+        df_final['cod_empresa_principal'] = EMPRESA_PRINCIPAL.cod
+        df_final['data_inclusao'] = datetime.now(tz=TIMEZONE_SAO_PAULO)
 
-                # inserir
-                qtd_inseridos = df.to_sql(
-                    name=self.__tablename__,
-                    con=database.session.bind,
-                    if_exists='append',
-                    index=False
-                )
-                database.session.commit()
-
-                total_inseridos = total_inseridos + qtd_inseridos
-
-        return total_inseridos
+        qtd_inseridos = df_final.to_sql(name=self.__tablename__, con=database.session.bind, if_exists='append', index=False)
+        database.session.commit()
+        return qtd_inseridos
     
-
     @classmethod
-    def atualizar_funcionarios(
-        self,
-        cod_empresa_principal: int,
-        lista_empresas: list[int]
-    ):
+    def atualizar_funcionarios(self, id_empresa: int) -> int:
         from modules.exporta_dados import (cadastro_funcionarios,
                                            exporta_dados, get_json_configs)
 
-        empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
-        credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
+        EMPRESA: Empresa = Empresa.query.get(id_empresa)
+        EMPRESA_PRINCIPAL: EmpresaPrincipal = EmpresaPrincipal.query.get(EMPRESA.cod_empresa_principal)
+        CREDENCIAIS: dict[str, any] = get_json_configs(EMPRESA_PRINCIPAL.configs_exporta_dados)
 
-        total_inseridos = 0
-        for id_empresa in lista_empresas:
-            empresa = Empresa.query.get(id_empresa)
-            par = cadastro_funcionarios(
-                cod_empresa_principal=empresa_principal.cod,
-                cod_exporta_dados=credenciais['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_COD'],
-                chave=credenciais['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_KEY'],
-                empresaTrabalho=empresa.cod_empresa
+        PARAMETRO = cadastro_funcionarios(
+            cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
+            cod_exporta_dados=CREDENCIAIS['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_COD'],
+            chave=CREDENCIAIS['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_KEY'],
+            empresaTrabalho=EMPRESA.cod_empresa
+        )
+        
+        df_exporta_dados = exporta_dados(parametro=PARAMETRO)
+
+        if df_exporta_dados.empty:
+            return 0
+
+        df_exporta_dados['CODIGOEMPRESA'] = df_exporta_dados['CODIGOEMPRESA'].astype(int)
+        df_exporta_dados['CODIGO'] = df_exporta_dados['CODIGO'].astype(int)
+
+        for col in ['DATA_ADMISSAO','DATA_DEMISSAO']:
+            df_exporta_dados[col] = pd.to_datetime(df_exporta_dados[col], dayfirst=True, errors='coerce').dt.date
+            df_exporta_dados[col] = df_exporta_dados[col].astype(object).replace(np.nan, None)
+
+        # pegar ids dos funcionarios e manter apenas os que ja existem
+        df_final: pd.DataFrame = self._buscar_infos_funcionarios(
+            id_empresa=EMPRESA.id_empresa,
+            df_exporta_dados=df_exporta_dados
+        )
+        df_final = df_final[df_final['id_funcionario'] != None]
+        if df_final.empty:
+            return 0
+
+        df_final = self._buscar_infos_unidades(
+            id_empresa=EMPRESA.id_empresa,
+            df_exporta_dados=df_final
+        )
+
+        df_final.dropna(axis=0, subset='id_unidade', inplace=True)
+        if df_final.empty:
+            return 0
+
+        df_final = df_final[[
+            'id_funcionario',
+            'id_empresa',
+            'id_unidade',
+            'CODIGO',
+            'NOME',
+            'CPFFUNCIONARIO',
+            'CODIGOSETOR',
+            'NOMESETOR',
+            'CODIGOCARGO',
+            'NOMECARGO',
+            'SITUACAO',
+            'DATA_ADMISSAO',
+            'DATA_DEMISSAO'
+        ]]
+
+        df_final.rename(
+            columns={
+                'CODIGO': 'cod_funcionario',
+                'NOME': 'nome_funcionario',
+                'CPFFUNCIONARIO': 'cpf_funcionario',
+                'CODIGOSETOR': 'cod_setor',
+                'NOMESETOR': 'nome_setor',
+                'CODIGOCARGO': 'cod_cargo',
+                'NOMECARGO': 'nome_cargo',
+                'SITUACAO': 'situacao',
+                'DATA_ADMISSAO': 'data_adm',
+                'DATA_DEMISSAO': 'data_dem'
+            },
+            inplace=True
+        )
+        df_final['cod_empresa_principal'] = EMPRESA_PRINCIPAL.cod
+
+        dict_maps: list[dict[str, any]] = df_final.to_dict(orient='records')
+        database.session.bulk_update_mappings(Funcionario, dict_maps)
+        database.session.commit()
+        return len(dict_maps)
+
+    @staticmethod
+    def _buscar_infos_funcionarios(id_empresa: int, df_exporta_dados: pd.DataFrame) -> pd.DataFrame:
+        query = (
+                database.session.query(
+                    Funcionario.id_funcionario,
+                    Funcionario.cod_funcionario
             )
-            df = exporta_dados(parametro=par)
+            .filter(Funcionario.id_empresa == id_empresa)
+        )
+        df_database = pd.read_sql(sql=query.statement, con=database.session.bind)
+    
+        df_final = pd.merge(
+            df_exporta_dados,
+            df_database,
+            how='left',
+            left_on='CODIGO',
+            right_on='cod_funcionario'
+        )
+        return df_final
+    
+    @staticmethod
+    def _buscar_infos_unidades(id_empresa: int, df_exporta_dados: pd.DataFrame) -> pd.DataFrame:
+        query = (
+                database.session.query(
+                Unidade.id_empresa,
+                Unidade.id_unidade,
+                Unidade.cod_unidade,
+                Empresa.cod_empresa
+            )
+            .filter(Unidade.id_empresa == id_empresa)
+            .filter(Empresa.id_empresa == id_empresa)
+            .outerjoin(Empresa, Unidade.id_empresa == Empresa.id_empresa)
+        )
+        df_database = pd.read_sql(sql=query.statement, con=database.session.bind)
 
-            if not df.empty:
-                df['CODIGOEMPRESA'] = df['CODIGOEMPRESA'].astype(int)
-                df['CODIGO'] = df['CODIGO'].astype(int)
-
-                query = ( 
-                        database.session.query(
-                            Funcionario.id_funcionario,
-                            Funcionario.cod_funcionario
-                    )
-                    .filter(Funcionario.cod_empresa_principal == cod_empresa_principal)
-                    .filter(Funcionario.id_empresa == empresa.id_empresa)
-                )
-                df_database = pd.read_sql(query.statement, database.session.bind)
-                
-                df = pd.merge(
-                    df,
-                    df_database,
-                    how='left',
-                    left_on='CODIGO',
-                    right_on='cod_funcionario'
-                )
-                df = df[df['id_funcionario'].isin(df_database['id_funcionario'])]
-
-                # buscar ids das entidades
-                query = ( 
-                        database.session.query(
-                        Unidade.id_empresa,
-                        Unidade.id_unidade,
-                        Unidade.cod_unidade,
-                        Empresa.cod_empresa
-                    )
-                    .filter(Unidade.cod_empresa_principal == cod_empresa_principal)
-                    .filter(Empresa.cod_empresa_principal == cod_empresa_principal)
-                    .outerjoin(Empresa, Unidade.id_empresa == Empresa.id_empresa)
-                )
-                df_database = pd.read_sql(query.statement, database.session.bind)
-
-                df = pd.merge(
-                    df,
-                    df_database,
-                    how='left',
-                    left_on=['CODIGOEMPRESA', 'CODIGOUNIDADE'],
-                    right_on=['cod_empresa', 'cod_unidade']
-                )
-
-                # tratar df
-                df = df[[
-                    'id_empresa',
-                    'id_unidade',
-                    'NOME',
-                    'CPFFUNCIONARIO',
-                    'CODIGOSETOR',
-                    'NOMESETOR',
-                    'CODIGOCARGO',
-                    'NOMECARGO',
-                    'SITUACAO'
-                ]]
-                df.dropna(
-                    axis=0,
-                    subset=['id_empresa', 'id_unidade'],
-                    inplace=True
-                )
-                df = df.rename(columns={
-                    'NOME': 'nome_funcionario',
-                    'CPFFUNCIONARIO': 'cpf_funcionario',
-                    'CODIGOSETOR': 'cod_setor',
-                    'NOMESETOR': 'nome_setor',
-                    'CODIGOCARGO': 'cod_cargo',
-                    'NOMECARGO': 'nome_cargo',
-                    'SITUACAO': 'situacao'
-                })
-                df['cod_empresa_principal'] = cod_empresa_principal
-                
-                df = df.to_dict(orient='records')
-
-                database.session.bulk_update_mappings(Funcionario, df)
-                database.session.commit()
-
-                total_inseridos = total_inseridos + len(df)
-
-        return total_inseridos
+        df_final = pd.merge(
+            df_exporta_dados,
+            df_database,
+            how='left',
+            left_on=['CODIGOEMPRESA', 'CODIGOUNIDADE'],
+            right_on=['cod_empresa', 'cod_unidade']
+        )
+        return df_final
 
 
 class Exame(database.Model):

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RTC</title>
+
+    <style>
+        body {
+            font: 10pt "Arial";
+            /* DO NOT CHANGE BODY WIDTH, IT CAUSES A BUG 
+            IN wkhtmltopdf THAT CREATES A NEW RANDOM CELL IN THE TABLE */
+            width: 25cm;
+            margin: auto;
+        }
+
+        img{
+            margin-right: 10px;
+        }
+
+        table{
+            border-spacing: 0;
+            margin: 0;
+        }
+
+        #mainTable{
+            border: 1px solid black;
+        }
+        
+        #mainTable td, th{
+            border: 1px solid black;
+            padding: 10px;
+        }
+
+        #RTC{
+            padding: 0 !important;
+        }
+
+        #RTC table{
+            width: 100%;
+        }
+
+        #RTC td{
+            padding: 0 10px;
+            border: 0;
+            width: 50%;
+            vertical-align: middle !important;
+        }
+
+        #tabelaExames{
+            padding: 0 !important;
+            border: 0 !important;
+        }
+
+        #tabelaExames table{
+            width: 100%;
+        }
+
+        #tabelaExames td{
+            font-size: 8pt !important;
+        }
+
+        .colExame{
+            width: 40%;
+        }
+
+        .colData{
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .tipoSang{
+            margin: 20px;
+        }
+
+        #obs{
+            height: 50px;
+            vertical-align: top;
+            padding-top: 0;
+        }
+
+        #rodape{
+            border: 0 !important;
+            padding: 0 !important;
+        }
+
+        #rodape table{
+            width: 100%;
+            height: 120px;
+        }
+
+        #rodape td{
+            text-align: center;
+            vertical-align: bottom;
+        }
+
+        .size-50{
+            width: 50%;
+        }
+    </style>
+</head>
+<body>
+    <table id="mainTable">
+        <tbody>
+            <tr>
+                <th colspan="2">
+                    {% if logo_empresa %}
+                        <img src="data:;base64, {{logo_empresa}}" width="{{logo_width}}" height="{{logo_height}}">
+                    {% endif %}
+                    ATESTADO MÉDICO DE LIBERAÇÃO PARA REALIZAÇÃO DE ATIVIDADES CRÍTICAS - v1.0.0
+                </th>
+            </tr>
+    
+            <tr>
+                <td colspan="2"><b>NOME:</b> {{nome_funcionario}}</td>
+            </tr>
+    
+            <tr>
+                <td class="size-50"><b>CPF:</b> {{cpf_funcionario}}</td>
+                <td><b>DATA DA ADMISSÃO:</b> {% if data_adm %}{{data_adm.strftime('%d/%m/%Y')}}{% else %}____/____/________{% endif %}</td>
+            </tr>
+    
+            <tr>
+                <td class="size-50"><b>SETOR:</b> {{setor_funcionario}}</td>
+                <td><b>FUNÇÃO:</b> {{cargo_funcionario}}</td>
+            </tr>
+    
+            <tr>
+                <td colspan="2">
+                    <b>ATESTO QUE ESTE EMPREGADO ESTÁ LIBERADO PARA REALIZAR AS SEGUINTES ATIVIDADES CRÍTICAS.</b> <br>
+                    <b>PRAZO MÁXIMO PARA LIBERAÇÃO DE: </b> 12 MESES A PARTIR DA DATA DE REALIZAÇÃO DO EXAME CLÍNICO
+                </td>
+            </tr>
+    
+            <tr>
+                <td colspan="2" id="RTC">
+                    <table>
+                        {% for i in range(col_rtc_a|length) %}
+                            <tr>
+                                <td><span style="font-size:{{col_rtc_a[i][0]}}">{{col_rtc_a[i][1]}}</span> {{col_rtc_a[i][2]}}</td>
+                                {% if col_rtc_b[i] %}
+                                    <td><span style="font-size:{{col_rtc_b[i][0]}}">{{col_rtc_b[i][1]}}</span> {{col_rtc_b[i][2]}}</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </td>
+            </tr>
+    
+            <tr>
+                <th colspan="2">EXAMES MÉDICOS COMPLEMENTARES</th>
+            </tr>
+
+            <tr>
+                <td colspan="2" id="tabelaExames">
+                    <table>
+                        <tr>
+                            <th>EXAME</th>
+                            <th>DATA</th>
+                            <th>EXAME</th>
+                            <th>DATA</th>
+                        </tr>
+                        {% for i in range(col_exames_a|length) %}
+                            <tr>
+                                <td class="colExame">{{col_exames_a[i]}}</td>
+                                <td class="colData">____/____/________</td>
+                                {% if col_exames_b[i] %}
+                                    <td class="colExame">{{col_exames_b[i]}}</td>
+                                    <td class="colData">____/____/________</td>
+                                {% else %}
+                                    <td class="colExame"></td>
+                                    <td class="colData">____/____/________</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </table>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="2" class="tiposSang">
+                    <b>Tipo Sanguíneo:</b>
+                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>A +</b> </span>
+                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>A -</b> </span>
+                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>B +</b> </span>
+                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>B -</b> </span>
+                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>AB +</b> </span>
+                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>AB -</b> </span>
+                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>O +</b> </span>
+                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>O -</b> </span>
+                </td>
+            </tr>
+    
+            <tr>
+                <td colspan="2" id="obs"><b>Observações:</b></td>
+            </tr>
+    
+            <tr>
+                <td colspan="2" id="rodape">
+                    <table>
+                        <tr>
+                            <td style="width: 40%;">
+                                <p>_________________________________________________</p>
+                                ASSINATURA DO MÉDICO
+                            </td>
+                            <td style="width: 30%;">CARIMBO</td>
+                            <td>
+                                <p>________/________/_________</p>
+                                DATA
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>

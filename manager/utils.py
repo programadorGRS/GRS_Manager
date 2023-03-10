@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 from calendar import monthcalendar, setfirstweekday
@@ -140,3 +141,9 @@ def get_json_configs(json_path: str, encoding: str = 'iso-8859-1') -> dict:
     """
     with open(json_path, mode='r', encoding=encoding) as f:
         return dict(json.loads(f.read()))
+
+
+def get_image_file_as_base64_data(img_path: str) -> str:
+    with open(img_path, 'rb') as image_file:
+        return base64.b64encode(image_file.read()).decode()
+

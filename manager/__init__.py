@@ -49,3 +49,4 @@ from manager.modules import routes
 from manager.modules.conv_exames import routes
 from manager.modules.exames_realizados import routes
 from manager.modules.absenteismo import routes
+from manager.modules.RTC import routes
