@@ -41,4 +41,6 @@ if __name__ == '__main__':
         database.session.commit()
 
         print(f'Linhas duplicadas deletadas: {len(df_ids)}')
+    else:
+        print("Nenhum duplicado encontrado")
 
