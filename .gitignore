@@ -13,6 +13,7 @@ manager.db
 *.ipynb
 *.sql
 *tests
+.pdf
 
 # Pycharm
 .idea
