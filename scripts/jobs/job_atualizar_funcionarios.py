@@ -14,7 +14,7 @@ if __name__ == '__main__':
     TENTATIVAS = 4
 
     NOME_TABELA = 'Funcionarios'
-    ACAO = 'Inserir'
+    ACAO = 'Atualizar'
 
 
     total = 0
@@ -30,7 +30,7 @@ if __name__ == '__main__':
             for i in range(TENTATIVAS):
                 print(f'{empresa_principal.nome} - {empresa.razao_social} - {ACAO} {NOME_TABELA} - tentativa: {i + 1}/{TENTATIVAS}', end=' - ')
                 try:
-                    qtd = Funcionario.inserir_funcionarios(id_empresa=empresa.id_empresa)
+                    qtd = Funcionario.atualizar_funcionarios(id_empresa=empresa.id_empresa)
                     print(f'Qtd: {qtd}')
                     total = total + qtd
                     break
