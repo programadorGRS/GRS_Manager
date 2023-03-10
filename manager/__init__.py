@@ -14,7 +14,7 @@ app = Flask(__name__)
 # carregar configs universais
 app.config.from_file("../configs/config_email.json", load=json.load)
 
-dev = True
+dev = False
 if dev:
     # using sqlite
     app.config.from_file("../configs/config_dev.json", load=json.load)
