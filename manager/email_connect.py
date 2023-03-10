@@ -53,7 +53,7 @@ class EmailConnect(database.Model):
         message_attachments: list[str] | None = None,
         send_attempts: int = 3,
         attempt_delay: int = 30
-    ) -> int:
+    ) -> dict[str, any]:
         """Envia email em plaintext ou html. Aceita imagens inline (HTML) e anexos.
 
         Args:
