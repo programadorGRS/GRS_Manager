@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import HTTPException
 
 from manager import UPLOAD_FOLDER, app, bcrypt, database, mail
-from manager.email import corpo_email_otp
+from manager.email_connect import EmailConnect
 from manager.forms import (FormAlterarChave, FormAlterarSenha,
                            FormConfigUsuario, FormCriarConta, FormCriarGrupo,
                            FormCriarStatus, FormEditarPerfil,
@@ -58,11 +58,15 @@ def login():
                 dt.datetime.now(tz=timezone('America/Sao_Paulo'))
                 .strftime('%d-%m-%Y %H:%M:%S')
             )
-            email_body = corpo_email_otp(
-                nome_dest=usuario.nome_usuario,
-                username_dest=usuario.username,
-                current_datetime=horario,
-                otp_usuario=otp
+
+            email_body = EmailConnect.create_email_body(
+                email_template_path='manager/email_templates/otp.html',
+                replacements={
+                    'USER_NAME': usuario.nome_usuario,
+                    'USERNAME': usuario.username,
+                    'CURRENT_DATETIME': horario,
+                    'USER_OTP': otp
+                }
             )
             assinatura = 'static/images/ass_bot.png'
             anexos = Attachment(

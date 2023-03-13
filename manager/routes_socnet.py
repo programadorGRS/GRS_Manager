@@ -15,7 +15,7 @@ from werkzeug.utils import secure_filename
 
 from manager import (DOWNLOAD_FOLDER, TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app,
                      database, mail)
-from manager.email import corpo_email_padrao
+from manager.email_connect import EmailConnect
 from manager.forms import (FormAtualizarStatus, FormEnviarEmails,
                            FormGrupoPrestadores)
 from manager.forms_socnet import (FormBuscarASOSOCNET,
@@ -313,21 +313,28 @@ def enviar_emails_socnet():
                             )
 
                             if form.obs_email.data:
-                                email_body = corpo_email_padrao(
-                                    tabela=tab_aux,
-                                    observacoes=form.obs_email.data,
-                                    nome_usuario=current_user.nome_usuario,
-                                    email_usuario=current_user.email,
-                                    telefone_usuario=current_user.telefone,
-                                    celular_usuario=current_user.celular
+                                email_body = EmailConnect.create_email_body(
+                                    email_template_path='manager/email_templates/email_aso.html',
+                                    replacements={
+                                        'DATAFRAME_ASO': tab_aux.to_html(index=False),
+                                        'USER_OBS': form.obs_email.data,
+                                        'USER_NAME': current_user.nome_usuario,
+                                        'USER_EMAIL': current_user.email,
+                                        'USER_TEL': current_user.telefone,
+                                        'USER_CEL': current_user.celular
+                                    }
                                 )
                             else:
-                                email_body = corpo_email_padrao(
-                                    tabela=tab_aux,
-                                    nome_usuario=current_user.nome_usuario,
-                                    email_usuario=current_user.email,
-                                    telefone_usuario=current_user.telefone,
-                                    celular_usuario=current_user.celular
+                                email_body = EmailConnect.create_email_body(
+                                    email_template_path='manager/email_templates/email_aso.html',
+                                    replacements={
+                                        'DATAFRAME_ASO': tab_aux.to_html(index=False),
+                                        'USER_OBS': 'Sinalizar se o funcionário não compareceu.',
+                                        'USER_NAME': current_user.nome_usuario,
+                                        'USER_EMAIL': current_user.email,
+                                        'USER_TEL': current_user.telefone,
+                                        'USER_CEL': current_user.celular
+                                    }
                                 )
 
                             if form.assunto_email.data:

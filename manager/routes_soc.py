@@ -1,7 +1,6 @@
 import datetime as dt
 from io import StringIO
 from sys import getsizeof
-from xml.parsers.expat import ExpatError
 
 import numpy as np
 import pandas as pd
@@ -14,7 +13,7 @@ from pytz import timezone
 from sqlalchemy.exc import IntegrityError
 
 from manager import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app, database, mail
-from manager.email import corpo_email_padrao
+from manager.email_connect import EmailConnect
 from manager.forms import (FormAtualizarStatus, FormBuscarASO,
                            FormBuscarEmpresa, FormBuscarExames,
                            FormBuscarPrestador, FormBuscarUnidade,
@@ -31,7 +30,7 @@ from manager.models import (Empresa, EmpresaPrincipal, Exame, LogAcoes, Pedido,
 from manager.utils import admin_required, tratar_emails
 
 
-# TODO: criar e atualizar tabelas na database de producao
+# TODO: incluir funcoes de atualizar status em massa (csv) para RAC e os outros campos novos
 
 
 # BUSCA ----------------------------------------
@@ -349,21 +348,28 @@ def enviar_emails():
 
 
                             if form.obs_email.data:
-                                email_body = corpo_email_padrao(
-                                    tabela=tab_aux,
-                                    observacoes=form.obs_email.data,
-                                    nome_usuario=current_user.nome_usuario,
-                                    email_usuario=current_user.email,
-                                    telefone_usuario=current_user.telefone,
-                                    celular_usuario=current_user.celular
+                                email_body = EmailConnect.create_email_body(
+                                    email_template_path='manager/email_templates/email_aso.html',
+                                    replacements={
+                                        'DATAFRAME_ASO': tab_aux.to_html(index=False),
+                                        'USER_OBS': form.obs_email.data,
+                                        'USER_NAME': current_user.nome_usuario,
+                                        'USER_EMAIL': current_user.email,
+                                        'USER_TEL': current_user.telefone,
+                                        'USER_CEL': current_user.celular
+                                    }
                                 )
                             else:
-                                email_body = corpo_email_padrao(
-                                    tabela=tab_aux,
-                                    nome_usuario=current_user.nome_usuario,
-                                    email_usuario=current_user.email,
-                                    telefone_usuario=current_user.telefone,
-                                    celular_usuario=current_user.celular
+                                email_body = EmailConnect.create_email_body(
+                                    email_template_path='manager/email_templates/email_aso.html',
+                                    replacements={
+                                        'DATAFRAME_ASO': tab_aux.to_html(index=False),
+                                        'USER_OBS': 'Sinalizar se o funcionário não compareceu.',
+                                        'USER_NAME': current_user.nome_usuario,
+                                        'USER_EMAIL': current_user.email,
+                                        'USER_TEL': current_user.telefone,
+                                        'USER_CEL': current_user.celular
+                                    }
                                 )
 
                             if form.assunto_email.data:
