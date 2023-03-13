@@ -1874,7 +1874,8 @@ class Pedido(database.Model):
 
 
         df_final = df_exporta_dados
-        df_final['id_empresa'] = EMPRESA.id_empresa 
+        df_final['id_empresa'] = EMPRESA.id_empresa
+        df_final['cod_empresa_principal'] = EMPRESA_PRINCIPAL.cod
 
 
         # pegar id do Exame e prazo
@@ -1922,7 +1923,6 @@ class Pedido(database.Model):
         df_final['id_status'] = int(1)
         df_final['data_inclusao'] = datetime.now(tz=TIMEZONE_SAO_PAULO)
         df_final['incluido_por'] = 'Servidor'
-        df_final['cod_empresa_principal'] = EMPRESA_PRINCIPAL.cod
 
         df_final = df_final.rename(columns={
             'SEQUENCIAFICHA': 'seq_ficha',
@@ -1954,6 +1954,147 @@ class Pedido(database.Model):
         database.session.commit()
         return qtd_inseridos
 
+    @classmethod
+    def atualizar_pedidos(
+        self,
+        id_empresa: int,
+        dataInicio: str,
+        dataFim: str
+    ) -> int:
+        from modules.exporta_dados import (exporta_dados, get_json_configs,
+                                           pedido_exame)
+
+
+        EMPRESA: Empresa = Empresa.query.get(id_empresa)
+        EMPRESA_PRINCIPAL: EmpresaPrincipal = EmpresaPrincipal.query.get(EMPRESA.cod_empresa_principal)
+        CREDENCIAIS = get_json_configs(EMPRESA_PRINCIPAL.configs_exporta_dados)
+
+
+        PARAMETRO = pedido_exame(
+            empresa=EMPRESA.cod_empresa,
+            cod_exporta_dados=CREDENCIAIS['EXPORTADADOS_PEDIDOEXAME_COD'],
+            chave=CREDENCIAIS['EXPORTADADOS_PEDIDOEXAME_KEY'],
+            dataInicio=dataInicio,
+            dataFim=dataFim
+        )
+        
+        df_exporta_dados = exporta_dados(parametro=PARAMETRO)
+
+        if df_exporta_dados.empty:
+            return 0
+
+        # validar duplicados
+        df_exporta_dados = df_exporta_dados.replace({'': None})
+        df_exporta_dados['SEQUENCIAFICHA'] = df_exporta_dados['SEQUENCIAFICHA'].astype(int)
+
+        query_pedidos_db = (
+            database.session.query(Pedido.seq_ficha)
+            .filter(Pedido.seq_ficha.in_(df_exporta_dados['SEQUENCIAFICHA'].drop_duplicates()))
+        )
+        df_database = pd.read_sql(sql=query_pedidos_db.statement, con=database.session.bind)
+
+        # manter apenas seq_fichas que ja existem
+        df_exporta_dados = df_exporta_dados[df_exporta_dados['SEQUENCIAFICHA'].isin(df_database['seq_ficha'])]
+
+        if df_exporta_dados.empty:
+            return 0
+
+
+        df_final = df_exporta_dados
+        df_final['id_empresa'] = EMPRESA.id_empresa
+        df_final['cod_empresa_principal'] = EMPRESA_PRINCIPAL.cod
+
+
+        # pegar id do Exame e prazo
+        df_final = self._buscar_infos_exames(
+            cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
+            df_exporta_dados=df_exporta_dados
+        )
+
+        # pegar id Unidade
+        df_final = self._buscar_infos_unidades(
+            id_empresa=EMPRESA.id_empresa,
+            df_exporta_dados=df_final
+        )
+
+        # pegar id do Prestador
+        df_final = self._buscar_infos_prestadores(
+            cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
+            df_exporta_dados=df_final
+        )
+
+
+        # organizar Prestador principal e Prazo maximo de cada Pedido
+        df_final = self._buscar_prestador_final(df_exporta_dados=df_final)
+
+
+        # inserir prev de liberacao
+        df_final = self._gerar_prev_liberacao(df_exporta_dados=df_final)
+
+        df_final = self._buscar_infos_pedidos(df_exporta_dados=df_final)
+
+        # calcular tag de previsao de liberacao
+        df_final['id_status_lib'] = 1
+        df_final['id_status_lib'] = list(
+            map(
+                self.calcular_tag_prev_lib,
+                df_final['prev_liberacao']
+            )
+        )
+
+        df_final = self._atualizar_tags_finais(df_exporta_dados=df_final)
+
+
+        # tratar colunas
+        for col in ['SEQUENCIAFICHA', 'CODIGOFUNCIONARIO', 'CODIGOTIPOEXAME', 'CODIGOEMPRESA']:
+            df_final[col] = df_final[col].astype(int)
+        
+        df_final['CPFFUNCIONARIO'] = df_final['CPFFUNCIONARIO'].astype('string')
+        
+        df_final['data_alteracao'] = datetime.now(tz=TIMEZONE_SAO_PAULO)
+        df_final['alterado_por'] = 'Servidor'
+
+        df_final = df_final.rename(columns={
+            'SEQUENCIAFICHA': 'seq_ficha',
+            'CODIGOFUNCIONARIO': 'cod_funcionario',
+            'CPFFUNCIONARIO': 'cpf',
+            'NOMEFUNCIONARIO': 'nome_funcionario',
+            'DATAFICHA': 'data_ficha',
+            'CODIGOTIPOEXAME': 'cod_tipo_exame',
+            'CODIGOPRESTADOR': 'cod_prestador',
+            'CODIGOEMPRESA': 'cod_empresa',
+            'CODIGOUNIDADE': 'cod_unidade'
+        })
+
+
+        # selecionar apenas as colunas q constam na tabela
+        colunas_finais = self._selecionar_colunas_finais(
+            tabela=self,
+            df_columns=df_final.columns
+        )
+        df_final = df_final[colunas_finais]
+
+        # remover colunas que nao mudam
+        df_final.drop(
+            columns=['seq_ficha', 'id_status'],
+            inplace=True
+        )
+
+        df_final.dropna(
+            axis=0,
+            subset='id_unidade',
+            inplace=True
+        )
+
+        # NOTE: fazer isso para evitar que dicts_atualizar contenha np.nan
+        # esse valor nao e aceito em databases
+        df_final['id_prestador'] = df_final['id_prestador'].astype(object)
+        df_final['id_prestador'] = df_final['id_prestador'].replace(np.nan, None)
+
+        dicts_atualizar: list[dict[str, any]] = df_final.to_dict(orient='records')
+        database.session.bulk_update_mappings(self, dicts_atualizar)
+        database.session.commit()
+        return len(dicts_atualizar)
 
     @staticmethod
     def calcular_tag_prev_lib(data_prev: pd.Timestamp) -> int:
@@ -1980,7 +2121,6 @@ class Pedido(database.Model):
             return 4 # Em dia
         else:
             return 1 # Sem previsao
-    
 
     @classmethod
     def atualizar_tags_prev_liberacao(self):
@@ -2028,290 +2168,6 @@ class Pedido(database.Model):
         
         return linhas_afetadas
 
-    @classmethod
-    def atualizar_pedidos(
-        self,
-        cod_empresa_principal: int,
-        dataInicio: str,
-        dataFim: str
-    ):
-        from modules.exporta_dados import (exporta_dados, get_json_configs,
-                                           pedido_exame)
-
-        empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
-        credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
-
-        empresas = Empresa.query.filter_by(cod_empresa_principal=cod_empresa_principal)
-
-        total_inseridos = 0
-        for empresa in empresas:
-            print(empresa)
-
-            par = pedido_exame(
-                empresa=empresa.cod_empresa,
-                cod_exporta_dados=credenciais['EXPORTADADOS_PEDIDOEXAME_COD'],
-                chave=credenciais['EXPORTADADOS_PEDIDOEXAME_KEY'],
-                dataInicio=dataInicio,
-                dataFim=dataFim
-            )
-            
-            tentativas = 4
-            for i in range(tentativas):
-                try:
-                    df_exporta_dados = exporta_dados(parametro=par)
-                    break
-                except:
-                    continue
-            
-            if not df_exporta_dados.empty:
-                df_exporta_dados = df_exporta_dados.replace({'': None})
-                df_exporta_dados['SEQUENCIAFICHA'] = df_exporta_dados['SEQUENCIAFICHA'].astype(int)
-
-                query_pedidos_db = (
-                    database.session.query(Pedido.seq_ficha)
-                    .filter(Pedido.seq_ficha.in_(df_exporta_dados['SEQUENCIAFICHA'].drop_duplicates()))
-                )
-                df_database = pd.read_sql(sql=query_pedidos_db.statement, con=database.session.bind)
-
-                # manter apenas pedidos que ja existem
-                df_exporta_dados = df_exporta_dados[df_exporta_dados['SEQUENCIAFICHA'].isin(df_database['seq_ficha'])]
-
-                if not df_exporta_dados.empty:
-                    # pegar id da ficha
-                    df_database = pd.read_sql(
-                        sql=(
-                            database.session.query(
-                                Pedido.id_ficha,
-                                Pedido.seq_ficha,
-                                Pedido.id_status,
-                                Pedido.id_status_lib,
-                                Pedido.data_ficha
-                            )
-                            .filter(Pedido.id_empresa == empresa.id_empresa)
-                            .statement
-                        ),
-                        con=database.session.bind
-                    )
-                    df_exporta_dados = pd.merge(
-                        df_exporta_dados,
-                        df_database,
-                        how='left',
-                        left_on='SEQUENCIAFICHA',
-                        right_on='seq_ficha'
-                    )
-
-                    # pegar id do Exame e prazo
-                    df_database = pd.read_sql(
-                        sql=(
-                            database.session.query(
-                                Exame.id_exame,
-                                Exame.cod_exame,
-                                Exame.prazo
-                            )
-                            .filter(Exame.cod_empresa_principal == cod_empresa_principal)
-                            .statement
-                        ),
-                        con=database.session.bind
-                    )
-                    df_exporta_dados = pd.merge(
-                        df_exporta_dados,
-                        df_database,
-                        how='left',
-                        left_on='CODIGOINTERNOEXAME',
-                        right_on='cod_exame'
-                    ) 
-
-                    df_exporta_dados['id_empresa'] = empresa.id_empresa 
-
-                    # pegar id unidade
-                    df_database = pd.read_sql(
-                        sql=(
-                            database.session.query(
-                                Unidade.id_unidade,
-                                Unidade.cod_unidade
-                            )
-                            .filter(Unidade.id_empresa == empresa.id_empresa)
-                            .statement
-                        ),
-                        con=database.session.bind
-                    )
-                    df_exporta_dados = pd.merge(
-                        df_exporta_dados,
-                        df_database,
-                        how='left',
-                        left_on='CODIGOUNIDADE',
-                        right_on='cod_unidade'
-                    ) 
-
-                    # pegar id do Prestador
-                    df_database = pd.read_sql(
-                        sql=(
-                            database.session.query(
-                                Prestador.id_prestador,
-                                Prestador.cod_prestador
-                            )
-                            .filter(Prestador.cod_empresa_principal == cod_empresa_principal)
-                            .statement
-                        ),
-                        con=database.session.bind
-                    )
-                    # adicionar uma linha Nan no df database para nao travar o merge quando o prestador \
-                    # estiver vazio no df_exporta_dados
-                    df_database = pd.concat(
-                        [df_database, pd.DataFrame({'id_prestador': [None], 'cod_prestador': [None]})],
-                        axis=0,
-                        ignore_index=True
-                    )
-                    df_database = df_database.astype('Int32')
-                    df_exporta_dados['CODIGOPRESTADOR'] = df_exporta_dados['CODIGOPRESTADOR'].astype('Int32')
-                    df_exporta_dados = pd.merge(
-                        df_exporta_dados,
-                        df_database,
-                        how='left',
-                        left_on='CODIGOPRESTADOR',
-                        right_on='cod_prestador'
-                    ) 
-
-                    # pegar prestadores dos exames com menor prazo
-                    # geralmente e o clinico ou outro exame do prestador que \
-                    # pegou o ASO por ultimo
-                    df_exporta_dados['prazo'] = df_exporta_dados['prazo'].fillna(0).astype(int)
-                    df_prestadores = df_exporta_dados.sort_values(by='prazo', ascending=True).drop_duplicates('SEQUENCIAFICHA')
-                    df_prestadores = df_prestadores[['SEQUENCIAFICHA', 'id_prestador']]
-                    df_prestadores.rename(columns={'id_prestador': 'id_prestador_final'}, inplace=True)
-
-                    # manter prazo maior de cada pedido
-                    df_exporta_dados.sort_values(by='prazo', ascending=False, inplace=True)
-                    df_exporta_dados.drop_duplicates('SEQUENCIAFICHA', inplace=True)
-
-                    df_exporta_dados = pd.merge(
-                        df_exporta_dados,
-                        df_prestadores,
-                        how='left',
-                        on='SEQUENCIAFICHA'
-                    )
-
-                    df_exporta_dados.drop(labels='id_prestador', axis=1, inplace=True)
-                    df_exporta_dados.rename(columns={'id_prestador_final': 'id_prestador'}, inplace=True)
-
-
-                    # inserir prev de liberacao;
-                    cal = Brazil() # usar workalendar
-                    df_exporta_dados['DATAFICHA'] = pd.to_datetime(df_exporta_dados['DATAFICHA'], dayfirst=True).dt.date
-                    df_exporta_dados['prev_liberacao'] = list(
-                        map(
-                            cal.add_working_days, # adicionar dias uteis
-                            df_exporta_dados['DATAFICHA'].values,
-                            df_exporta_dados['prazo'].values
-                        )
-                    )
-
-                    # calcular nova tag de previsao de liberacao
-                    df_exporta_dados = df_exporta_dados.rename(columns={'data_ficha': 'data_ficha_antiga'})
-                    df_exporta_dados['atualizar_tag'] = df_exporta_dados['DATAFICHA'].ne(df_exporta_dados['data_ficha_antiga'])
-                    df_exporta_dados['id_status_lib2'] = list(
-                        map(
-                            self.calcular_tag_prev_lib2,
-                            df_exporta_dados['atualizar_tag'],
-                            df_exporta_dados['id_status'],
-                            df_exporta_dados['prev_liberacao'],
-                            df_exporta_dados['id_status_lib']
-                        )
-                    )
-
-                    # tratar colunas
-                    for col in ['SEQUENCIAFICHA', 'CODIGOFUNCIONARIO', 'CODIGOTIPOEXAME', 'CODIGOEMPRESA']:
-                        df_exporta_dados[col] = df_exporta_dados[col].astype(int)
-                    
-                    df_exporta_dados['CPFFUNCIONARIO'] = df_exporta_dados['CPFFUNCIONARIO'].astype('string')
-
-                    df_exporta_dados = df_exporta_dados.rename(columns={
-                        'SEQUENCIAFICHA': 'seq_ficha',
-                        'CODIGOFUNCIONARIO': 'cod_funcionario',
-                        'CPFFUNCIONARIO': 'cpf',
-                        'NOMEFUNCIONARIO': 'nome_funcionario',
-                        'DATAFICHA': 'data_ficha',
-                        'CODIGOTIPOEXAME': 'cod_tipo_exame',
-                        'CODIGOPRESTADOR': 'cod_prestador',
-                        'CODIGOEMPRESA': 'cod_empresa',
-                        'CODIGOUNIDADE': 'cod_unidade'
-                    })
-
-                    df_exporta_dados = df_exporta_dados[[
-                        'id_ficha',
-                        'cod_funcionario',
-                        'cpf',
-                        'nome_funcionario',
-                        'data_ficha',
-                        'cod_tipo_exame',
-                        'id_prestador',
-                        'id_unidade',
-                        'prazo',
-                        'prev_liberacao',
-                        'id_status_lib2'
-                    ]]
-
-                    df_exporta_dados = df_exporta_dados.rename(columns={'id_status_lib2': 'id_status_lib'})
-
-                    df_exporta_dados['data_alteracao'] = datetime.now(tz=timezone('America/Sao_Paulo'))
-                    df_exporta_dados['alterado_por'] = 'Servidor'
-
-                    df_exporta_dados.dropna(
-                        axis=0,
-                        subset=['id_ficha', 'id_unidade'],
-                        inplace=True
-                    )
-
-                    df_exporta_dados = df_exporta_dados.replace({np.nan: None})
-                    df_exporta_dados = df_exporta_dados.to_dict(orient='records')
-                    database.session.bulk_update_mappings(Pedido, df_exporta_dados)
-                    database.session.commit()
-
-                    total_inseridos = total_inseridos + len(df_exporta_dados)
-
-        return total_inseridos
-
-    @staticmethod
-    def calcular_tag_prev_lib2(
-        atualizar_tag: bool,
-        id_status: int,
-        data_prev: pd.Timestamp,
-        id_status_lib: int
-    ) -> int:
-        """Calcula o id_status_lib baseado no Status atual e data_prev. \
-        Se o Status atual for Recebido, nao altera id_status_lib.
-
-        Usado junto com a funcao de atualizar_pedidos
-
-        Returns:
-            int: id_status_lib
-        """
-        if atualizar_tag:
-            # se nao for "Recebido", calcular
-            if id_status != 2:
-                hoje = datetime.now().date()
-
-                datas_solicitar = (
-                    [hoje] +
-                    [hoje + timedelta(days=i) for i in range(1, 3)]
-                ) # folga de dois dias p solicitar
-
-                if not data_prev:
-                    return 1 # Sem previsao
-                elif data_prev < hoje:
-                    return 5 # Atrasado
-                elif data_prev in datas_solicitar:
-                    return 3 # Solicitar
-                elif data_prev > hoje:
-                    return 4 # Em dia
-                else:
-                    return 1 # Sem previsao
-            # se for "Recebido", manter mesma tag
-            else:
-                return id_status_lib
-        else:
-            return id_status_lib
-    
     @staticmethod
     def _buscar_infos_exames(cod_empresa_principal: int, df_exporta_dados: pd.DataFrame) -> pd.DataFrame:
         query = (
@@ -2332,7 +2188,7 @@ class Pedido(database.Model):
             right_on='cod_exame'
         )
         return df_final
-    
+
     @staticmethod
     def _buscar_infos_unidades(id_empresa: int, df_exporta_dados: pd.DataFrame) -> pd.DataFrame:
         query = (
@@ -2352,7 +2208,7 @@ class Pedido(database.Model):
             right_on='cod_unidade'
         )
         return df_final
-    
+
     @staticmethod
     def _buscar_infos_prestadores(cod_empresa_principal: int, df_exporta_dados: pd.DataFrame) -> pd.DataFrame:
         query = (
@@ -2383,7 +2239,7 @@ class Pedido(database.Model):
             right_on='cod_prestador'
         )
         return df_final
-    
+
     @staticmethod
     def _buscar_prestador_final(df_exporta_dados: pd.DataFrame) -> pd.DataFrame:
         """Busca prestadores dos exames com menor prazo. Geralmente é o clinico ou \
@@ -2409,7 +2265,7 @@ class Pedido(database.Model):
         df_final.drop(labels='id_prestador', axis=1, inplace=True)
         df_final.rename(columns={'id_prestador_final': 'id_prestador'}, inplace=True)
         return df_final
-    
+
     @staticmethod
     def _gerar_prev_liberacao(df_exporta_dados: pd.DataFrame) -> pd.DataFrame:
         cal = Brazil() # usar workalendar
@@ -2430,8 +2286,48 @@ class Pedido(database.Model):
         cols_df = list(dict.fromkeys([col for col in df_columns if col in cols_db]))
         return cols_df
 
+    @staticmethod
+    def _buscar_infos_pedidos(df_exporta_dados: pd.DataFrame) -> pd.DataFrame:
+        SEQ_FICHAS: pd.Series[int] = df_exporta_dados['SEQUENCIAFICHA'].drop_duplicates().astype(int)
+        
+        query = (
+            database.session.query(
+                Pedido.seq_ficha,
+                Pedido.id_ficha,
+                Pedido.id_status
+            )
+            .filter(Pedido.seq_ficha.in_(SEQ_FICHAS))
+        )
+        df_infos = pd.read_sql(sql=query.statement, con=database.session.bind)
 
+        df_final = pd.merge(
+            df_exporta_dados,
+            df_infos,
+            how='left',
+            left_on='SEQUENCIAFICHA',
+            right_on='seq_ficha'
+        )
+        return df_final
 
+    @staticmethod
+    def _atualizar_tags_finais(df_exporta_dados: pd.DataFrame) -> pd.DataFrame:
+        query_status_finais = (
+            database.session.query(Status.id_status)
+            .filter(Status.finaliza_processo == True)
+            .all()
+        )
 
+        STATUS_FINAIS: list[int] = [i.id_status for i in query_status_finais]
+        STATUS_OK: StatusLiberacao = (
+            database.session.query(StatusLiberacao)
+            .filter(StatusLiberacao.nome_status_lib == 'OK')
+            .first()
+        )
 
+        df_exporta_dados.loc[
+            df_exporta_dados['id_status'].isin(STATUS_FINAIS),
+            'id_status_lib'
+        ] = STATUS_OK.id_status_lib
+        
+        return df_exporta_dados
 
