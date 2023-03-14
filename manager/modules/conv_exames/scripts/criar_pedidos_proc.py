@@ -8,17 +8,10 @@ if __name__ == '__main__':
 
     import pandas as pd
 
-    from manager import TIMEZONE_SAO_PAULO, database
+    from manager import TIMEZONE_SAO_PAULO
     from manager.email_connect import EmailConnect
     from manager.models import Empresa
-    from manager.modules.conv_exames.models import PedidoProcessamento, ConvExames
-
-
-    # deletar Convocacoes anteriores
-    ConvExames.query.delete()
-    # deletar pedidos anteriores
-    PedidoProcessamento.query.delete()
-    database.session.commit()
+    from manager.modules.conv_exames.models import PedidoProcessamento
 
 
     # criar pedidos novos
