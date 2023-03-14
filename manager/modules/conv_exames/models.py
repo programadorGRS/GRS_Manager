@@ -240,90 +240,76 @@ class ConvExames(database.Model):
                 'qtd': int
             }
         """
-        ped_proc: PedidoProcessamento = PedidoProcessamento.query.get(id_proc)
-        empresa_principal: EmpresaPrincipal = EmpresaPrincipal.query.get(ped_proc.cod_empresa_principal)
-        empresa: Empresa = Empresa.query.get(ped_proc.id_empresa)
-        credenciais: dict = get_json_configs(empresa_principal.configs_exporta_dados)
+        PED_PROC: PedidoProcessamento = PedidoProcessamento.query.get(id_proc)
+        EMPRESA_PRINCIPAL: EmpresaPrincipal = EmpresaPrincipal.query.get(PED_PROC.cod_empresa_principal)
+        EMPRESA: Empresa = Empresa.query.get(PED_PROC.id_empresa)
+        CREEDENCIAIS: dict = get_json_configs(EMPRESA_PRINCIPAL.configs_exporta_dados)
 
-        # realizar consulta
-        parametro: dict = ExportaDadosWS.consulta_conv_exames_assync(
-            cod_empresa_principal = ped_proc.cod_empresa_principal,
-            cod_exporta_dados = credenciais['EXPORTADADOS_CONVEXAMESASSYNC_COD'],
-            chave = credenciais['EXPORTADADOS_CONVEXAMESASSYNC_KEY'],
-            cod_empresa_trab = ped_proc.cod_empresa,
-            cod_sol = ped_proc.cod_solicitacao
+        PARAMETRO: dict = ExportaDadosWS.consulta_conv_exames_assync(
+            cod_empresa_principal = PED_PROC.cod_empresa_principal,
+            cod_exporta_dados = CREEDENCIAIS['EXPORTADADOS_CONVEXAMESASSYNC_COD'],
+            chave = CREEDENCIAIS['EXPORTADADOS_CONVEXAMESASSYNC_KEY'],
+            cod_empresa_trab = PED_PROC.cod_empresa,
+            cod_sol = PED_PROC.cod_solicitacao
         )
 
+        infos = {
+            'cod_empresa_principal': EMPRESA_PRINCIPAL.cod,
+            'nome_empresa_principal': EMPRESA_PRINCIPAL.nome,
+            'id_empresa': EMPRESA.id_empresa,
+            'nome_empresa': EMPRESA.razao_social,
+            'cod_solicitacao': PED_PROC.cod_solicitacao,
+            'status': None,
+            'qtd': 0
+        }
+
         resp: dict = ExportaDadosWS.request_exporta_dados_ws(
-            parametro=parametro,
-            id_empresa=empresa.id_empresa,
+            parametro=PARAMETRO,
+            id_empresa=EMPRESA.id_empresa,
             obs='Convocação de Exames - Assíncrono'
         )
 
-        if resp['response'].status_code == 200:
-            if not resp['erro_soc']:
-                df = ExportaDadosWS.xml_to_dataframe(resp['response'].text)
-                if not df.empty:
-                    df = ConvExames.tratar_df_conv_exames(
-                        df = df,
-                        cod_empresa_principal = ped_proc.cod_empresa_principal,
-                        id_proc = ped_proc.id_proc,
-                        id_empresa = ped_proc.id_empresa
-                    )
-                    df.to_sql(
-                        name = ConvExames.__tablename__,
-                        con = database.session.bind,
-                        index = False,
-                        if_exists = 'append'
-                    )
-                    ped_proc.resultado_importado = True
-                    ped_proc.obs = 'Consulta inserida'
-                    database.session.commit()
-                    return {
-                        'cod_empresa_principal': empresa_principal.cod,
-                        'nome_empresa_principal': empresa_principal.nome,
-                        'id_empresa': empresa.id_empresa,
-                        'nome_empresa': empresa.razao_social,
-                        'cod_solicitacao': ped_proc.cod_solicitacao,
-                        'status': 'ok',
-                        'qtd': len(df)
-                    }
-                else:
-                    ped_proc.resultado_importado = True
-                    ped_proc.obs = 'Retornou vazio'
-                    database.session.commit()
-                    return {
-                        'cod_empresa_principal': empresa_principal.cod,
-                        'nome_empresa_principal': empresa_principal.nome,
-                        'id_empresa': empresa.id_empresa,
-                        'nome_empresa': empresa.razao_social,
-                        'cod_solicitacao': ped_proc.cod_solicitacao,
-                        'status': 'vazio',
-                        'qtd': 0
-                    }
-            else:
-                ped_proc.resultado_importado = True
-                ped_proc.obs = f'Erro soc: {resp["msg_erro"]}'
-                database.session.commit()
-                return {
-                    'cod_empresa_principal': empresa_principal.cod,
-                    'nome_empresa_principal': empresa_principal.nome,
-                    'id_empresa': empresa.id_empresa,
-                    'nome_empresa': empresa.razao_social,
-                    'cod_solicitacao': ped_proc.cod_solicitacao,
-                    'status': f"erro soc: {resp['msg_erro']}",
-                    'qtd': 0
-                }
-        else:
-            return {
-                'cod_empresa_principal': empresa_principal.cod,
-                'nome_empresa_principal': empresa_principal.nome,
-                'id_empresa': empresa.id_empresa,
-                'nome_empresa': empresa.razao_social,
-                'cod_solicitacao': ped_proc.cod_solicitacao,
-                'status': 'erro no request',
-                'qtd': 0
-            }
+        if resp['response'].status_code != 200:
+            infos['status'] = 'Erro no request'
+            PED_PROC.obs = 'Erro no request'
+            database.session.commit()
+            return infos
+        
+        if resp['erro_soc']:
+            infos['status'] = f"erro soc: {resp['msg_erro']}"
+            PED_PROC.obs = f'Erro soc: {resp["msg_erro"]}'
+            database.session.commit()
+            return infos
+
+        df = ExportaDadosWS.xml_to_dataframe(resp['response'].text)
+        if df.empty:
+            infos['status'] = 'Vazio'
+            PED_PROC.obs = 'Vazio'
+            PED_PROC.resultado_importado = True
+            database.session.commit()
+            return infos
+
+
+        df = ConvExames.tratar_df_conv_exames(
+            df=df,
+            cod_empresa_principal=PED_PROC.cod_empresa_principal,
+            id_proc=PED_PROC.id_proc,
+            id_empresa=PED_PROC.id_empresa
+        )
+
+        qtd = df.to_sql(
+            name=ConvExames.__tablename__,
+            con=database.session.bind,
+            index=False,
+            if_exists='append'
+        )
+
+        infos['status'] = 'Ok'
+        infos['qtd'] = qtd
+        PED_PROC.resultado_importado = True
+        PED_PROC.obs = 'Consulta inserida'
+        database.session.commit()
+        return infos
 
     @classmethod
     def tratar_df_conv_exames(
