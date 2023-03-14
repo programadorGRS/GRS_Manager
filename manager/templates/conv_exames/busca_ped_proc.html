@@ -2,7 +2,7 @@
 
 {% block body %}
 
-<div class="container justify-content-center d-flex mt-2">
+<div class="container justify-content-center d-flex my-2">
     <div class="card p-4">
         <form method="POST" id="formBusca">
             {{ form.csrf_token }}
@@ -88,36 +88,20 @@
                     {% endif %}
                 </div>
 
-                <!-- utilizado, enviado -->
-                <div class="d-flex justify-content-between">
-                    <div class="form-group w-49">
-                        {{ form.resultado_importado.label(class="form-control-label") }}
-                        {% if form.resultado_importado.errors %}
+                <div class="form-group">
+                    {{ form.resultado_importado.label(class="form-control-label") }}
+                    {% if form.resultado_importado.errors %}
                         {{ form.resultado_importado(class="form-control is-invalid") }}
                         <div class="invalid-feedback">
                             {% for erro in form.resultado_importado.errors %}
-                            {{ erro }}
+                                {{ erro }}
                             {% endfor %}
                         </div>
-                        {% else %}
+                    {% else %}
                         {{ form.resultado_importado(class="form-control") }}
-                        {% endif %}
-                    </div>
-
-                    <div class="form-group w-49">
-                        {{ form.relatorio_enviado.label(class="form-control-label") }}
-                        {% if form.relatorio_enviado.errors %}
-                        {{ form.relatorio_enviado(class="form-control is-invalid") }}
-                        <div class="invalid-feedback">
-                            {% for erro in form.relatorio_enviado.errors %}
-                            {{ erro }}
-                            {% endfor %}
-                        </div>
-                        {% else %}
-                        {{ form.relatorio_enviado(class="form-control") }}
-                        {% endif %}
-                    </div>
+                    {% endif %}
                 </div>
+
                 <!-- OBS -->
                 <div class="form-group">
                     {{ form.obs.label(class="form-control-label") }}

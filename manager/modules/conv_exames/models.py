@@ -32,17 +32,31 @@ class PedidoProcessamento(database.Model):
     
     exames_conv = database.relationship('ConvExames', backref='pedido_proc', lazy=True) # one to many
 
+    COLUNAS_CSV: list[str] = [
+        'id_proc',
+        'cod_empresa_principal',
+        'nome',
+        'id_empresa',
+        'cod_empresa',
+        'razao_social',
+        'cod_solicitacao',
+        'data_criacao',
+        'resultado_importado',
+        'parametro',
+        'obs'
+    ]
+
     @classmethod
     def buscar_pedidos_proc(
         self,
-        cod_empresa_principal: int,
-        inicio: str=None,
-        fim: str=None,
-        empresa: int=None,
-        cod_solicitacao: int=None,
-        resultado_importado: bool=None,
-        relatorio_enviado: bool=None,
-        obs: str=None
+        cod_empresa_principal: int | None = None,
+        data_inicio: datetime | None = None,
+        data_fim: datetime | None = None,
+        id_empresa: int | None = None,
+        cod_solicitacao: int | None = None,
+        resultado_importado: int | None = None,
+        relatorio_enviado: int | None = None,
+        obs: str | None = None,
     ):
         '''
         Realiza query filtrada pelos parametros passados
@@ -51,14 +65,16 @@ class PedidoProcessamento(database.Model):
 
         Retorna apenas os pedidos associados as empresas e prestadores dos grupos do current_user
         '''
-        parametros = [(self.cod_empresa_principal == cod_empresa_principal)]
+        parametros = []
         
-        if inicio:
-            parametros.append(self.data_criacao >= inicio)
-        if fim:
-            parametros.append(self.data_criacao <= fim)
-        if empresa:
-            parametros.append(self.id_empresa == empresa)
+        if data_inicio:
+            parametros.append(self.data_criacao >= data_inicio)
+        if data_fim:
+            parametros.append(self.data_criacao <= data_fim)
+        if cod_empresa_principal:
+            parametros.append(self.cod_empresa_principal == cod_empresa_principal)
+        if id_empresa:
+            parametros.append(self.id_empresa == id_empresa)
         if cod_solicitacao:
             parametros.append(self.cod_solicitacao == cod_solicitacao)
         if resultado_importado == 0 or resultado_importado == 1:

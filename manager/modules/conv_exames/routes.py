@@ -1,8 +1,7 @@
 import datetime as dt
-import os
 
 import pandas as pd
-from flask import (current_app, flash, redirect, render_template, request,
+from flask import (flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import login_required
 from sqlalchemy import update
@@ -282,59 +281,57 @@ def conv_exames_configs():
 @app.route('/convocacao_exames/pedidos_proc/busca', methods=['GET', 'POST'])
 @login_required
 def buscar_pedidos_proc():
-    form = FormBuscarPedidoProcessamento()
+    form: FormBuscarPedidoProcessamento = FormBuscarPedidoProcessamento()
 
-    form.cod_empresa_principal.choices = (
-        [('', 'Selecione')] + 
-        [
-            (emp.cod, emp.nome)
-            for emp in EmpresaPrincipal.query
-            .all()
-        ]
+    empresas_principais = (
+        [('', 'Selecione')] +
+        [(emp.cod, emp.nome) for emp in EmpresaPrincipal.query.all()]
     )
+    
+    form.cod_empresa_principal.choices = empresas_principais
 
-    # BUSCAR -----------------------------------
-    if form.validate_on_submit() and 'botao_buscar' in request.form:
-        return redirect(
-            url_for(
-                'pedidos_proc',
-                cod_empresa_principal=form.cod_empresa_principal.data,
-                id_empresa=form.id_empresa.data,
-                data_inicio=form.data_inicio.data,
-                data_fim=form.data_fim.data,
-                cod_solicitacao=form.cod_solicitacao.data,
-                resultado_importado=form.resultado_importado.data,
-                relatorio_enviado=form.relatorio_enviado.data,
-                obs=form.obs.data
+    if form.validate_on_submit():
+        parametros = {
+            'cod_empresa_principal': form.cod_empresa_principal.data,
+            'id_empresa': form.id_empresa.data,
+            'data_inicio': form.data_inicio.data,
+            'data_fim': form.data_fim.data,
+            'cod_solicitacao': form.cod_solicitacao.data,
+            'resultado_importado': form.resultado_importado.data,
+            'obs': form.obs.data
+        }
+
+        parametros2: dict[str, any] = {}
+        for chave, valor in parametros.items():
+            if valor not in (None, ''):
+                parametros2[chave] = valor
+
+        # BUSCAR -----------------------------------
+        if 'botao_buscar' in request.form:
+            return redirect(url_for('pedidos_proc', **parametros2))
+
+        # CRIAR CSV-----------------------------------------------
+        elif 'botao_csv' in request.form:
+            query = PedidoProcessamento.buscar_pedidos_proc(**parametros2)
+            query = (
+                query
+                .join(EmpresaPrincipal, PedidoProcessamento.cod_empresa_principal == EmpresaPrincipal.cod)
+                .join(Empresa, PedidoProcessamento.id_empresa == Empresa.id_empresa)
+                .add_columns(Empresa.razao_social, EmpresaPrincipal.nome)
             )
-        )
-
-    # CRIAR CSV-----------------------------------------------
-    elif form.validate_on_submit() and 'botao_csv' in request.form:        
-        # fazer query
-        query = PedidoProcessamento.buscar_pedidos_proc(
-            cod_empresa_principal=form.cod_empresa_principal.data,
-            empresa=form.id_empresa.data,
-            inicio=form.data_inicio.data,
-            fim=form.data_fim.data,
-            cod_solicitacao=form.cod_solicitacao.data,
-            resultado_importado=form.resultado_importado.data,
-            relatorio_enviado=form.relatorio_enviado.data,
-            obs=form.obs.data
-        )
-        
-        # gerar dataframa a partir do statement SQL
-        df = pd.read_sql(sql=query.statement, con=database.session.bind)
-        
-        nome_arqv = f'PedidosProcessamento_{int(dt.datetime.now().timestamp())}.csv'
-        camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
-        df.to_csv(
-            camihno_arqv,
-            sep=';',
-            index=False,
-            encoding='iso-8859-1'
-        )
-        return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=nome_arqv)
+            df = pd.read_sql(sql=query.statement, con=database.session.bind)
+            df = df[PedidoProcessamento.COLUNAS_CSV]
+            
+            timestamp = int(dt.datetime.now().timestamp())
+            nome_arqv = f'PedidosProcessamento_{timestamp}.csv'
+            camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
+            df.to_csv(
+                camihno_arqv,
+                sep=';',
+                index=False,
+                encoding='iso-8859-1'
+            )
+            return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=nome_arqv)
 
     return render_template(
         'conv_exames/busca_ped_proc.html',
@@ -347,15 +344,21 @@ def buscar_pedidos_proc():
 @app.route('/convocacao_exames/pedidos_proc/busca/resultados', methods=['GET', 'POST'])
 @login_required
 def pedidos_proc():
+    datas = {
+        'data_inicio': request.args.get('data_inicio', type=str, default=None),
+        'data_fim': request.args.get('data_fim', type=str, default=None)
+    }
+    for chave, valor in datas.items():
+        if valor:
+            datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
 
     query = PedidoProcessamento.buscar_pedidos_proc(
-        cod_empresa_principal=request.args.get(key='cod_empresa_principal', type=int),
-        inicio=request.args.get(key='data_inicio', default=None),
-        fim=request.args.get(key='data_fim', default=None),
-        empresa=request.args.get(key='id_empresa', default=None, type=int),
+        cod_empresa_principal=request.args.get(key='cod_empresa_principal', type=int, default=None),
+        data_inicio=datas['data_inicio'],
+        data_fim=datas['data_fim'],
+        id_empresa=request.args.get(key='id_empresa', default=None, type=int),
         cod_solicitacao=request.args.get(key='cod_solicitacao', default=None, type=int),
         resultado_importado=request.args.get(key='resultado_importado', default=None, type=int),
-        relatorio_enviado=request.args.get(key='relatorio_enviado', default=None, type=int),
         obs=request.args.get(key='obs', default=None, type=str)
     ).all()
 

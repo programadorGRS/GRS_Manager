@@ -54,7 +54,7 @@ class FormBuscarPedidoProcessamento(FlaskForm):
     cod_empresa_principal = SelectField(
         'Empresa Principal',
         choices=[],
-        validators=[DataRequired()],
+        validators=[Optional()],
         render_kw={'onchange': "carregarOpcoesEmpresa('cod_empresa_principal', 'id_empresa')"}
     )
     id_empresa = SelectField('Empresa (Opcional)', choices=[('', 'Selecione')], validators=[Optional()], validate_choice=False)
@@ -62,7 +62,6 @@ class FormBuscarPedidoProcessamento(FlaskForm):
     data_fim = DateField('Fim', validators=[Optional()])
     cod_solicitacao = IntegerField('Cód Pedido de Processamento (Opcional)', validators=[Optional()])
     resultado_importado = SelectField('Importado', choices=opcoes, validators=[Optional()])
-    relatorio_enviado = SelectField('Enviado', choices=opcoes, validators=[Optional()])
     obs = StringField('Observação', validators=[Optional(), Length(0, 100)])
 
 
