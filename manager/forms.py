@@ -302,7 +302,6 @@ class FormCriarConta(FlaskForm):
 class FormLogin(FlaskForm):
     username = StringField('Username', validators=[DataRequired(), Length(3, 50)])
     senha = PasswordField('Senha', validators=[DataRequired(), Length(6, 50)])
-    recaptcha = RecaptchaField()
     botao_login = SubmitField('Login')
 
 
