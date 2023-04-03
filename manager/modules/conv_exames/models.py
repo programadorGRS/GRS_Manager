@@ -247,8 +247,8 @@ class ConvExames(database.Model):
 
         PARAMETRO: dict = ExportaDadosWS.consulta_conv_exames_assync(
             cod_empresa_principal = PED_PROC.cod_empresa_principal,
-            cod_exporta_dados = CREEDENCIAIS['EXPORTADADOS_CONVEXAMESASSYNC_COD'],
-            chave = CREEDENCIAIS['EXPORTADADOS_CONVEXAMESASSYNC_KEY'],
+            cod_exporta_dados = CREEDENCIAIS['CONV_EXAMES_ASSYNC_COD'],
+            chave = CREEDENCIAIS['CONV_EXAMES_ASSYNC_KEY'],
             cod_empresa_trab = PED_PROC.cod_empresa,
             cod_sol = PED_PROC.cod_solicitacao
         )

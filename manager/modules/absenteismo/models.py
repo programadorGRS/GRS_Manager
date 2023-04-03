@@ -293,8 +293,8 @@ class Licenca(database.Model):
 
         par: dict = ExportaDadosWS.licenca_socind(
             cod_empresa_principal = empresa.cod_empresa_principal,
-            cod_exporta_dados = credenciais['EXPORTADADOS_LICENCASOCNIND_COD'],
-            chave = credenciais['EXPORTADADOS_LICENCASOCNIND_KEY'],
+            cod_exporta_dados = credenciais['LICENCA_SOCIND_COD'],
+            chave = credenciais['LICENCA_SOCIND_KEY'],
             empresaTrabalho = empresa.cod_empresa,
             dataInicio = dataInicio.strftime('%d/%m/%Y'),
             dataFim = dataFim.strftime('%d/%m/%Y')
@@ -473,8 +473,8 @@ class Licenca(database.Model):
         credenciais: dict = get_json_configs(empresa_principal.configs_exporta_dados)
 
         par: dict = ExportaDadosWS.licenca_medica(
-            cod_exporta_dados = credenciais['EXPORTADADOS_LICENCAMED_COD'],
-            chave = credenciais['EXPORTADADOS_LICENCAMED_KEY'],
+            cod_exporta_dados = credenciais['LICENCA_MED_COD'],
+            chave = credenciais['LICENCA_MED_KEY'],
             empresaTrabalho = empresa.cod_empresa,
             dataInicio = dataInicio.strftime('%d/%m/%Y'),
             dataFim = dataFim.strftime('%d/%m/%Y')

@@ -4,7 +4,7 @@ import pandas as pd
 import requests
 import xmltodict
 
-json_config_path = 'configs/exporta_dados_grs.json'
+json_config_path = 'configs/exporta_dados.json'
 
 def get_json_configs(json_path: str) -> dict:
     '''
@@ -24,7 +24,7 @@ def request(parametro: str, encoding: str='ISO-8859-1') -> str:
     
     Retorna a resposta xml em string
     '''
-    url = get_json_configs(json_config_path)['EXPORTADADOS_URL']
+    url = get_json_configs(json_config_path)['URL']
     # headers = {'content-type': 'text/xml'}
     headers = {'content-type': 'application/soap+xml'}
     body = f"""<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/"

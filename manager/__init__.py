@@ -12,15 +12,15 @@ from pytz import timezone
 app = Flask(__name__)
 
 # carregar configs universais
-app.config.from_file("../configs/config_email.json", load=json.load)
+app.config.from_file("../configs/email.json", load=json.load)
 
 dev = False
 if dev:
     # using sqlite
-    app.config.from_file("../configs/config_dev.json", load=json.load)
+    app.config.from_file("../configs/dev.json", load=json.load)
 else:
     # using mysql
-    app.config.from_file("../configs/config_prod.json", load=json.load)
+    app.config.from_file("../configs/prod.json", load=json.load)
 
 
 login_manager = LoginManager(app)

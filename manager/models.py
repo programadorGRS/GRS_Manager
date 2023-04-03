@@ -496,8 +496,8 @@ class Empresa(database.Model):
 
         par = empresas(
             empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['EXPORTADADOS_EMPRESAS_COD'],
-            chave=credenciais['EXPORTADADOS_EMPRESAS_KEY'],
+            cod_exporta_dados=credenciais['EMPRESAS_COD'],
+            chave=credenciais['EMPRESAS_KEY'],
         )
         df_exporta_dados = exporta_dados(parametro=par)
         
@@ -595,8 +595,8 @@ class Empresa(database.Model):
 
         par = empresas(
             empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['EXPORTADADOS_EMPRESAS_COD'],
-            chave=credenciais['EXPORTADADOS_EMPRESAS_KEY'],
+            cod_exporta_dados=credenciais['EMPRESAS_COD'],
+            chave=credenciais['EMPRESAS_KEY'],
         )
         df_exporta_dados = exporta_dados(parametro=par)
         
@@ -796,8 +796,8 @@ class Unidade(database.Model):
 
         par = unidades(
             empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['EXPORTADADOS_UNIDADES_COD'],
-            chave=credenciais['EXPORTADADOS_UNIDADES_KEY']
+            cod_exporta_dados=credenciais['UNIDADES_COD'],
+            chave=credenciais['UNIDADES_KEY']
         )
         df_exporta_dados = exporta_dados(parametro=par)
         
@@ -932,8 +932,8 @@ class Unidade(database.Model):
 
         par = unidades(
             empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['EXPORTADADOS_UNIDADES_COD'],
-            chave=credenciais['EXPORTADADOS_UNIDADES_KEY'],
+            cod_exporta_dados=credenciais['UNIDADES_COD'],
+            chave=credenciais['UNIDADES_KEY'],
         )
         df_exporta_dados = exporta_dados(parametro=par)
         
@@ -1084,8 +1084,8 @@ class Prestador(database.Model):
 
         par = prestadores(
             cod_empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['EXPORTADADOS_PRESTADORES_COD'],
-            chave=credenciais['EXPORTADADOS_PRESTADORES_KEY'],
+            cod_exporta_dados=credenciais['PRESTADORES_COD'],
+            chave=credenciais['PRESTADORES_KEY'],
             ativo='' # carregar todos
         )
         df_exporta_dados = exporta_dados(parametro=par)
@@ -1179,8 +1179,8 @@ class Prestador(database.Model):
 
         par = prestadores(
             cod_empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['EXPORTADADOS_PRESTADORES_COD'],
-            chave=credenciais['EXPORTADADOS_PRESTADORES_KEY'],
+            cod_exporta_dados=credenciais['PRESTADORES_COD'],
+            chave=credenciais['PRESTADORES_KEY'],
         )
         df_exporta_dados = exporta_dados(parametro=par)
         
@@ -1284,8 +1284,8 @@ class Funcionario(database.Model):
 
         PARAMETRO = cadastro_funcionarios(
             cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
-            cod_exporta_dados=CREDENCIAIS['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_COD'],
-            chave=CREDENCIAIS['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_KEY'],
+            cod_exporta_dados=CREDENCIAIS['CAD_FUNCIONARIOS_EMPRESA_COD'],
+            chave=CREDENCIAIS['CAD_FUNCIONARIOS_EMPRESA_KEY'],
             empresaTrabalho=EMPRESA.cod_empresa
         )
         
@@ -1368,8 +1368,8 @@ class Funcionario(database.Model):
 
         PARAMETRO = cadastro_funcionarios(
             cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
-            cod_exporta_dados=CREDENCIAIS['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_COD'],
-            chave=CREDENCIAIS['EXPORTADADOS_CADFUNCIONARIOSEMPRESA_KEY'],
+            cod_exporta_dados=CREDENCIAIS['CAD_FUNCIONARIOS_EMPRESA_COD'],
+            chave=CREDENCIAIS['CAD_FUNCIONARIOS_EMPRESA_KEY'],
             empresaTrabalho=EMPRESA.cod_empresa
         )
         
@@ -1551,8 +1551,8 @@ class Exame(database.Model):
 
         par = exames(
             cod_empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['EXPORTADADOS_EXAMES_COD'],
-            chave=credenciais['EXPORTADADOS_EXAMES_KEY'],
+            cod_exporta_dados=credenciais['EXAMES_COD'],
+            chave=credenciais['EXAMES_KEY'],
         )
         df = exporta_dados(parametro=par)
         
@@ -1607,8 +1607,8 @@ class Exame(database.Model):
 
         par = exames(
             cod_empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['EXPORTADADOS_EXAMES_COD'],
-            chave=credenciais['EXPORTADADOS_EXAMES_KEY'],
+            cod_exporta_dados=credenciais['EXAMES_COD'],
+            chave=credenciais['EXAMES_KEY'],
         )
         df = exporta_dados(parametro=par)
         
@@ -1845,8 +1845,8 @@ class Pedido(database.Model):
 
         PARAMETRO = pedido_exame(
             empresa=EMPRESA.cod_empresa,
-            cod_exporta_dados=CREDENCIAIS['EXPORTADADOS_PEDIDOEXAME_COD'],
-            chave=CREDENCIAIS['EXPORTADADOS_PEDIDOEXAME_KEY'],
+            cod_exporta_dados=CREDENCIAIS['PEDIDO_EXAMES_COD'],
+            chave=CREDENCIAIS['PEDIDO_EXAMES_KEY'],
             dataInicio=dataInicio,
             dataFim=dataFim
         )
@@ -1972,8 +1972,8 @@ class Pedido(database.Model):
 
         PARAMETRO = pedido_exame(
             empresa=EMPRESA.cod_empresa,
-            cod_exporta_dados=CREDENCIAIS['EXPORTADADOS_PEDIDOEXAME_COD'],
-            chave=CREDENCIAIS['EXPORTADADOS_PEDIDOEXAME_KEY'],
+            cod_exporta_dados=CREDENCIAIS['PEDIDO_EXAMES_COD'],
+            chave=CREDENCIAIS['PEDIDO_EXAMES_KEY'],
             dataInicio=dataInicio,
             dataFim=dataFim
         )

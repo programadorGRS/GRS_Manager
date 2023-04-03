@@ -144,8 +144,8 @@ class ExamesRealizados(database.Model):
 
         par: dict = ExportaDadosWS.pedido_exame(
             empresa = empresa.cod_empresa,
-            cod_exporta_dados = credenciais['EXPORTADADOS_PEDIDOEXAME_COD'],
-            chave = credenciais['EXPORTADADOS_PEDIDOEXAME_KEY'],
+            cod_exporta_dados = credenciais['PEDIDO_EXAMES_COD'],
+            chave = credenciais['PEDIDO_EXAMES_KEY'],
             dataInicio = dataInicio.strftime('%d/%m/%Y'),
             dataFim = dataFim.strftime('%d/%m/%Y')
         )
