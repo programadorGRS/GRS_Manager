@@ -6,12 +6,11 @@ import traceback
 
 import pandas as pd
 from flask import (abort, flash, redirect, render_template, request,
-                   send_from_directory, session, url_for)
+                   send_from_directory, session, url_for, current_app)
 from flask_login import (confirm_login, current_user, fresh_login_required,
                          login_fresh, login_required, login_user, logout_user)
 from flask_mail import Attachment, Message
 from pytz import timezone
-from sqlalchemy import delete, insert
 from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import HTTPException
 
@@ -562,7 +561,7 @@ def grupos_editar():
 @app.route('/grupos/usuarios',  methods=['GET', 'POST'])
 @login_required
 def grupos_usuarios():
-    grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
+    grupo: Grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
     
     # already in group
     pre_selected = [i.id_usuario for i in grupo.usuarios]
@@ -577,27 +576,12 @@ def grupos_usuarios():
     form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
     
     if form.validate_on_submit():
-        # reset current group
-        delete_query = database.session.execute(
-            delete(grupo_usuario).
-            where(grupo_usuario.c.id_grupo == grupo.id_grupo)
+        Grupo.update_grupo_usuario(
+            id_grupo=grupo.id_grupo,
+            id_usuarios=request.form.getlist(key='select', type=int),
+            alterado_por=current_user.username
         )
 
-        # insert all the selected objects
-        insert_items = [
-            {'id_grupo': grupo.id_grupo, 'id_usuario': i}
-            for i in request.form.getlist(key='select', type=int)
-        ]
-        insert_query = database.session.execute(
-            insert(grupo_usuario).
-            values(insert_items)
-        )
-
-        grupo.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
-        grupo.alterado_por = current_user.username
-        database.session.commit()
-
-        # registrar acao
         LogAcoes.registrar_acao(
             nome_tabela='Grupo',
             tipo_acao='Editar Usuários',
@@ -619,7 +603,7 @@ def grupos_usuarios():
 @app.route('/grupos/prestadores',  methods=['GET', 'POST'])
 @login_required
 def grupos_prestadores():
-    grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
+    grupo: Grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
     
     #  already in group
     pre_selected = [i.id_prestador for i in grupo.prestadores]
@@ -634,34 +618,19 @@ def grupos_prestadores():
     form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
     
     if form.validate_on_submit():
-        # reset current group
-        delete_query = database.session.execute(
-            delete(grupo_prestador).
-            where(grupo_prestador.c.id_grupo == grupo.id_grupo)
+        Grupo.update_grupo_prestador(
+            id_grupo=grupo.id_grupo,
+            id_prestadores=request.form.getlist(key='select', type=int),
+            alterado_por=current_user.username
         )
 
-        # insert all the selected objects
-        insert_items = [
-            {'id_grupo': grupo.id_grupo, 'id_prestador': i}
-            for i in request.form.getlist(key='select', type=int)
-        ]
-        insert_query = database.session.execute(
-            insert(grupo_prestador).
-            values(insert_items)
-        )
-
-        grupo.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
-        grupo.alterado_por = current_user.username
-        database.session.commit()
-
-        # registrar acao
         LogAcoes.registrar_acao(
             nome_tabela='Grupo',
             tipo_acao='Editar Prestadores',
             id_registro=grupo.id_grupo,
             nome_registro=grupo.nome_grupo
         )
-        
+
         return redirect(url_for('grupos'))
     
     return render_template(
@@ -676,7 +645,7 @@ def grupos_prestadores():
 @app.route('/grupos/empresas',  methods=['GET', 'POST'])
 @login_required
 def grupos_empresas():
-    grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
+    grupo: Grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
     
     # already in group
     pre_selected = [i.id_empresa for i in grupo.empresas]
@@ -691,36 +660,21 @@ def grupos_empresas():
     form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
     
     if form.validate_on_submit():
-        # reset current group
-        delete_query = database.session.execute(
-            delete(grupo_empresa).
-            where(grupo_empresa.c.id_grupo == grupo.id_grupo)
+        Grupo.update_grupo_empresa(
+            id_grupo=grupo.id_grupo,
+            id_empresas=request.form.getlist(key='select', type=int),
+            alterado_por=current_user.username
         )
 
-        # insert all the selected objects
-        insert_items = [
-            {'id_grupo': grupo.id_grupo, 'id_empresa': i}
-            for i in request.form.getlist(key='select', type=int)
-        ]
-        insert_query = database.session.execute(
-            insert(grupo_empresa).
-            values(insert_items)
-        )
-
-        grupo.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
-        grupo.alterado_por = current_user.username
-        database.session.commit()
-
-        # registrar acao
         LogAcoes.registrar_acao(
             nome_tabela='Grupo',
             tipo_acao='Editar Empresas',
             id_registro=int(grupo.id_grupo),
             nome_registro=grupo.nome_grupo
         )
-    
+
         return redirect(url_for('grupos'))
-    
+
     return render_template(
         'grupo/grupo_empresas.html',
         title='GRS+Connect',

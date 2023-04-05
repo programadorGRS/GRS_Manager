@@ -44,9 +44,9 @@
                             </td>
                         
                             <td>
-                                Tag: <span class="badge {{pedido.cor_tag}} align-middle">{{pedido.nome_status_lib}}</span> <br>
+                                Tag: <span class="badge {{pedido.status_lib.cor_tag}} align-middle">{{pedido.status_lib.nome_status_lib}}</span> <br>
                                 <span class="text-nowrap">Seq: <b>{{pedido.seq_ficha}}</b></span> <br>
-                                <span class="text-nowrap">Tipo: <b>{{pedido.nome_tipo_exame}}</b></span> <br>
+                                <span class="text-nowrap">Tipo: <b>{{pedido.tipo_exame.nome_tipo_exame}}</b></span> <br>
                                 <span class="text-nowrap">Data: {{pedido.data_ficha.strftime('%d/%m/%Y')}}</span>
                             </td>
                         
@@ -56,19 +56,19 @@
                             </td>
                         
                             <td>
-                                Empresa: {{pedido.razao_social}} <span class="fw-lighter">#{{pedido.cod_empresa}}</span> <br>
-                                Prestador: <b>{{pedido.nome_prestador}}</b> <span class="fw-lighter">#{{pedido.cod_prestador}}</span>
+                                Empresa: {{pedido.empresa.razao_social}} <span class="fw-lighter">#{{pedido.empresa.cod_empresa}}</span> <br>
+                                Prestador: <b>{{pedido.prestador.nome_prestador}}</b> <span class="fw-lighter">#{{pedido.prestador.cod_prestador}}</span>
                             </td>
                         
                             <td>
-                                <span class="text-nowrap">Status: <b>{{pedido.nome_status}}</b></span> <br>
+                                <span class="text-nowrap">Status: <b>{{pedido.status.nome_status}}</b></span> <br>
                                 <span class="text-nowrap">Previsão: {{pedido.prev_liberacao.strftime('%d/%m/%Y')}}</span> <br>
                                 <span class="text-nowrap">Recebido: {% if pedido.data_recebido %}{{pedido.data_recebido.strftime('%d/%m/%Y')}}{% endif %}</span> <br>
                                 <span class="text-nowrap">Compareceu: {% if pedido.data_comparecimento %}{{pedido.data_comparecimento.strftime('%d/%m/%Y')}}{% endif %}</span>
                             </td>
                         
                             <td>
-                                <span class="text-nowrap">Status: <b>{{pedido.nome_status_rac}}</b></span>
+                                <span class="text-nowrap">Status: <b>{{pedido.status_rac.nome_status}}</b></span>
                             </td>
                         
                             <td class="align-middle">

@@ -402,12 +402,15 @@ class FormGrupoPrestadores(FlaskForm):
 
 
 class FormBuscarASO(FlaskForm):
-    opcoes = [('', 'Selecione')]
-    pesquisa_geral = BooleanField('Busca Geral', render_kw={'onchange': "CarregarOpcoesBuscaPedido('cod_empresa_principal', 'id_empresa', 'id_prestador', 'id_unidade', 'flexSwitch')"}) # flexSwitch
-    cod_empresa_principal = SelectField('Empresa Principal', choices=[], validators=[Optional()], render_kw={'onchange': "CarregarOpcoesBuscaPedido('cod_empresa_principal', 'id_empresa', 'id_prestador', 'id_unidade', 'flexSwitch')"})
-    id_empresa = SelectField('Empresa', choices=opcoes, validators=[Optional()], render_kw={'onchange':"carregarOpcoesUnidade('cod_empresa_principal', 'id_empresa', 'id_unidade')"}, validate_choice=False)
-    id_unidade = SelectField('Unidade', choices=opcoes, validators=[Optional()], validate_choice=False)
-    id_prestador = SelectField('Prestador', choices=opcoes, validators=[Optional()], validate_choice=False)
+    kws_pesquisa_geral = {'onchange': "CarregarOpcoesBuscaPedido('cod_empresa_principal', 'id_empresa', 'id_prestador', 'id_unidade', 'flexSwitch')"}
+    kws_cod_empresa_principal = {'onchange': "CarregarOpcoesBuscaPedido('cod_empresa_principal', 'id_empresa', 'id_prestador', 'id_unidade', 'flexSwitch')"}
+    kws_id_empresa = {'onchange':"carregarOpcoesUnidade('cod_empresa_principal', 'id_empresa', 'id_unidade')"}
+
+    pesquisa_geral = BooleanField('Busca Geral', render_kw=kws_pesquisa_geral) # flexSwitch
+    cod_empresa_principal = SelectField('Empresa Principal', choices=[], validators=[Optional()], render_kw=kws_cod_empresa_principal)
+    id_empresa = SelectField('Empresa', choices=[], validators=[Optional()], render_kw=kws_id_empresa, validate_choice=False)
+    id_unidade = SelectField('Unidade', choices=[], validators=[Optional()], validate_choice=False)
+    id_prestador = SelectField('Prestador', choices=[], validators=[Optional()], validate_choice=False)
     data_inicio = DateField('Inicio', validators=[Optional()])
     data_fim = DateField('Fim', validators=[Optional()])
     nome_funcionario = StringField('Nome Funcionário', validators=[Optional(), Length(0, 255)])
@@ -416,11 +419,64 @@ class FormBuscarASO(FlaskForm):
     id_status = SelectField('Status ASO', choices=[], validators=[Optional()])
     id_status_rac = SelectField('Status RAC', choices=[], validators=[Optional()])
     id_tag = SelectField('Tag Prazo Liberação', choices=[], validators=[Optional()])
+    id_grupos = SelectField('Grupo', choices=[], validators=[Optional()])
     
     def validate_data_inicio(self, data_inicio):
         if data_inicio.data and self.data_fim.data:
             if data_inicio.data > self.data_fim.data:
                 raise ValidationError('Inicio deve ser menor do que Fim')
+    
+    def load_choices(self):
+        from manager.models import (EmpresaPrincipal, Grupo, Status,
+                                    StatusLiberacao, StatusRAC)
+
+        self.cod_empresa_principal.choices = (
+            [('', 'Selecione')] +
+            [(i.cod, i.nome) for i in EmpresaPrincipal.query.all()]
+        )
+
+        self.id_status.choices = (
+            [('', 'Selecione')] +
+            [
+                (i.id_status, i.nome_status)
+                for i in Status.query
+                .order_by(Status.nome_status)
+                .all()
+            ]
+        )
+        self.id_status_rac.choices = (
+            [('', 'Selecione')] +
+            [
+                (i.id_status, i.nome_status)
+                for i in StatusRAC.query
+                .order_by(StatusRAC.nome_status)
+                .all()
+            ]
+        )
+
+        self.id_tag.choices = (
+            [('', 'Selecione')] +
+            [
+                (i.id_status_lib, i.nome_status_lib)
+                for i in StatusLiberacao.query
+                .order_by(StatusLiberacao.nome_status_lib)
+                .all()
+            ]
+        )
+
+        self.id_grupos.choices = (
+            [
+                ('my_groups', 'Meus Grupos'),
+                ('all', 'Todos'),
+                ('null', 'Sem Grupo')
+            ] + 
+            [
+                (gp.id_grupo, gp.nome_grupo)
+                for gp in Grupo.query.all()
+            ]
+        )
+        return None
+
 
 
 class FormAtualizarStatus(FlaskForm):

@@ -147,3 +147,30 @@ def get_image_file_as_base64_data(img_path: str) -> str:
     with open(img_path, 'rb') as image_file:
         return base64.b64encode(image_file.read()).decode()
 
+
+def get_data_from_form(
+    data: dict,
+    ignore_keys: list | None = None,
+    ignore_vals: list | None = None
+) -> dict:
+    """
+        Args:
+            ignore_keys (list | None, optional): keys to ignore. Ignores 'csrf_token'  by default.
+            ignore_vals (list | None, optional): values to ignore. Ignores None and empty strings '' by default.
+    """
+    ignore_v = [None, '']
+    if ignore_vals:
+        ignore_v.extend(ignore_vals)
+    
+    ignore_k = ['csrf_token']
+    if ignore_keys:
+        ignore_k.extend(ignore_keys)
+
+    new_data = {}
+    for key, val in data.items():
+        if val not in ignore_v:
+            if key not in ignore_k:
+                new_data[key] = val
+
+    return new_data
+

@@ -12,7 +12,7 @@ from manager.models import (EmpresaPrincipal, Pedido, Status, StatusLiberacao,
                             StatusRAC)
 from manager.modules.RTC.forms import FormGerarRTC
 from manager.modules.RTC.models import RTC
-from manager.utils import zipar_arquivos
+from manager.utils import zipar_arquivos, get_data_from_form
 
 
 # BUSCA ----------------------------------------
@@ -20,56 +20,11 @@ from manager.utils import zipar_arquivos
 @login_required
 def busca_rtc():
     form = FormBuscarASO()
-
-    # opcoes emp principal
-    form.cod_empresa_principal.choices = (
-        [(i.cod, i.nome) for i in EmpresaPrincipal.query.all()]
-    )
-
-    # opcoes status
-    form.id_status.choices = (
-        [('', 'Selecione')] +
-        [(i.id_status, i.nome_status) for i in Status.query.all()]
-    )
-    form.id_status_rac.choices = (
-        [('', 'Selecione')] +
-        [(i.id_status, i.nome_status) for i in StatusRAC.query.all()]
-    )
-
-    # opcoes tag
-    form.id_tag.choices = (
-        [('', 'Selecione')] +
-        [
-            (i.id_status_lib, i.nome_status_lib)
-            for i in StatusLiberacao.query
-            .order_by(StatusLiberacao.nome_status_lib)
-            .all()
-        ]
-    )
+    form.load_choices()
     
     if form.validate_on_submit():
-        parametros:  dict[str, any] = {
-            'pesquisa_geral': int(form.pesquisa_geral.data),
-            'cod_empresa_principal': form.cod_empresa_principal.data,
-            'data_inicio': form.data_inicio.data,
-            'data_fim': form.data_fim.data,
-            'id_status': form.id_status.data,
-            'id_status_rac': form.id_status_rac.data,
-            'seq_ficha': form.seq_ficha.data,
-            'id_tag': form.id_tag.data,
-            'id_empresa': form.id_empresa.data,
-            'id_unidade': form.id_unidade.data,
-            'id_prestador': form.id_prestador.data,
-            'nome_funcionario': form.nome_funcionario.data,
-            'obs': form.obs.data
-        }
-
-        parametros2: dict[str, any] = {}
-        for chave, valor in parametros.items():
-            if valor not in (None, ''):
-                parametros2[chave] = valor
-
-        return redirect(url_for('gerar_rtcs', **parametros2))
+        parametros = get_data_from_form(data=form.data, ignore_keys=['pesquisa_geral'])
+        return redirect(url_for('gerar_rtcs', **parametros))
     return render_template('rtc/busca.html', form=form, title='GRS+Connect')
 
 
@@ -87,7 +42,7 @@ def gerar_rtcs():
             datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
 
     query_pedidos = Pedido.buscar_pedidos(
-        pesquisa_geral=request.args.get('pesquisa_geral', type=int, default=None),
+        id_grupos=Pedido.handle_group_choice(choice=request.args.get('id_grupos')),
         cod_empresa_principal=request.args.get('cod_empresa_principal', type=int, default=None),
         data_inicio=datas['data_inicio'],
         data_fim=datas['data_fim'],
@@ -102,8 +57,7 @@ def gerar_rtcs():
         obs=request.args.get('obs', type=str, default=None)
     )
 
-    # total de resultados na query
-    total = query_pedidos.count()
+    total = Pedido.get_total_busca(query=query_pedidos)
 
     if form.validate_on_submit():
         config = pdfkit.configuration(wkhtmltopdf=app.config['WKHTMLTOPDF_PATH'])

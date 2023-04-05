@@ -27,7 +27,7 @@ from manager.forms import (FormAtualizarStatus, FormBuscarASO,
 from manager.models import (Empresa, EmpresaPrincipal, Exame, LogAcoes, Pedido,
                             Prestador, Status, StatusLiberacao, StatusRAC,
                             TipoExame, Unidade)
-from manager.utils import admin_required, tratar_emails
+from manager.utils import admin_required, get_data_from_form, tratar_emails
 
 
 # TODO: incluir funcoes de atualizar status em massa (csv) para RAC e os outros campos novos
@@ -40,66 +40,26 @@ def busca():
     form = FormBuscarASO()
     # opcoes dinamicas de busca, como empresa, unidade \
     # prestador etc, sao incluidas via fetch no javascript
-    
-    # opcoes emp principal
-    form.cod_empresa_principal.choices = (
-        [(i.cod, i.nome) for i in EmpresaPrincipal.query.all()]
-    )
 
-    # opcoes status
-    form.id_status.choices = (
-        [('', 'Selecione')] +
-        [(i.id_status, i.nome_status) for i in Status.query.all()]
-    )
-    form.id_status_rac.choices = (
-        [('', 'Selecione')] +
-        [(i.id_status, i.nome_status) for i in StatusRAC.query.all()]
-    )
+    form.load_choices()
 
-    # opcoes tag
-    form.id_tag.choices = (
-        [('', 'Selecione')] +
-        [
-            (i.id_status_lib, i.nome_status_lib)
-            for i in StatusLiberacao.query
-            .order_by(StatusLiberacao.nome_status_lib)
-            .all()
-        ]
-    )
-    
     if form.validate_on_submit():
-        parametros:  dict[str, any] = {
-            'pesquisa_geral': int(form.pesquisa_geral.data),
-            'cod_empresa_principal': form.cod_empresa_principal.data,
-            'data_inicio': form.data_inicio.data,
-            'data_fim': form.data_fim.data,
-            'id_status': form.id_status.data,
-            'id_status_rac': form.id_status_rac.data,
-            'seq_ficha': form.seq_ficha.data,
-            'id_tag': form.id_tag.data,
-            'id_empresa': form.id_empresa.data,
-            'id_unidade': form.id_unidade.data,
-            'id_prestador': form.id_prestador.data,
-            'nome_funcionario': form.nome_funcionario.data,
-            'obs': form.obs.data
-        }
-
-        parametros2: dict[str, any] = {}
-        for chave, valor in parametros.items():
-            if valor not in (None, ''):
-                parametros2[chave] = valor
+        parametros = get_data_from_form(data=form.data, ignore_keys=['pesquisa_geral'])
 
         if 'btn_buscar' in request.form:
-            return redirect(url_for('atualizar_status', **parametros2))
+            return redirect(url_for('atualizar_status', **parametros))
 
         elif 'btn_emails' in request.form:
-            return redirect(url_for('enviar_emails', **parametros2))
+            return redirect(url_for('enviar_emails', **parametros))
 
         elif 'btn_csv' in request.form:
-            query = Pedido.buscar_pedidos(**parametros2)
+            parametros['id_grupos'] = Pedido.handle_group_choice(choice=parametros['id_grupos'])
+            query = Pedido.buscar_pedidos(**parametros)
+            query = Pedido.add_csv_cols(query=query)
             
             df = pd.read_sql(sql=query.statement, con=database.session.bind)
-            df = df[Pedido.colunas_planilha]
+
+            df = df[Pedido.COLS_CSV]
             
             nome_arqv = f'Pedidos_exames_{int(dt.datetime.now().timestamp())}'
             camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
@@ -138,7 +98,7 @@ def atualizar_status():
             datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
 
     query_pedidos = Pedido.buscar_pedidos(
-        pesquisa_geral=request.args.get('pesquisa_geral', type=int, default=None),
+        id_grupos=Pedido.handle_group_choice(choice=request.args.get('id_grupos')),
         cod_empresa_principal=request.args.get('cod_empresa_principal', type=int, default=None),
         data_inicio=datas['data_inicio'],
         data_fim=datas['data_fim'],
@@ -153,8 +113,7 @@ def atualizar_status():
         obs=request.args.get('obs', type=str, default=None)
     )
 
-    # total de resultados na query
-    total = query_pedidos.count()
+    total = Pedido.get_total_busca(query=query_pedidos)
 
     # ATUALIZAR STATUS-----------------------------------------------
     if form.validate_on_submit():
@@ -255,7 +214,7 @@ def enviar_emails():
             datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
 
     query_pedidos = Pedido.buscar_pedidos(
-        pesquisa_geral=request.args.get('pesquisa_geral', type=int, default=None),
+        id_grupos=Pedido.handle_group_choice(choice=request.args.get('id_grupos')),
         cod_empresa_principal=request.args.get('cod_empresa_principal', type=int, default=None),
         data_inicio=datas['data_inicio'],
         data_fim=datas['data_fim'],
@@ -270,8 +229,7 @@ def enviar_emails():
         obs=request.args.get('obs', type=str, default=None)
     )
 
-    # total de resultados na query
-    total = query_pedidos.count()
+    total = Pedido.get_total_busca(query=query_pedidos)
     
     if form.validate_on_submit():
         lista_enviar = request.form.getlist('checkItem', type=int)
@@ -302,7 +260,7 @@ def enviar_emails():
                 # se o pedido tem prestador
                 if id_prestador and solicitar_asos:
                     # filtrar tabela
-                    tab_aux = df[df['id_prestador'] == id_prestador]
+                    tab_aux: pd.DataFrame = df[df['id_prestador'] == id_prestador]
 
                     # pegar nome do prestador
                     nome_prestador = tab_aux['nome_prestador'].values[0]
@@ -312,16 +270,9 @@ def enviar_emails():
                     if emails_prestador and "@" in emails_prestador:
                         try:
                             # selecionar colunas
-                            tab_aux = tab_aux[Pedido.colunas_tab_email]
+                            tab_aux = tab_aux[list(Pedido.COLS_EMAIL.keys())]
                             # renomear colunas
-                            tab_aux = tab_aux.rename(
-                                columns = dict(
-                                    zip(
-                                        Pedido.colunas_tab_email,
-                                        Pedido.colunas_tab_email2
-                                    )
-                                )
-                            )
+                            tab_aux.rename(columns=Pedido.COLS_EMAIL, inplace=True)
 
                             # formatar datas
                             tab_aux['Data Ficha'] = (

@@ -1,13 +1,15 @@
 import secrets
 from datetime import date, datetime, timedelta
+from typing import Literal
 
 import jwt
 import numpy as np
 import pandas as pd
 from flask import request
 from flask_login import UserMixin, current_user
+from flask_sqlalchemy import BaseQuery
 from pytz import timezone
-from sqlalchemy import update
+from sqlalchemy import and_, delete, insert, update
 from sqlalchemy.inspection import inspect
 from workalendar.america import Brazil
 
@@ -39,6 +41,13 @@ grupo_empresa = database.Table('grupo_empresa',
 grupo_prestador = database.Table('grupo_prestador',
     database.Column('id_grupo', database.Integer, database.ForeignKey('Grupo.id_grupo')),
     database.Column('id_prestador', database.Integer, database.ForeignKey('Prestador.id_prestador'))
+)
+
+
+grupo_empresa_prestador = database.Table('grupo_empresa_prestador',
+    database.Column('id_grupo', database.Integer, database.ForeignKey('Grupo.id_grupo')),
+    database.Column('id_empresa', database.Integer, database.ForeignKey('Empresa.id_empresa')),
+    database.Column('id_prestador', database.Integer, database.ForeignKey('Prestador.id_prestador')),
 )
 
 
@@ -321,11 +330,126 @@ class Grupo(database.Model):
     __tablename__ = 'Grupo'
     id_grupo = database.Column(database.Integer, primary_key=True)
     nome_grupo = database.Column(database.String(255), nullable=False) # many to many
-   
+
     data_inclusao = database.Column(database.DateTime)
     data_alteracao = database.Column(database.DateTime)
     incluido_por = database.Column(database.String(50))
     alterado_por = database.Column(database.String(50))
+
+    @classmethod
+    def update_grupo_usuario(self, id_grupo: int, id_usuarios: list[int], alterado_por: str):
+        grupo = self.query.get(id_grupo)
+
+        # reset current group
+        database.session.execute(
+            delete(grupo_usuario).
+            where(grupo_usuario.c.id_grupo == grupo.id_grupo)
+        )
+
+        if id_usuarios:
+            insert_items = [
+                {'id_grupo': grupo.id_grupo, 'id_usuario': i}
+                for i in id_usuarios
+            ]
+
+            database.session.execute(
+                insert(grupo_usuario).
+                values(insert_items)
+            )
+
+        grupo.data_alteracao = datetime.now(tz=TIMEZONE_SAO_PAULO)
+        grupo.alterado_por = alterado_por
+        database.session.commit()
+        return None
+
+    @classmethod
+    def update_grupo_prestador(self, id_grupo: int, id_prestadores: list[int], alterado_por: str):
+        grupo = self.query.get(id_grupo)
+
+        # reset current group
+        database.session.execute(
+            delete(grupo_prestador).
+            where(grupo_prestador.c.id_grupo == grupo.id_grupo)
+        )
+
+        if id_prestadores:
+            insert_items = [
+                {'id_grupo': grupo.id_grupo, 'id_prestador': i}
+                for i in id_prestadores
+            ]
+
+            database.session.execute(
+                insert(grupo_prestador).
+                values(insert_items)
+            )
+
+        grupo.data_alteracao = datetime.now(tz=TIMEZONE_SAO_PAULO)
+        grupo.alterado_por = alterado_por
+        database.session.commit()
+
+        self.__update_grupo_empresa_prestador(id_grupo=id_grupo)
+        return None
+
+    @classmethod
+    def update_grupo_empresa(self, id_grupo: int, id_empresas: list[int], alterado_por: str):
+        grupo = self.query.get(id_grupo)
+
+        # reset current group
+        database.session.execute(
+            delete(grupo_empresa).
+            where(grupo_empresa.c.id_grupo == grupo.id_grupo)
+        )
+
+        if id_empresas:
+            insert_items = [
+                {'id_grupo': grupo.id_grupo, 'id_empresa': i}
+                for i in id_empresas
+            ]
+
+            database.session.execute(
+                insert(grupo_empresa).
+                values(insert_items)
+            )
+
+        grupo.data_alteracao = datetime.now(tz=TIMEZONE_SAO_PAULO)
+        grupo.alterado_por = alterado_por
+        database.session.commit()
+
+        self.__update_grupo_empresa_prestador(id_grupo=id_grupo)
+        return None
+
+    @classmethod
+    def __update_grupo_empresa_prestador(self, id_grupo: int):
+        # reset current group
+        database.session.execute(
+            delete(grupo_empresa_prestador).
+            where(grupo_empresa_prestador.c.id_grupo == id_grupo)
+        )
+
+        q_empresa_prestador: list = (
+            database.session.query(grupo_empresa.c.id_empresa, grupo_prestador.c.id_prestador)
+            .join(grupo_prestador, grupo_prestador.c.id_grupo == grupo_empresa.c.id_grupo)
+            .filter(grupo_empresa.c.id_grupo == id_grupo)
+            .all()
+        )
+
+        if q_empresa_prestador:
+            insert_items = []
+            for id_empresa, id_prestador in q_empresa_prestador:
+                aux = {
+                    'id_grupo': id_grupo,
+                    'id_empresa': id_empresa,
+                    'id_prestador': id_prestador
+                }
+                insert_items.append(aux)
+
+            database.session.execute(
+                insert(grupo_empresa_prestador).
+                values(insert_items)
+            )
+
+        database.session.commit()
+        return None
 
 
 class TipoExame(database.Model):
@@ -1676,31 +1800,24 @@ class Pedido(database.Model):
     alterado_por = database.Column(database.String(50))
 
     # colunas para a planilha de pedidos
-    colunas_planilha = [
+    COLS_CSV = [
         'cod_empresa_principal',
         'seq_ficha',
-        'cpf',
+        'cod_funcionario',
         'nome_funcionario',
         'data_ficha',
-        'nome_tipo_exame',
-        'nome_prestador',
-        'razao_social',
-        'nome_unidade',
-        'nome_status',
-        'nome_status_rac',
-        'prazo',
-        'prev_liberacao',
-        'nome_status_lib',
-        'cod_funcionario',
-        'cod_tipo_exame',
+        'tipo_exame',
         'cod_prestador',
+        'prestador',
         'cod_empresa',
+        'empresa',
         'cod_unidade',
-        'id_status_lib',
-        'data_inclusao',
-        'data_alteracao',
-        'incluido_por',
-        'alterado_por',
+        'unidade',
+        'status_aso',
+        'status_rac',
+        'prev_liberacao',
+        'tag',
+        'nome_grupo',
         'id_ficha',
         'id_status',
         'id_status_rac',
@@ -1709,123 +1826,16 @@ class Pedido(database.Model):
         'obs'
     ]
 
-    # colunas para a tabela enviada no email
-    colunas_tab_email = [
-        'seq_ficha',
-        'cpf',
-        'nome_funcionario',
-        'data_ficha',
-        'nome_tipo_exame',
-        'nome_prestador',
-        'razao_social',
-        'nome_status_lib'
-    ]
-
-    colunas_tab_email2 = [
-        'Seq. Ficha',
-        'CPF',
-        'Nome Funcionário',
-        'Data Ficha',
-        'Tipo Exame',
-        'Prestador',
-        'Empresa',
-        'Status'
-    ]
-
-    @classmethod
-    def buscar_pedidos(
-        self,
-        pesquisa_geral:  int | None = None,
-        cod_empresa_principal: int | None = None,
-        data_inicio: date | None = None,
-        data_fim: date | None = None,
-        id_status: int | None = None,
-        id_status_rac: int | None = None,
-        id_tag: int | None = None,
-        id_empresa: int | None = None,
-        id_unidade: int | None = None,
-        id_prestador: int | None = None,
-        seq_ficha: int | None = None,
-        nome_funcionario: str | None = None,
-        obs: str | None = None
-    ):
-        '''
-        Realiza query filtrada pelos parametros passados
-
-        Retorna BaseQuery com os pedidos filtrados ou com todos os pedidos
-        '''
-        models = [
-            (Pedido.id_ficha),
-            (Pedido.cod_empresa_principal), (Pedido.seq_ficha), (Pedido.data_ficha),
-            (Pedido.prazo), (Pedido.prev_liberacao), (Pedido.data_recebido), (Pedido.data_comparecimento),
-            (Pedido.obs), (Pedido.data_inclusao), (Pedido.data_alteracao),
-            (Pedido.incluido_por), (Pedido.alterado_por), (Pedido.cpf),
-            (Pedido.cod_funcionario), (Pedido.nome_funcionario),
-            (TipoExame.nome_tipo_exame), (TipoExame.cod_tipo_exame),
-            (Empresa.cod_empresa), (Empresa.razao_social),
-            (Unidade.cod_unidade), (Unidade.nome_unidade),
-            (Prestador.cod_prestador), (Prestador.nome_prestador),
-            (Pedido.id_status), (Status.nome_status),
-            (Pedido.id_status_rac), (StatusRAC.nome_status.label('nome_status_rac')),
-            (StatusLiberacao.id_status_lib), (StatusLiberacao.nome_status_lib), (StatusLiberacao.cor_tag)
-        ]
-
-        joins = [
-            (Empresa, Pedido.id_empresa == Empresa.id_empresa),
-            (Unidade, Pedido.id_unidade == Unidade.id_unidade),
-            (Prestador, Pedido.id_prestador == Prestador.id_prestador),
-            (TipoExame, Pedido.cod_tipo_exame == TipoExame.cod_tipo_exame),
-            (Status, Pedido.id_status == Status.id_status),
-            (StatusRAC, Pedido.id_status_rac == StatusRAC.id_status),
-            (StatusLiberacao, Pedido.id_status_lib == StatusLiberacao.id_status_lib)
-        ]
-        
-        filtros = []
-        if cod_empresa_principal:
-            filtros.append(self.cod_empresa_principal == cod_empresa_principal)
-        if data_inicio:
-            filtros.append(self.data_ficha >= data_inicio)
-        if data_fim:
-            filtros.append(self.data_ficha <= data_fim)
-        if id_empresa:
-            filtros.append(self.id_empresa == id_empresa)
-        if id_unidade:
-            filtros.append(self.id_unidade == id_unidade)
-        if id_prestador != None:
-            if id_prestador == 0:
-                filtros.append(self.id_prestador == None)
-            else:
-                filtros.append(self.id_prestador == id_prestador)
-        if nome_funcionario:
-            filtros.append(self.nome_funcionario.like(f'%{nome_funcionario}%'))
-        if seq_ficha:
-            filtros.append(self.seq_ficha == seq_ficha)
-        if id_status:
-            filtros.append(self.id_status == id_status)
-        if id_status_rac:
-            filtros.append(self.id_status_rac == id_status_rac)
-        if obs:
-            filtros.append(self.obs.like(f'%{obs}%'))
-        if id_tag:
-            filtros.append(self.id_status_lib == id_tag)
-        
-        # se nao for pesquisa geral, usar grupos do usuario atual
-        if not pesquisa_geral:
-            subquery_grupos = [grupo.id_grupo for grupo in current_user.grupo]
-
-            joins.append((grupo_empresa, self.id_empresa == grupo_empresa.columns.id_empresa))
-            joins.append((grupo_prestador, self.id_prestador == grupo_prestador.columns.id_prestador))
-            filtros.append((grupo_prestador.columns.id_grupo.in_(subquery_grupos)))
-            filtros.append((grupo_empresa.columns.id_grupo.in_(subquery_grupos)))
-
-        query = (
-            database.session.query(*models)
-            .filter(*filtros)
-            .outerjoin(*joins)
-            .order_by(Pedido.data_ficha.desc(), Pedido.nome_funcionario)
-        )
-        
-        return query
+    COLS_EMAIL = {
+        'seq_ficha': 'Seq. Ficha',
+        'cpf': 'CPF',
+        'nome_funcionario': 'Nome Funcionário',
+        'data_ficha': 'Data Ficha',
+        'nome_tipo_exame': 'Tipo Exame',
+        'nome_prestador': 'Prestador',
+        'razao_social': 'Empresa',
+        'nome_status_lib': 'Status'
+    }
 
     @classmethod
     def inserir_pedidos(
@@ -2330,4 +2340,122 @@ class Pedido(database.Model):
         ] = STATUS_OK.id_status_lib
         
         return df_exporta_dados
+
+    @classmethod
+    def buscar_pedidos(
+        self,
+        id_grupos: int | list[int],
+        cod_empresa_principal: int | None = None,
+        data_inicio: date | None = None,
+        data_fim: date | None = None,
+        id_status: int | None = None,
+        id_status_rac: int | None = None,
+        id_tag: int | None = None,
+        id_empresa: int | None = None,
+        id_unidade: int | None = None,
+        id_prestador: int | None = None,
+        seq_ficha: int | None = None,
+        nome_funcionario: str | None = None,
+        obs: str | None = None
+    ) -> BaseQuery:
+        filtros = []
+        if id_grupos is not None:
+            if id_grupos == 0:
+                filtros.append(Grupo.id_grupo == None)
+            elif isinstance(id_grupos, list):
+                filtros.append(Grupo.id_grupo.in_(id_grupos))
+            else:
+                filtros.append(Grupo.id_grupo == id_grupos)
+        if cod_empresa_principal:
+            filtros.append(self.cod_empresa_principal == cod_empresa_principal)
+        if data_inicio:
+            filtros.append(self.data_ficha >= data_inicio)
+        if data_fim:
+            filtros.append(self.data_ficha <= data_fim)
+        if id_empresa:
+            filtros.append(self.id_empresa == id_empresa)
+        if id_unidade:
+            filtros.append(self.id_unidade == id_unidade)
+        if id_prestador is not None:
+            if id_prestador == 0:
+                filtros.append(self.id_prestador == None)
+            else:
+                filtros.append(self.id_prestador == id_prestador)
+        if nome_funcionario:
+            filtros.append(self.nome_funcionario.like(f'%{nome_funcionario}%'))
+        if seq_ficha:
+            filtros.append(self.seq_ficha == seq_ficha)
+        if id_status:
+            filtros.append(self.id_status == id_status)
+        if id_status_rac:
+            filtros.append(self.id_status_rac == id_status_rac)
+        if obs:
+            filtros.append(self.obs.like(f'%{obs}%'))
+        if id_tag:
+            filtros.append(self.id_status_lib == id_tag)
+
+        joins = [
+            (
+                grupo_empresa_prestador,
+                and_(
+                    self.id_empresa == grupo_empresa_prestador.c.id_empresa,
+                    self.id_prestador == grupo_empresa_prestador.c.id_prestador
+                )
+            ),
+            (Grupo, grupo_empresa_prestador.c.id_grupo == Grupo.id_grupo)
+        ]
+
+        query = (
+            database.session.query(self)
+            .outerjoin(*joins)
+            .filter(*filtros)
+            .order_by(Pedido.data_ficha.desc(), Pedido.nome_funcionario)
+        )
+        
+        return query
+
+    @staticmethod
+    def handle_group_choice(choice: int | Literal['my_groups', 'all', 'null']):
+        match choice:
+            case 'my_groups':
+                return [gp.id_grupo for gp in current_user.grupo]
+            case 'all':
+                return None
+            case 'null':
+                return 0
+            case _:
+                return int(choice)
+    
+    @classmethod
+    def add_csv_cols(self, query: BaseQuery):
+        cols = [
+            TipoExame.nome_tipo_exame.label('tipo_exame'),
+            Empresa.cod_empresa, Empresa.razao_social.label('empresa'),
+            Unidade.cod_unidade, Unidade.nome_unidade.label('unidade'),
+            Prestador.cod_prestador, Prestador.nome_prestador.label('prestador'),
+            Status.nome_status.label('status_aso'), StatusRAC.nome_status.label('status_rac'),
+            StatusLiberacao.nome_status_lib.label('tag'),
+            Grupo.nome_grupo
+        ]
+
+        joins = [
+            (TipoExame, Pedido.cod_tipo_exame == TipoExame.cod_tipo_exame),
+            (Empresa, Pedido.id_empresa == Empresa.id_empresa),
+            (Unidade, Pedido.id_unidade == Unidade.id_unidade),
+            (Prestador, Pedido.id_prestador == Prestador.id_prestador),
+            (Status, Pedido.id_status == Status.id_status),
+            (StatusRAC, Pedido.id_status_rac == StatusRAC.id_status),
+            (StatusLiberacao, Pedido.id_status_lib == StatusLiberacao.id_status_lib)
+        ]
+
+        query = query.outerjoin(*joins)
+        query = query.add_columns(*cols)
+
+        return query
+
+    @staticmethod
+    def get_total_busca(query: BaseQuery) -> int:
+        fichas = [i.id_ficha for i in query.all()]
+        fichas = dict.fromkeys(fichas)
+        return len(fichas)
 
