@@ -1818,8 +1818,6 @@ class Pedido(database.Model):
         'prev_liberacao',
         'tag',
         'nome_grupo',
-        'data_recebido',
-        'data_comparecimento',
         'id_ficha',
         'id_status',
         'id_status_rac',
