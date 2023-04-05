@@ -206,12 +206,12 @@ class LogAcoes(database.Model):
     tabela = database.Column(database.String(50), nullable=False)
     acao = database.Column(database.String(255), nullable=False)
     # cod ou id do registro que o user alterou ex(cod_empresa, cod_prestador etc)
-    id_registro = database.Column(database.Integer, nullable=False)
+    id_registro = database.Column(database.Integer)
     # nome do registro alterado ex(nome_funcionario, nome_prestador, nome_empresa etc)
-    nome_registro = database.Column(database.String(255), nullable=False)
+    nome_registro = database.Column(database.String(255))
     obs = database.Column(database.String(1000)) # tamanho do texto passa de 500 chars em alguns casos
     data = database.Column(database.Date, nullable=False, default=date.today())
-    hora = database.Column(database.Time, nullable=False, default=datetime.now(tz=timezone('America/Sao_Paulo')).time())
+    hora = database.Column(database.Time, nullable=False, default=datetime.now(tz=TIMEZONE_SAO_PAULO).time())
 
 
     @classmethod
