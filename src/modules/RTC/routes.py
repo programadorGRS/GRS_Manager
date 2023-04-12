@@ -7,7 +7,7 @@ from flask_login import login_required
 from werkzeug.utils import secure_filename
 
 from src import UPLOAD_FOLDER, app
-from src.forms import FormBuscarASO
+from src.main.pedido.forms import FormBuscarASO
 from src.main.pedido.pedido import Pedido
 from src.modules.RTC.forms import FormGerarRTC
 from src.modules.RTC.models import RTC

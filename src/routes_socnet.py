@@ -16,8 +16,7 @@ from werkzeug.utils import secure_filename
 from src import (DOWNLOAD_FOLDER, TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app,
                  database, mail)
 from src.email_connect import EmailConnect
-from src.forms import (FormAtualizarStatus, FormEnviarEmails,
-                       FormGrupoPrestadores)
+from src.forms import FormGrupoPrestadores
 from src.forms_socnet import (FormBuscarASOSOCNET, FormCarregarPedidosSOCNET,
                               FormCriarEmpresaSOCNET, FormEditarEmpresaSOCNET,
                               FormEditarPedidoSOCNET, FormUpload)
@@ -25,6 +24,7 @@ from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
 from src.main.empresa_socnet.empresa_socnet import EmpresaSOCNET
 from src.main.grupo.grupo import Grupo, grupo_empresa_socnet
 from src.main.log_acoes.log_acoes import LogAcoes
+from src.main.pedido.forms import FormAtualizarStatus, FormEnviarEmails
 from src.main.pedido_socnet.pedido_socnet import PedidoSOCNET
 from src.main.prestador.prestador import Prestador
 from src.main.status.status import Status

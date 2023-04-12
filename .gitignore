@@ -1,19 +1,27 @@
-# Flask
+# files
 *.zip
 *.csv
 *.xlsx
 *.xls
+*.pdf
+*.json
+*.pem
+
+# folders
+db/
+test/
+aws/
+keys/
+documents/
+
+# Flask
 venv
 .vscode
-manager.db
-*.json
+*.db
 .env
-*.pem
 .flaskenv
 *.ipynb
 *.sql
-*tests
-*.pdf
 
 # Pycharm
 .idea
@@ -158,11 +166,3 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
-# Pyre type checker
-.pyre/
-src/manager.db
-credenciais.txt
-*.db
-*.db
-notas_config_servidor.txt
-*.ipynb

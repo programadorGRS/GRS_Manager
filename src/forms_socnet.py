@@ -6,7 +6,8 @@ from wtforms import (BooleanField, DateField, DateTimeField, IntegerField,
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 
 from src import database
-from src.forms import FormCriarEmpresa, FormEditarPedido
+from src.forms import FormCriarEmpresa
+from src.main.pedido.forms import FormEditarPedido
 
 from .main.empresa_socnet.empresa_socnet import EmpresaSOCNET
 

@@ -11,7 +11,7 @@ app = Flask(__name__)
 # carregar configs universais
 app.config.from_file("../configs/email.json", load=json.load)
 
-dev = True
+dev = False
 if dev:
     # using sqlite
     app.config.from_file("../configs/dev.json", load=json.load)
@@ -31,12 +31,5 @@ DOWNLOAD_FOLDER = os.path.join(app.root_path, app.config['DOWNLOAD_FOLDER'])
 
 TIMEZONE_SAO_PAULO = timezone('America/Sao_Paulo')
 
-
-from src import (routes, routes_api, routes_api_internas, routes_soc,
-                     routes_socnet)
-from .modules import routes
-from .modules.absenteismo import routes
-from .modules.conv_exames import routes
-from .modules.exames_realizados import routes
-from .modules.RTC import routes
+from src import routerefs
 
