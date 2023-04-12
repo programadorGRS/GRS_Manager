@@ -160,7 +160,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-manager/manager.db
+src/manager.db
 credenciais.txt
 *.db
 *.db
