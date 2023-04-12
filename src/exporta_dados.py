@@ -810,3 +810,41 @@ class ExportaDadosWS(database.Model):
         }
         return parametro
 
+    @staticmethod
+    def cadastro_pessoas_usuarios(
+        empresa: int,
+        codigo: int,
+        chave: str,
+        ativo: int = 1,
+        tipoSaida: str = 'json'
+    ):
+        '''
+            Cadastro Pessoa/Usuarios
+
+            Exporta Dados com a finalidade de listar algumas informações de \
+            todos os Usuários e Pessoas cadastrados na Empresa Principal.
+
+            Campos: EMPRESA, CODIGO, NOME, EMAIL, TIPO, AVALIADOR, SOLICITANTE, EXAMINADOR, \
+            RESPONSAVEL, GERENTE_CONTAS, PROFISSIONAL_AGENDA, EMISSOR_ASO, TELEFONE_COM, ATIVO, \
+            ENDERECO ,COMPLEMENTO, BAIRRO, CIDADE, UF, CEP, RG, CPF NIT, CONSELHO_CLASSE, UF_CONSELHO, \
+            ESPECIALIDADE1, ESPECIALIDADE2, CD_USUARIO, USUARIO_ATIVO, TODAS_EMPRESAS,
+            CNS, PAI, MAE, OCUPACAO, CARGO, FORMACAO_PROFISSIONAL, TIPO_VINCULO, ESCOLARIDADE, \
+            REGISTRO_FUNCIONAL, DATA_NASCIMENTO, DATA_CONTRATACAO, SEXO, HORARIO_INICIAL_TRABALHO, \
+            HORARIO_FINAL_TRABALHO, FREQUENTA_ESCOLA, BANCO, CONTA, AGENCIA, \
+            COMO_EXIBIR_COMPROMISSO_OUTROS_USUARIOS, COMO_EXIBIR_COMPROMISSO_OUTRAS_EMPRESAS.
+
+            Observações:
+            1. Para os campos que levam a resposta como "1" e "0", considere "1" como "Sim" e "0" como "Não".
+            Campos que utilizam esta resposta: 
+        '''
+
+        param = {
+            'empresa': empresa,
+            'codigo': codigo,
+            'chave': chave,
+            'tipoSaida': tipoSaida,
+            'ativo': ativo
+        }
+        
+        return param
+
