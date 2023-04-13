@@ -448,6 +448,7 @@ def get_conv_exames():
     pedido_proc: PedidoProcessamento = (
         database.session.query(PedidoProcessamento.id_proc)
         .filter(PedidoProcessamento.id_empresa == id_empresa)
+        .filter(PedidoProcessamento.resultado_importado == True)
         .order_by(PedidoProcessamento.id_proc.desc())
         .first()
     )
