@@ -113,7 +113,7 @@ class CarregarPedidos:
         }
 
         df = df[list(COLS.keys())]
-        df.replace({'': None}, inplace=True)
+        df = df.replace({'': None})
         df.rename(columns=COLS, inplace=True)
 
         for col in [
@@ -132,7 +132,9 @@ class CarregarPedidos:
 
         df = self.__buscar_infos_exames(df=df, cod_empresa_principal=cod_empresa_principal)
 
+        # NOTE: remover pedidos cuja unidade ainda não existe na db
         df = self.__buscar_infos_unidades(df=df, id_empresa=id_empresa)
+        df.dropna(axis=0, subset='id_unidade', inplace=True)
 
         df = self.__buscar_infos_prestadores(df=df, cod_empresa_principal=cod_empresa_principal)
 
@@ -333,7 +335,7 @@ class CarregarPedidos:
     @classmethod
     def __inserir_pedidos(self, df: pd.DataFrame):
         # manter apenas pedidos sem id (novos)
-        df = df[df['id_ficha'].isna()]
+        df = df[df['id_ficha'].isna()].copy()
 
         if df.empty:
             return 0
