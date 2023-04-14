@@ -32,4 +32,4 @@ DOWNLOAD_FOLDER = os.path.join(app.root_path, app.config['DOWNLOAD_FOLDER'])
 TIMEZONE_SAO_PAULO = timezone('America/Sao_Paulo')
 
 from src import routerefs
-
+from src import modelrefs
