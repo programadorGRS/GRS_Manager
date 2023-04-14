@@ -9,6 +9,8 @@ class InfosCarregar:
         Jobs de carregameto em geral
     '''
     tabela: str
+    cod_empresa_principal: int
+    id_empresa: int | None = None
     qtd_inseridos: int = 0
     qtd_atualizados: int = 0
     ok: bool = True

@@ -26,6 +26,7 @@ class Empresa(database.Model):
     pedidos_proc = database.relationship('PedidoProcessamento', backref='empresa', lazy=True) # one to many
     grupo = database.relationship('Grupo', secondary=grupo_empresa, backref='empresas', lazy=True) # many to many
     unidades = database.relationship('Unidade', backref='empresa', lazy=True) # one to many
+    jobs = database.relationship('Job', backref='empresa', lazy=True) # one to many
 
     # convocacao de exames
     conv_exames = database.Column(database.Boolean, default=True)

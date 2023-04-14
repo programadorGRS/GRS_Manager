@@ -60,7 +60,11 @@ class CarregarPedidos:
             id_empresa=id_empresa
         )
 
-        infos = InfosCarregar(tabela=self.__tablename__)
+        infos = InfosCarregar(
+            tabela=self.__tablename__,
+            cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
+            id_empresa=EMPRESA.id_empresa,
+        )
 
         if resp.get('response').status_code != 200:
             infos.ok = False

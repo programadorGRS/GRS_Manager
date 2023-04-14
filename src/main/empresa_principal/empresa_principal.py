@@ -13,6 +13,7 @@ class EmpresaPrincipal(database.Model):
     empresas_socnet = database.relationship('EmpresaSOCNET', backref='empresa_principal', lazy=True) # one to many
     unidades = database.relationship('Unidade', backref='empresa_principal', lazy=True) # one to many
     exames = database.relationship('Exame', backref='empresa_principal', lazy=True) # one to many
+    jobs = database.relationship('Job', backref='empresa_principal', lazy=True) # one to many
     
     data_inclusao = database.Column(database.DateTime)
     data_alteracao = database.Column(database.DateTime)
