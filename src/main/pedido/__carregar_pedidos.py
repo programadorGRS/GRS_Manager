@@ -361,7 +361,7 @@ class CarregarPedidos:
     @classmethod
     def __atualizar_pedidos(self, df: pd.DataFrame):
         # manter apenas pedidos com id validos (ja existem)
-        df = df[df['id_ficha'].notna()]
+        df = df[df['id_ficha'].notna()].copy()
 
         if df.empty:
             return 0
