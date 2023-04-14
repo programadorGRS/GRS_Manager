@@ -1,6 +1,8 @@
-from sqlalchemy import func, text
+from datetime import datetime
 
-from src import database
+from sqlalchemy import text
+
+from src import TIMEZONE_SAO_PAULO, database
 
 from .infos_carregar import InfosCarregar
 
@@ -19,8 +21,8 @@ class Job(database.Model):
     qtd_atualizados = database.Column(database.Integer, nullable=False, server_default=text('0'), default=0)
     ok = database.Column(database.Boolean, nullable=False, server_default=text('1'), default=True)
     erro = database.Column(database.String(255))
-    data = database.Column(database.Date, nullable=False, server_default=func.current_date())
-    hora = database.Column(database.Time, nullable=False, server_default=func.current_time())
+    data = database.Column(database.Date, nullable=False, default=datetime.now(TIMEZONE_SAO_PAULO).date())
+    hora = database.Column(database.Time, nullable=False, default=datetime.now(TIMEZONE_SAO_PAULO).time())
 
     def __repr__(self) -> str:
         return f'<{self.id}> - {self.tabela} - {self.data_hora}'
