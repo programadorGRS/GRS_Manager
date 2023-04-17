@@ -400,6 +400,8 @@ class CarregarPedidos:
 
         df['data_ficha'] = pd.to_datetime(df['data_ficha'], dayfirst=True).dt.date
 
+        df['id_status'] = df['id_status_anterior']
+
         df.loc[
             (df['id_status_anterior'] == NAO_COMP.id_status) &
             (df['data_ficha_anterior'] != df['data_ficha']),
