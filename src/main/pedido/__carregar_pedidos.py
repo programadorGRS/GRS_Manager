@@ -146,6 +146,8 @@ class CarregarPedidos:
 
         df = self.__gerar_prev_liberacao(df=df)
 
+        df = self.__resetar_nao_compareceu(df=df)
+
         df = self.__gerar_tags(df=df)
 
         df = self.__selecionar_colunas_finais(df=df)
@@ -159,9 +161,10 @@ class CarregarPedidos:
         
         query = (
             database.session.query(
-                self.seq_ficha,
                 self.id_ficha,
-                self.id_status
+                self.seq_ficha,
+                self.data_ficha.label('data_ficha_anterior'),
+                self.id_status.label('id_status_anterior')
             )
             .filter(self.seq_ficha.in_(SEQ_FICHAS))
         )
@@ -385,6 +388,25 @@ class CarregarPedidos:
         database.session.commit()
 
         return len(df_mappings)
+
+    @classmethod
+    def __resetar_nao_compareceu(self, df: pd.DataFrame):
+        '''
+            Reseta Status dos Pedidos de "Não compareceu" se houver mudança \
+            em data_ficha.
+        '''
+        NAO_COMP: Status = Status.query.filter_by(nome_status='Não compareceu').first()
+        VAZIO: Status = Status.query.filter_by(nome_status='Vazio').first()
+
+        df['data_ficha'] = pd.to_datetime(df['data_ficha'], dayfirst=True).dt.date
+
+        df.loc[
+            (df['id_status_anterior'] == NAO_COMP.id_status) &
+            (df['data_ficha_anterior'] != df['data_ficha']),
+            'id_status'
+        ] = VAZIO.id_status
+
+        return df
 
     @staticmethod
     def calcular_tag_prev_lib(data_prev: pd.Timestamp) -> int:
