@@ -1,12 +1,14 @@
 from datetime import datetime
 
 import pandas as pd
-from pytz import timezone
 
-from src import database
+from src import TIMEZONE_SAO_PAULO, database
+from src.exporta_dados import ExportaDadosWS
+from src.utils import get_json_configs
 
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
 from ..grupo.grupo import grupo_empresa
+from ..job.infos_carregar import InfosCarregar
 
 
 class Empresa(database.Model):
@@ -85,193 +87,142 @@ class Empresa(database.Model):
         )
         return query
 
+    @classmethod
+    def carregar_empresas(self, cod_empresa_principal: int) -> InfosCarregar:
+        EMPRESA_PRINCIPAL: EmpresaPrincipal = EmpresaPrincipal.query.get(cod_empresa_principal)
+        CREDENCIAIS = get_json_configs(EMPRESA_PRINCIPAL.configs_exporta_dados)
+
+        PARAMETRO = ExportaDadosWS.empresas(
+            empresa_principal=EMPRESA_PRINCIPAL.cod,
+            cod_exporta_dados=CREDENCIAIS.get('EMPRESAS_COD'),
+            chave=CREDENCIAIS.get('EMPRESAS_KEY')
+        )
+
+        resp = ExportaDadosWS.request_exporta_dados_ws(parametro=PARAMETRO)
+
+        infos = InfosCarregar(
+            tabela=self.__tablename__,
+            cod_empresa_principal=cod_empresa_principal
+        )
+
+        if resp.get('response').status_code != 200:
+            infos.ok = False
+            infos.erro = 'Erro no request'
+            return infos
+
+        if resp.get('erro_soc'):
+            infos.ok = False
+            infos.erro = f'Erro SOC {resp.get("msg_erro")}'
+            return infos
+        
+        df = ExportaDadosWS.xml_to_dataframe(xml_string=resp.get('response').text)
+
+        if df.empty:
+            infos.ok = False
+            infos.erro = 'df vazio'
+            return infos
+        
+        df = self.__tratar_df_exporta_dados(
+            df=df,
+            cod_empresa_principal=EMPRESA_PRINCIPAL.cod
+        )
+        
+
+        # NOTE: passar cópia para que o df original não seja modificado
+        infos.qtd_inseridos = self.__inserir_empresas(df=df.copy())
+
+        infos.qtd_atualizados = self.__atualizar_empresas(df=df.copy())
+
+        return infos
 
     @classmethod
-    def inserir_empresas(
+    def __tratar_df_exporta_dados(
         self,
+        df: pd.DataFrame,
         cod_empresa_principal: int
     ):
-        '''
-        Carrega todas as Empresas no exporta dados da EmpresaPrincipal selecionada (ativas e inativas)
+        COLS = {
+            'CODIGO': 'cod_empresa',
+            'RAZAOSOCIAL': 'razao_social',
+            'ATIVO': 'ativo',
+            'CNPJ': 'cnpj',
+            'UF': 'uf'
+        }
 
-        Insere apenas Empresas não existem na db
-        '''
+        df = df[list(COLS.keys())]
+        df = df.replace({'': None})
+        df.rename(columns=COLS, inplace=True)
+
+        for col in ['cod_empresa', 'ativo']:
+            df[col] = df[col].astype(int)
         
+        df['cod_empresa_principal'] = cod_empresa_principal
 
-        from modules.exporta_dados import (empresas, exporta_dados,
-                                           get_json_configs)
+        df = self.__buscar_id_empresas(df=df, cod_empresa_principal=cod_empresa_principal)
 
-
-        empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
-        credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
-
-        par = empresas(
-            empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['EMPRESAS_COD'],
-            chave=credenciais['EMPRESAS_KEY'],
-        )
-        df_exporta_dados = exporta_dados(parametro=par)
-        
-        if not df_exporta_dados.empty:
-            df_exporta_dados = df_exporta_dados[[
-                'CODIGO',
-                'NOMEABREVIADO',
-                'RAZAOSOCIALINICIAL',
-                'RAZAOSOCIAL',
-                'ATIVO',
-                'CNPJ',
-                'UF'
-            ]]
-            df_exporta_dados['CODIGO'] = df_exporta_dados['CODIGO'].astype(int)
-            df_exporta_dados['ATIVO'] = df_exporta_dados['ATIVO'].astype(int)
-
-            df_database = pd.read_sql(
-                sql=(
-                    database.session.query(
-                        Empresa.id_empresa,
-                        Empresa.cod_empresa
-                    )
-                    .filter(Empresa.cod_empresa_principal == cod_empresa_principal)
-                ).statement,
-                con=database.session.bind
-            )
-
-            if not df_database.empty:
-                df_final = pd.merge(
-                    df_exporta_dados,
-                    df_database,
-                    how='left',
-                    left_on='CODIGO',
-                    right_on='cod_empresa'
-                )
-                df_final = df_final[[
-                    'id_empresa',
-                    'CODIGO',
-                    'NOMEABREVIADO',
-                    'RAZAOSOCIALINICIAL',
-                    'RAZAOSOCIAL',
-                    'ATIVO',
-                    'CNPJ',
-                    'UF'
-                ]]
-                df_final = df_final[~df_final['id_empresa'].isin(df_database['id_empresa'])]
-            else:
-                df_final = df_exporta_dados
-
-            # tratar df
-            df_final = df_final.replace(to_replace={'': None})
-            df_final = df_final.rename(columns={
-                'CODIGO': 'cod_empresa',
-                'NOMEABREVIADO': 'nome_abrev',
-                'RAZAOSOCIALINICIAL': 'razao_social_inicial',
-                'RAZAOSOCIAL': 'razao_social',
-                'ATIVO': 'ativo',
-                'CNPJ': 'cnpj',
-                'UF': 'uf'
-            })
-            df_final['cod_empresa_principal'] = cod_empresa_principal
-            df_final['data_inclusao'] = datetime.now(tz=timezone('America/Sao_Paulo'))
-            df_final['incluido_por'] = 'Servidor'
-
-            # inserir
-            linhas_inseridas = df_final.to_sql(
-                name=self.__tablename__,
-                con=database.session.bind,
-                if_exists='append',
-                index=False
-            )
-            database.session.commit()
-            
-            return linhas_inseridas
-
+        return df
+    
     @classmethod
-    def atualizar_empresas(
-        self,
-        cod_empresa_principal: int
-    ):
-        '''
-        Carrega todas as Empresas no exporta dados da EmpresaPrincipal selecionada
-
-        Atualiza infos das Empresas que ja existem na db
-
-        '''
-        
-
-        from modules.exporta_dados import (empresas, exporta_dados,
-                                           get_json_configs)
-
-
-        empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
-        credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
-
-        par = empresas(
-            empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['EMPRESAS_COD'],
-            chave=credenciais['EMPRESAS_KEY'],
-        )
-        df_exporta_dados = exporta_dados(parametro=par)
-        
-        if not df_exporta_dados.empty:
-            df_exporta_dados = df_exporta_dados[[
-                'CODIGO',
-                'NOMEABREVIADO',
-                'RAZAOSOCIALINICIAL',
-                'RAZAOSOCIAL',
-                'ATIVO',
-                'CNPJ',
-                'UF'
-            ]]
-            df_exporta_dados['CODIGO'] = df_exporta_dados['CODIGO'].astype(int)
-            df_exporta_dados['ATIVO'] = df_exporta_dados['ATIVO'].astype(int)
-
-            df_database = pd.read_sql(
-                sql=(
-                    database.session.query(
-                        Empresa.id_empresa,
-                        Empresa.cod_empresa
-                    )
-                    .filter(Empresa.cod_empresa_principal == cod_empresa_principal)
-                ).statement,
-                con=database.session.bind
+    def __buscar_id_empresas(self, df: pd.DataFrame, cod_empresa_principal: int):
+        query = (
+            database.session.query(
+                self.id_empresa,
+                self.cod_empresa
             )
+            .filter(self.cod_empresa_principal == cod_empresa_principal)
+        )
+        df_db = pd.read_sql(query.statement, database.session.bind)
 
-            if not df_database.empty:
-                df_final = pd.merge(
-                    df_exporta_dados,
-                    df_database,
-                    how='right',
-                    left_on='CODIGO',
-                    right_on='cod_empresa'
-                )
+        df = df.merge(
+            right=df_db,
+            how='left',
+            on='cod_empresa'
+        )
+        return df
+    
+    @classmethod
+    def __inserir_empresas(self, df: pd.DataFrame):
+        df = df[df['id_empresa'].isna()].copy()
 
-                df_final.dropna(axis=0, subset=['id_empresa', 'CODIGO'], inplace=True)
-
-                df_final = df_final[[
-                    'id_empresa',
-                    'NOMEABREVIADO',
-                    'RAZAOSOCIALINICIAL',
-                    'RAZAOSOCIAL',
-                    'ATIVO',
-                    'CNPJ',
-                    'UF'
-                ]]
-
-                # tratar df
-                df_final = df_final.replace(to_replace={'': None})
-                df_final = df_final.rename(columns={
-                    'NOMEABREVIADO': 'nome_abrev',
-                    'RAZAOSOCIALINICIAL': 'razao_social_inicial',
-                    'RAZAOSOCIAL': 'razao_social',
-                    'ATIVO': 'ativo',
-                    'CNPJ': 'cnpj',
-                    'UF': 'uf'
-                })
-                df_final['data_alteracao'] = datetime.now(tz=timezone('America/Sao_Paulo'))
-                df_final['alterado_por'] = 'Servidor'
-
-                df_final = df_final.to_dict(orient='records')
-
-                database.session.bulk_update_mappings(Empresa, df_final)
-                database.session.commit()
+        if df.empty:
+            return 0
         
-            return len(df_final)
+        df.drop(columns='id_empresa', inplace=True)
+        df['data_inclusao'] = datetime.now(tz=TIMEZONE_SAO_PAULO)
+        df['incluido_por'] = 'Servidor'
+
+        qtd = df.to_sql(
+            name=self.__tablename__,
+            con=database.session.bind,
+            index=False,
+            if_exists='append'
+        )
+        database.session.commit()
+
+        return qtd
+    
+    @classmethod
+    def __atualizar_empresas(self, df: pd.DataFrame):
+        df = df[df['id_empresa'].notna()].copy()
+
+        if df.empty:
+            return 0
+        
+        df['last_server_update'] = datetime.now(TIMEZONE_SAO_PAULO)
+
+        df = df[[
+            'id_empresa',
+            'razao_social',
+            'ativo',
+            'cnpj',
+            'uf',
+            'last_server_update'
+        ]]
+
+        df_mappings = df.to_dict(orient='records')
+
+        database.session.bulk_update_mappings(self, df_mappings)
+        database.session.commit()
+
+        return len(df_mappings)
+
