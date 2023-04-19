@@ -38,7 +38,9 @@
 
 #pbi_frame{
     opacity: 0.9;
-    width: 70%;
+    width: 80vw;
+    height: 80vh;
+    margin: auto
 }
 
 button {
@@ -55,12 +57,6 @@ table.small_font{
 .sm-font{
     font-size: 12px;
     padding: 0;
-}
-
-
-.pbi {
-    width: 90vw;
-    height: 80vh;
 }
 
 

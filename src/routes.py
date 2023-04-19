@@ -207,7 +207,8 @@ def refresh_login():
 @app.route('/home')
 @login_required
 def home():
-    return render_template('home.html', title='GRS+Connect')
+    power_bi_url = app.config.get("HOME_DASHBOARD_URL")
+    return render_template('home.html', title='GRS+Connect', power_bi_url=power_bi_url)
 
 
 # USUARIOS--------------------------------------------------------------
