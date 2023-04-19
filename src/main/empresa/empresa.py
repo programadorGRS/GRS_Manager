@@ -55,6 +55,8 @@ class Empresa(database.Model):
     incluido_por = database.Column(database.String(50))
     alterado_por = database.Column(database.String(50))
 
+    last_server_update = database.Column(database.DateTime)
+
     def __repr__(self) -> str:
         return f'<{self.id_empresa}> {self.razao_social}'
 
