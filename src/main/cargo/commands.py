@@ -5,7 +5,7 @@ from src.main.cargo.cargo import Cargo
 from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
 
 
-@app.cli.command()
+@app.cli.command('carregar-cargos')
 def carregar_cargos():
     '''Carrega os Cargos de todas as Empresas Principais'''
 
