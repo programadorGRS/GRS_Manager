@@ -848,3 +848,32 @@ class ExportaDadosWS(database.Model):
         
         return param
 
+    @staticmethod
+    def cargos(
+        empresa: int,
+        codigo: int,
+        chave: str,
+        tipoSaida: str = 'json'
+    ):
+        '''
+            Cadastro de Cargos (todas empresas)
+
+            Descrição: Este Exporta Dados é listado todos os \
+            cadastros de Cargos de todas as Empresas.
+            Campos: CODIGOEMPRESA, NOMEEMPRESA, CODIGOCARGO, \
+            NOMECARGO, CODIGORHCARGO, CARGOATIVO, FUNCAO, GFIP, \
+            DESCRICAODETALHADA, CBO.
+
+            Exportar a relação de todos os cargos de todas \
+            as empresas
+        '''
+
+        param = {
+            'empresa': empresa,
+            'codigo': codigo,
+            'chave': chave ,
+            'tipoSaida': tipoSaida
+        }
+
+        return param
+

@@ -1,4 +1,4 @@
-# files
+# My files
 *.zip
 *.csv
 *.xlsx
@@ -7,9 +7,8 @@
 *.json
 *.pem
 
-# folders
+# My folders
 db/
-test/
 aws/
 keys/
 documents/
