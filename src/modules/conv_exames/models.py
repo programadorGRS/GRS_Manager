@@ -134,14 +134,14 @@ class PedidoProcessamento(database.Model):
             selecao = empresa.conv_exames_selecao,
         )
 
-        response: dict[str, any] = ExportaDadosWS.request_pedido_processameto_assincrono(
-            UsernameToken_username = str(empresa.cod_empresa_principal),
-            UsernameToken_password = credenciais['PROC_ASSYNC_PASSWORD'],
-            identificacaoUsuarioWsVo_codigoEmpresaPrincipal = str(empresa.cod_empresa_principal),
-            identificacaoUsuarioWsVo_codigoResponsavel = credenciais['COD_RESP'],
-            identificacaoUsuarioWsVo_codigoUsuario = credenciais['PROC_ASSYNC_USERNAME'],
-            processamentoAssincronoWsVo_codigoEmpresa = str(empresa.cod_empresa),
-            processamentoAssincronoWsVo_parametros = parametro
+        response: dict[str, any] = ExportaDadosWS.request_ped_proc_assync(
+            username=str(empresa.cod_empresa_principal),
+            password=credenciais.get('PROC_ASSYNC_PASSWORD'),
+            codigoEmpresaPrincipal=str(empresa.cod_empresa_principal),
+            codigoResponsavel=credenciais.get('COD_RESP'),
+            codigoUsuario=credenciais.get('PROC_ASSYNC_USERNAME'),
+            codigoEmpresa=str(empresa.cod_empresa),
+            parametros=parametro
         )
 
         if response['response'].status_code == 200:

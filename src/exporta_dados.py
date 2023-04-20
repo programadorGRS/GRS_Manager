@@ -137,22 +137,19 @@ class ExportaDadosWS(database.Model):
 
         return requests.post(url, data=body, headers=headers)
 
-
-    # PROCESSAMENTO ASSINCRONO WS ----------------------------------------------------
     @classmethod
-    def request_pedido_processameto_assincrono(
+    def request_ped_proc_assync(
         self,
-        UsernameToken_username: str,
-        UsernameToken_password: str,
-        identificacaoUsuarioWsVo_codigoEmpresaPrincipal: str,
-        identificacaoUsuarioWsVo_codigoResponsavel: str,
-        identificacaoUsuarioWsVo_codigoUsuario: str,
-        processamentoAssincronoWsVo_codigoEmpresa: str,
-        processamentoAssincronoWsVo_parametros: dict,
-        processamentoAssincronoWsVo_tipoProcessamento: str = '8'
+        username: str,
+        password: str,
+        codigoEmpresaPrincipal: str,
+        codigoResponsavel: str,
+        codigoUsuario: str,
+        codigoEmpresa: str,
+        parametros: dict,
+        tipoProcessamento: str = '8'
     ) -> dict[str, any]:
-        """Realiza request para o servico processamentoAssincronoWsVo do SOC. \
-        Registra o request na database. Registra response caso haja erro no request ou no SOC.
+        """Realiza request para o servico processamentoAssincronoWsVo do SOC.
 
         Returns:
             dict[str, any]: {
@@ -163,15 +160,15 @@ class ExportaDadosWS(database.Model):
             }
         """
 
-        response = self.SOAP_request_pedido_processamento(
-            UsernameToken_username=UsernameToken_username,
-            UsernameToken_password=UsernameToken_password,
-            identificacaoUsuarioWsVo_codigoEmpresaPrincipal=identificacaoUsuarioWsVo_codigoEmpresaPrincipal,
-            identificacaoUsuarioWsVo_codigoResponsavel=identificacaoUsuarioWsVo_codigoResponsavel,
-            identificacaoUsuarioWsVo_codigoUsuario=identificacaoUsuarioWsVo_codigoUsuario,
-            processamentoAssincronoWsVo_codigoEmpresa=processamentoAssincronoWsVo_codigoEmpresa,
-            processamentoAssincronoWsVo_parametros=processamentoAssincronoWsVo_parametros,
-            processamentoAssincronoWsVo_tipoProcessamento=processamentoAssincronoWsVo_tipoProcessamento
+        response = self.SOAP_request_ped_proc_assync(
+            username=username,
+            password=password,
+            codigoEmpresaPrincipal=codigoEmpresaPrincipal,
+            codigoResponsavel=codigoResponsavel,
+            codigoUsuario=codigoUsuario,
+            codigoEmpresa=codigoEmpresa,
+            parametros=parametros,
+            tipoProcessamento=tipoProcessamento
         )
 
         retorno = {
@@ -181,115 +178,100 @@ class ExportaDadosWS(database.Model):
             'cod_solicitacao': None
         }
 
-        # registrar response.text apenas em caso de erros
-        exporta_dados = self(
-            request_method = response.request.method,
-            request_url = response.request.url,
-            request_body = self.redact_UsernameToken(response.request.body).replace('\'', '"'),
-            response_status = response.status_code,
-            parametros = str(processamentoAssincronoWsVo_parametros),
-            erro_soc = False,
-            request_date = datetime.now(tz=TIMEZONE_SAO_PAULO)
-        )
+        if response.status_code != 200:
+            return retorno
 
-        if response.status_code == 200: # REQUEST OK
-            response_dic: dict = xmltodict.parse(response.text)
-            
-            cod_msg_soc: str = response_dic['soap:Envelope']['soap:Body']\
+        response_dict: dict = xmltodict.parse(response.text)
+
+        cod_msg_soc: str = response_dict['soap:Envelope']['soap:Body']\
+        ['ns2:incluirSolicitacaoResponse']['ProcessamentoAssincronoRetorno']\
+        ['informacaoGeral']['codigoMensagem']
+
+        if cod_msg_soc != 'SOC-100':
+            msg_erro: str = response_dict['soap:Envelope']['soap:Body']\
             ['ns2:incluirSolicitacaoResponse']['ProcessamentoAssincronoRetorno']\
-            ['informacaoGeral']['codigoMensagem']
-            
-            if cod_msg_soc != 'SOC-100': # ERRO SOC
-                msg_erro: str = response_dic['soap:Envelope']['soap:Body']\
-                ['ns2:incluirSolicitacaoResponse']['ProcessamentoAssincronoRetorno']\
-                ['informacaoGeral']['mensagemOperacaoDetalheList']['mensagem']
+            ['informacaoGeral']['mensagemOperacaoDetalheList']['mensagem']
 
-                exporta_dados.response_text = response.text
-                exporta_dados.erro_soc = True
-                exporta_dados.msg_erro = msg_erro
+            retorno['erro_soc'] = True
+            retorno['msg_erro'] = msg_erro
 
-                retorno['erro_soc'] = True
-                retorno['msg_erro'] = msg_erro
-            else: # SOC OK
-                retorno['cod_solicitacao'] = int(response_dic['soap:Envelope']['soap:Body']\
-                ['ns2:incluirSolicitacaoResponse']['ProcessamentoAssincronoRetorno']\
-                ['codigoSolicitacao'])
-        else: # ERRO REQUEST
-            exporta_dados.response_text = response.text
+            return retorno
 
-        database.session.add(exporta_dados)
-        database.session.commit()
+        cod_solicitacao: str = response_dict['soap:Envelope']['soap:Body']\
+        ['ns2:incluirSolicitacaoResponse']['ProcessamentoAssincronoRetorno']\
+        ['codigoSolicitacao']
+
+        retorno['cod_solicitacao'] = int(cod_solicitacao)
 
         return retorno
 
     @classmethod
-    def SOAP_request_pedido_processamento(
+    def SOAP_request_ped_proc_assync(
             self,
-            UsernameToken_username: str,
-            UsernameToken_password: str,
-            identificacaoUsuarioWsVo_codigoEmpresaPrincipal: str,
-            identificacaoUsuarioWsVo_codigoResponsavel: str,
-            identificacaoUsuarioWsVo_codigoUsuario: str,
-            processamentoAssincronoWsVo_codigoEmpresa: str,
-            processamentoAssincronoWsVo_parametros: dict,
-            processamentoAssincronoWsVo_tipoProcessamento: str = '8',
+            username: str,
+            password: str,
+            codigoEmpresaPrincipal: str,
+            codigoResponsavel: str,
+            codigoUsuario: str,
+            codigoEmpresa: str,
+            parametros: dict,
+            tipoProcessamento: str = '8',
         ) -> requests.Response:
         '''
-        Realiza request para pedido de processamento no SOC
+            Realiza request para pedido de processamento no SOC
 
-        Apos realizado, o pedido pode ser visto em 
-        Menu > Administração > Pedido de Processamento, no usuario Webservice GRS - Teste
+            Apos realizado, o pedido pode ser visto em \
+            Menu > Administração > Pedido de Processamento, no usuario "Webservice GRS"
 
-        UsernameToken:
-        
-        - Username: Código da empresa principal no sistema SOC.
-        - Password: Chave de acesso da empresa (disponível nas configurações de integração).
-        Contudo o cliente deverá informar o mesmo com o Tipo PasswordDigest
+            UsernameToken:
+                - username: Código da Empresa Principal no sistema SOC.
+                - password: Chave de acesso da Empresa (disponível nas configurações de integração). \
+                Deve ser passado como PasswordDigest.
 
-        identificacaoUsuarioWsVo:
+            identificacaoUsuarioWsVo:
+                - codigoUsuario: Código de identificação do usuário responsável pela ação \
+                (usuário de Web service do SOC)
 
-        - codigoUsuario: Código de identificação do usuário responsável pela ação
+            tipoProcessamento: vide manual de processamento assincrono do SOC
 
-        tipoProcessamento: vide manual de processamento assincrono do SOC
-
-        Retorna requests.Response
+            Retorna requests.Response
         '''
-        # password digest = True, cria nonce e digest sozinho, vide metodos da classe UsernameToken
+        # NOTE: use_digest=True, cria nonce e digest sozinho, \
+        # vide metodos da classe UsernameToken
+        username_token = UsernameToken(
+            username=username,
+            password=password,
+            use_digest=True,
+            timestamp_token=self.timestamp_utc()
+        )
+
+        # NOTE: raw response: faz com que a Response seja requests.Response\
+        # em vez de uma Response do Zeep
+        conf = Settings(raw_response=True)
+
         client = zeep.Client(
-            wsdl = self.WSDL_URL,
-            wsse = UsernameToken(
-                # Código da empresa principal no sistema SOC.
-                username = UsernameToken_username,
-                # Chave de acesso da empresa (disponível nas configurações de integração).
-                password = UsernameToken_password,
-                use_digest = True,
-                timestamp_token = self.timestamp_utc()
-            ),
-            settings=Settings(raw_response = True)
-            # raw response: faz com que a Response seja requests.Response\
-            # em vez de uma Response do Zeep 
+            wsdl=self.WSDL_URL,
+            wsse=username_token,
+            settings=conf
         )
 
-        factory = client.type_factory('ns0')
+        # NOTE: NÃO remover o namespace
+        factory = client.type_factory(namespace='ns0')
 
-        # identificacaoUsuarioWsVo
         identificacao = factory.identificacaoUsuarioWsVo(
-            codigoEmpresaPrincipal = identificacaoUsuarioWsVo_codigoEmpresaPrincipal,
-            codigoResponsavel = identificacaoUsuarioWsVo_codigoResponsavel,
-            # Código de identificação do usuário responsável pela ação: Webservice - Manager
-            codigoUsuario = identificacaoUsuarioWsVo_codigoUsuario
+            codigoEmpresaPrincipal=codigoEmpresaPrincipal,
+            codigoResponsavel=codigoResponsavel,
+            codigoUsuario=codigoUsuario
         )
 
-        # processamentoAssincronoWsVo
         proc_assinc = factory.processamentoAssincronoWsVo(
-            codigoEmpresa = processamentoAssincronoWsVo_codigoEmpresa,
-            identificacaoWsVo = identificacao,
-            tipoProcessamento = processamentoAssincronoWsVo_tipoProcessamento,
-            parametros = str(processamentoAssincronoWsVo_parametros)
+            codigoEmpresa=codigoEmpresa,
+            identificacaoWsVo=identificacao,
+            tipoProcessamento=tipoProcessamento,
+            parametros=str(parametros)
         )
 
-        # realizar request
-        return client.service.incluirSolicitacao(ProcessamentoAssincronoWsVo = proc_assinc)
+        return client.service.incluirSolicitacao(ProcessamentoAssincronoWsVo=proc_assinc)
 
     @staticmethod
     def timestamp_utc():
@@ -312,23 +294,6 @@ class ExportaDadosWS(database.Model):
         timestamp_token.extend(timestamp_elements)
         return timestamp_token
 
-
-    # UTILS ----------------------------------------------------------------------
-    @staticmethod
-    def redact_UsernameToken(xml_string: str) -> str:
-        '''
-        Recebe corpo do Request de Processamento Assincrono \
-        e redige o campo UsernameToken
-        '''
-        xml_string: dict = xmltodict.parse(xml_string)
-
-        if xml_string['soap-env:Envelope']['soap-env:Header']['wsse:Security']\
-        ['wsse:UsernameToken']:
-            xml_string['soap-env:Envelope']['soap-env:Header']['wsse:Security']\
-            ['wsse:UsernameToken'] = 'REDACTED'
-
-        return xmltodict.unparse(xml_string)
-
     @staticmethod
     def xml_to_dataframe(xml_string: str) -> pd.DataFrame:
         """Recebe corpo do Response de Exporta Dados e retorna \
@@ -340,7 +305,6 @@ class ExportaDadosWS(database.Model):
                 ['ns2:exportaDadosWsResponse']['return']['retorno']
         )
         return pd.DataFrame(data=dados)
-
 
     # PARAMETROS ----------------------------------------------------------------
     @staticmethod
