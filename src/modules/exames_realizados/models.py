@@ -154,11 +154,7 @@ class ExamesRealizados(database.Model):
             dataFim = dataFim.strftime('%d/%m/%Y')
         )
 
-        response: dict = ExportaDadosWS.request_exporta_dados_ws(
-            parametro=par,
-            id_empresa=empresa.id_empresa,
-            obs='Pedido Exame'
-        )
+        response: dict = ExportaDadosWS.request_exporta_dados_ws(parametro=par)
 
         if response['response'].status_code == 200:
             if not response['erro_soc']:

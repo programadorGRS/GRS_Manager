@@ -55,10 +55,7 @@ class CarregarPedidos:
             dataFim=dataFim
         )
 
-        resp = ExportaDadosWS.request_exporta_dados_ws(
-            parametro=PARAMETRO,
-            id_empresa=id_empresa
-        )
+        resp = ExportaDadosWS.request_exporta_dados_ws(parametro=PARAMETRO)
 
         infos = InfosCarregar(
             tabela=self.__tablename__,

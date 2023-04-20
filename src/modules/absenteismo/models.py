@@ -304,11 +304,7 @@ class Licenca(database.Model):
             dataFim = dataFim.strftime('%d/%m/%Y')
         )
 
-        response: dict = ExportaDadosWS.request_exporta_dados_ws(
-            parametro=par,
-            id_empresa=empresa.id_empresa,
-            obs='Licenca (SOCIND)'
-        )
+        response: dict = ExportaDadosWS.request_exporta_dados_ws(parametro=par)
 
         if response['response'].status_code == 200:
             if not response['erro_soc']:
@@ -482,11 +478,7 @@ class Licenca(database.Model):
             dataFim = dataFim.strftime('%d/%m/%Y')
         )
 
-        response: dict = ExportaDadosWS.request_exporta_dados_ws(
-            parametro=par,
-            id_empresa=empresa.id_empresa,
-            obs='Licença Médica - Informações Básicas'
-        )
+        response: dict = ExportaDadosWS.request_exporta_dados_ws(parametro=par)
 
         if response['response'].status_code == 200:
             if not response['erro_soc']:

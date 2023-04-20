@@ -266,11 +266,7 @@ class ConvExames(database.Model):
             'qtd': 0
         }
 
-        resp: dict = ExportaDadosWS.request_exporta_dados_ws(
-            parametro=PARAMETRO,
-            id_empresa=EMPRESA.id_empresa,
-            obs='Convocação de Exames - Assíncrono'
-        )
+        resp: dict = ExportaDadosWS.request_exporta_dados_ws(parametro=PARAMETRO)
 
         if resp['response'].status_code != 200:
             infos['status'] = 'Erro no request'

@@ -55,21 +55,16 @@ class ExportaDadosWS(database.Model):
     def __repr__(self) -> str:
         return f'<{self.id}> {self.request_method} - {self.response_status}'
 
-
-    # EXPORTA DADOS WS ------------------------------------------------------------
     @classmethod
     def request_exporta_dados_ws(
         self,
         parametro: dict,
         url: str = EXPORTA_DADOS_URL,
         xml_path: str = EXPORTA_DADOS_XML_PATH,
-        encoding: str = 'ISO-8859-1',
-        id_empresa: int | None = None,
-        obs: str | None = None
-    ) -> dict[str, any] :
+        encoding: str = 'ISO-8859-1'
+    ) -> dict[str, any]:
         """
-        Realiza Request para o Servico Exporta Dados do SOC. \
-        Registra Request e Response na database.
+        Realiza Request para o Servico Exporta Dados do SOC.
 
         Args:
             xml_path (str, optional): caminho do arquivo xml \
@@ -97,44 +92,20 @@ class ExportaDadosWS(database.Model):
             'msg_erro': None
         }
 
-        # redigir parametros
-        if parametro['chave']:
-            parametro['chave'] = 'REDACTED'
+        if response.status_code != 200:
+            return retorno
 
-        exporta_dados = self(
-            request_method = response.request.method,
-            request_url = response.request.url,
-            request_body = self.redact_parametros(response.request.body).replace('\'', '"'),
-            response_status = response.status_code,
-            parametros = str(parametro),
-            erro_soc = False,
-            request_date = datetime.now(tz=TIMEZONE_SAO_PAULO),
-            id_empresa = id_empresa,
-            obs = obs
-        )
+        response_dict: dict = xmltodict.parse(response.text)
 
-        if response.status_code == 200: # REQUEST OK
-            response_dic: dict = xmltodict.parse(response.text)
-            
-            # registrar response.text apenas em caso de erros do SOC
-            erro_soc = response_dic['soap:Envelope']['soap:Body']\
-            ['ns2:exportaDadosWsResponse']['return']['erro']
-            
-            if erro_soc == 'true': # ERRO SOC
-                msg_erro: str = response_dic['soap:Envelope']['soap:Body']\
-                ['ns2:exportaDadosWsResponse']['return']['mensagemErro']
+        erro_soc: str = response_dict['soap:Envelope']['soap:Body']\
+        ['ns2:exportaDadosWsResponse']['return']['erro']
 
-                exporta_dados.response_text = self.redact_parametros(response.text).replace('\'', '"')
-                exporta_dados.erro_soc = True
-                exporta_dados.msg_erro = msg_erro
+        if erro_soc == 'true':
+            msg_erro: str = response_dict['soap:Envelope']['soap:Body']\
+            ['ns2:exportaDadosWsResponse']['return']['mensagemErro']
 
-                retorno['erro_soc'] = True
-                retorno['msg_erro'] = msg_erro
-        else: # ERRO REQUEST
-            exporta_dados.response_text = response.text
-
-        database.session.add(exporta_dados)
-        database.session.commit()
+            retorno['erro_soc'] = True
+            retorno['msg_erro'] = msg_erro
 
         return retorno
 
@@ -343,32 +314,6 @@ class ExportaDadosWS(database.Model):
 
 
     # UTILS ----------------------------------------------------------------------
-    @staticmethod
-    def redact_parametros(xml_string: str) -> str:
-        """
-        Recebe corpo do Request/Response de Exporta Dados e redige \
-        o item 'chave' dos parametros
-        """
-        param = re.search("{(.*)}", xml_string)
-        param = param.group()
-        
-        param = param.replace('True', 'true')
-        param = param.replace('False', 'false')
-        
-        param = json.loads(param)
-
-        if param['chave']:
-            param['chave'] = 'REDACTED'
-
-        xml_string = re.sub(
-            pattern = "{(.*)}",
-            repl = str(param),
-            string = xml_string,
-            flags = re.DOTALL # re.DOTALL : to match across all lines
-        )
-
-        return xml_string
-
     @staticmethod
     def redact_UsernameToken(xml_string: str) -> str:
         '''
