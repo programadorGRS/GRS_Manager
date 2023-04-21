@@ -1,8 +1,10 @@
 import click
 
 from src import app
-from src.main.cargo.cargo import Cargo
-from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
+
+from ..empresa_principal.empresa_principal import EmpresaPrincipal
+from ..job.job import Job
+from .cargo import Cargo
 
 
 @app.cli.command('carregar-cargos')
@@ -21,6 +23,8 @@ def carregar_cargos():
         click.echo(f'{emp.cod} - {emp.nome} - ', nl=False)
         
         infos = Cargo.carregar_cargos(cod_empresa_principal=emp.cod)
+
+        Job.log_job(infos)
 
         total_inseridos = total_inseridos + infos.qtd_inseridos
         total_atualizados = total_atualizados + infos.qtd_atualizados
