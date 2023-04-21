@@ -1,10 +1,22 @@
-from src import (routes, routes_api, routes_api_internas, routes_soc,
-                 routes_socnet)
+from src import error_handlers
+from src.api import routes, routes_internas
+from src.main.conv_exames import routes
+from src.main.empresa import routes
+from src.main.empresa_socnet import routes
+from src.main.exame import routes
+from src.main.exames_realizados import routes
+from src.main.grupo import routes
+from src.main.home import routes
+from src.main.importacao import routes
+from src.main.licenca import routes
+from src.main.log_acoes import routes
+from src.main.login import routes
+from src.main.manual import routes
 from src.main.pedido import routes
-
-from .modules import routes
-from .modules.absenteismo import routes
-from .modules.conv_exames import routes
-from .modules.exames_realizados import routes
-from .modules.RTC import routes
-
+from src.main.pedido_socnet import routes
+from src.main.prestador import routes
+from src.main.relatorios_agendados import routes
+from src.main.rtc import routes
+from src.main.status import routes
+from src.main.unidade import routes
+from src.main.usuario import routes
