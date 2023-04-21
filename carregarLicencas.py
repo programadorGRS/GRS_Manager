@@ -6,7 +6,7 @@ if __name__ == '__main__':
 
     from src import app
     from src.main.empresa.empresa import Empresa
-    from src.modules.absenteismo.models import Licenca
+    from src.main.licenca.models import Licenca
 
     with app.app_context():
         qtd = 0

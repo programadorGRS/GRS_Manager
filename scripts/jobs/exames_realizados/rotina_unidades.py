@@ -12,7 +12,7 @@ if __name__ == '__main__':
     from src.email_connect import EmailConnect
     from src.main.empresa.empresa import Empresa
     from src.main.unidade.unidade import Unidade
-    from src.modules.exames_realizados.models import ExamesRealizados
+    from src.main.exames_realizados.models import ExamesRealizados
 
 
     with app.app_context():

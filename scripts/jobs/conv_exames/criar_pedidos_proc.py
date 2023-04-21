@@ -11,7 +11,7 @@ if __name__ == '__main__':
     from src import TIMEZONE_SAO_PAULO, app
     from src.email_connect import EmailConnect
     from src.main.empresa.empresa import Empresa
-    from src.modules.conv_exames.models import PedidoProcessamento
+    from src.main.conv_exames.models import PedidoProcessamento
 
     with app.app_context():
         # criar pedidos novos

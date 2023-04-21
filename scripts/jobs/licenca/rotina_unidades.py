@@ -12,7 +12,7 @@ if __name__ == '__main__':
     from src.email_connect import EmailConnect
     from src.main.empresa.empresa import Empresa
     from src.main.unidade.unidade import Unidade
-    from src.modules.absenteismo.models import Licenca
+    from src.main.licenca.models import Licenca
 
     with app.app_context():
         dias: int = 90

@@ -7,7 +7,7 @@ if __name__ == '__main__':
     from sqlalchemy import delete
 
     from src import TIMEZONE_SAO_PAULO, database, app
-    from src.modules.conv_exames.models import ConvExames, PedidoProcessamento
+    from src.main.conv_exames.models import ConvExames, PedidoProcessamento
 
     with app.app_context():
         HOJE = datetime.now(TIMEZONE_SAO_PAULO).date()

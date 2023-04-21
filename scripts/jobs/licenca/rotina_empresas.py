@@ -11,7 +11,7 @@ if __name__ == '__main__':
     from src import TIMEZONE_SAO_PAULO, app, database
     from src.email_connect import EmailConnect
     from src.main.empresa.empresa import Empresa
-    from src.modules.absenteismo.models import Licenca
+    from src.main.licenca.models import Licenca
 
     with app.app_context():
         dias: int = 90
