@@ -27,7 +27,7 @@ class Usuario(database.Model, UserMixin):
     chave_api = database.Column(database.String(300))
     tipo_usuario = database.Column(database.Integer, database.ForeignKey('TipoUsuario.id_role'), default=2, nullable=False)
     ativo = database.Column(database.Boolean, nullable=False, default=True)
-    foto_perfil = database.Column(database.String(255), default='src/static/fotos_perfil/default.png')
+    foto_perfil = database.Column(database.String(255))
     grupo = database.relationship('Grupo', secondary=grupo_usuario, backref='usuarios', lazy=True) # many to many
     ultimo_login = database.Column(database.DateTime)
     
