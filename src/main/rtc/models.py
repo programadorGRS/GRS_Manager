@@ -1,4 +1,6 @@
 from datetime import datetime
+import os
+from src import app
 
 import jinja2
 from werkzeug.utils import secure_filename
@@ -29,7 +31,7 @@ class RTC(database.Model):
     id_rtc = database.Column(database.Integer, primary_key=True, autoincrement=False)
     nome_rtc = database.Column(database.String(255), nullable=False)
 
-    MAIN_TEMPLATE = 'src/modules/RTC/templates/base_rtc.html'
+    MAIN_TEMPLATE = 'src/main/rtc/templates/base_rtc.html'
 
     # NOTE: em Windows, o tamanho de EMPTY_SQUR é diferente 
     # do tamaho de MARKED_SQUR. Em Linux os dois tem o 
@@ -39,11 +41,19 @@ class RTC(database.Model):
     MARKED_SQUR = '&#9746;'
     MARKED_SQUR_SIZE = '15pt'
 
-    LOGO_GRS = 'src/static/images/grs/Logo GRS-01.jpg'
+    LOGO_GRS = os.path.join(
+        app.static_folder,
+        'logos'
+        'logo_grs.png'
+    )
     LOGO_GRS_WIDTH = '70px'
     LOGO_GRS_HEIGHT = '30px'
 
-    LOGO_MANSERV = 'src/modules/RTC/templates/logo_manserv.png'
+    LOGO_MANSERV = os.path.join(
+        app.static_folder,
+        'logos',
+        'logo_manserv.png'
+    )
     LOGO_MANSERV_WIDTH = '150px'
     LOGO_MANSERV_HEIGHT = '30px'
 

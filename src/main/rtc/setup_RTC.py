@@ -19,7 +19,7 @@ if __name__ == '__main__':
         RTC.query.delete()
         database.session.commit()
 
-        arquivo = 'src/modules/RTC/documents/RTCs.csv'
+        arquivo = 'src/main/rtc/documents/RTCs.csv'
         df = pd.read_csv(arquivo, sep=';', encoding='iso-8859-1')
         df.to_sql(name=RTC.__tablename__, con=database.session.bind, index=False, if_exists='append')
         database.session.commit()
@@ -28,7 +28,7 @@ if __name__ == '__main__':
         delete_query = database.session.execute(delete(RTCCargos))
         database.session.commit()
 
-        arquivo = 'src/modules/RTC/documents/RTCFuncoes.csv'
+        arquivo = 'src/main/rtc/documents/RTCFuncoes.csv'
         df = pd.read_csv(arquivo, sep=';', encoding='iso-8859-1')
         df['chave'] = df['id_rtc'].astype(str) + df['cod_cargo'].astype(str)
         df.drop_duplicates('chave', inplace=True)
@@ -41,7 +41,7 @@ if __name__ == '__main__':
         delete_query = database.session.execute(delete(RTCExames))
         database.session.commit()
 
-        arquivo = 'src/modules/RTC/documents/RTCExames.csv'
+        arquivo = 'src/main/rtc/documents/RTCExames.csv'
         df = pd.read_csv(arquivo, sep=';', encoding='iso-8859-1')
         df['chave'] = (
             df['id_rtc'].astype(str) +

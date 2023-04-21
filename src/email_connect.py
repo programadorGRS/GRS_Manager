@@ -5,6 +5,7 @@ from email.message import EmailMessage
 from email.utils import make_msgid
 
 from src import app, database
+import os
 
 
 class EmailConnect(database.Model):
@@ -29,7 +30,11 @@ class EmailConnect(database.Model):
 
     # CONFIGS EMAIL------------------------------------------------------------------
     ASSINATURA_BOT: dict[str, str] = {
-        'img_path': 'src/static/images/ass_bot2.png',
+        'img_path': os.path.join(
+            app.static_folder,
+            'connect',
+            'ass_bot.png'
+        ),
         'cid_placeholder': 'AssEmail'
     }
     EMAIL_TEMPLATES: str = 'src/email_templates/'

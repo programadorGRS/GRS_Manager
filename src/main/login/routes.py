@@ -2,8 +2,8 @@ import base64
 import datetime as dt
 import os
 
-from flask import (abort, flash, redirect, render_template, request, session,
-                   url_for)
+from flask import (abort, current_app, flash, redirect, render_template,
+                   request, session, url_for)
 from flask_login import (confirm_login, current_user, login_fresh,
                          login_required, login_user, logout_user)
 from flask_mail import Attachment, Message
@@ -51,7 +51,7 @@ def login():
                     'USER_OTP': otp
                 }
             )
-            assinatura = 'static/images/ass_bot.png'
+            assinatura = EmailConnect.ASSINATURA_BOT.get('img_path')
             anexos = Attachment(
                 filename=assinatura,
                 content_type='image/png',

@@ -202,7 +202,7 @@ class ConvExames(database.Model):
     data_res = database.Column(database.Date)
     refazer = database.Column(database.Date)
 
-    BASE_PPT = 'src/modules/conv_exames/ppt/base_conv_exames_v2.pptx'
+    BASE_PPT = 'src/main/conv_exames/ppt/base_conv_exames_v2.pptx'
 
     COLUNAS_PLANILHA = [
         'cod_empresa',

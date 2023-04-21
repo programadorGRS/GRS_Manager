@@ -73,7 +73,7 @@ class Licenca(database.Model):
         'solicitante'
     ]
 
-    BASE_PPT = 'src/modules/absenteismo/ppt/base_absenteismo_v2.pptx'
+    BASE_PPT = 'src/main/licenca/ppt/base_absenteismo_v2.pptx'
 
 
     @classmethod

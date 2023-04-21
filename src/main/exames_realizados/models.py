@@ -41,7 +41,7 @@ class ExamesRealizados(database.Model):
     cod_cargo = database.Column(database.String(255))
     nome_cargo = database.Column(database.String(255))
 
-    BASE_PPT = 'src/modules/exames_realizados/ppt/base_exames_realizados_v2.pptx'
+    BASE_PPT = 'src/main/exames_realizados/ppt/base_exames_realizados_v2.pptx'
 
     colunas_planilha = [
         'cod_empresa_principal',

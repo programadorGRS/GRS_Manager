@@ -4,7 +4,7 @@ from sys import getsizeof
 
 import numpy as np
 import pandas as pd
-from flask import (flash, redirect, render_template, request,
+from flask import (current_app, flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import current_user, login_required
 from flask_mail import Attachment, Message
@@ -298,7 +298,7 @@ def enviar_emails_socnet():
                                 .replace(" ", "")
                                 .replace(",", ";")
                             ).split(';')
-                            assinatura = r'static/images/ass_bot_liberacao.png'
+                            assinatura = EmailConnect.ASSINATURA_BOT.get('img_path')
                             anexo = Attachment(
                                 filename=assinatura,
                                 content_type='image/png',
