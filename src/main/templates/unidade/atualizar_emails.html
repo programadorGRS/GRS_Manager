@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+    <style>
+        body {
+            background-image: url("{{ url_for('static', filename='connect/bg_login.png') }}");
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+
+        .f1{
+            width: 80%;
+            background-color: rgba(255,255,255, .8); /* opacidade 80%*/
+            border-radius: 2%;
+            margin: auto;
+            margin-top: 2%;
+        }
+
+        #b1 {
+            background-color: #064966;
+            border: #064966;
+        }
+
+        .navbar {
+            display: none;
+        }
+    </style>
+
+    <div class="container">
+        <form method="POST" class="f1 p-4">
+            {{ form.csrf_token }}
+            <div class="d-flex">
+                <legend>Atualização de Emails - Convocação de Exames</legend>
+                <img src="{{ url_for('static', filename='logos/logo_grs.png') }}" alt="Icone GRS" height="40px" width="80px">
+            </div>
+            <fieldset>
+                <div class="form-group">
+                    {{ form.cod_empresa_principal.label(class="form-control-label", hidden=True) }}
+                    {% if form.cod_empresa_principal.errors %}
+                        {{ form.cod_empresa_principal(class="form-control is-invalid", hidden=True) }}
+                            <div class="invalid-feedback">
+                            {% for erro in form.cod_empresa_principal.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                            </div>
+                    {% else %}
+                        {{ form.cod_empresa_principal(class="form-control", hidden=True) }}
+                    {% endif %}
+                </div>
+                <!-- EMPRESA -->
+                <div class="form-group">
+                    {{ form.empresa.label(class="form-control-label") }}
+                    {% if form.empresa.errors %}
+                        {{ form.empresa(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.empresa.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.empresa(class="form-control") }}
+                    {% endif %}
+                </div>
+                <!-- UNIDADE -->
+                <div class="form-group">
+                    {{ form.unidade.label(class="form-control-label") }}
+                    {% if form.unidade.errors %}
+                    {{ form.unidade(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.unidade.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.unidade(class="form-control") }}
+                    {% endif %}
+                </div>
+                <!-- NOME -->
+                <div class="form-group">
+                    {{ form.nome.label(class="form-control-label") }}
+                    {% if form.nome.errors %}
+                        {{ form.nome(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.nome.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.nome(class="form-control") }}
+                    {% endif %}
+                </div>
+                <!-- EMAILS -->
+                <div class="form-group">
+                    {{ form.emails_conv_exames.label(class="form-control-label") }}
+                    {% if form.emails_conv_exames.errors %}
+                        {{ form.emails_conv_exames(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.emails_conv_exames.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.emails_conv_exames(class="form-control") }}
+                    {% endif %}
+                </div>
+                <!-- disclaimer -->
+                <div class="d-flex justify-content-between mt-2">
+                    <div class="form-group w-1">
+                        {% if form.disclaimer.errors %}
+                            {{ form.disclaimer(class="form-check-input is-invalid") }}
+                            <div class="invalid-feedback">
+                                {% for erro in form.disclaimer.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.disclaimer(class="form-check-input mt-5 mx-5") }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p>
+                            Em conformidade com a <b>Lei nº 13.709 - Lei Geral de Proteção de Dados 
+                            Pessoais (LGPD)</b>, concordo e autorizo minha empregadora a tratar meus 
+                            dados pessoais e corporativos bem como encaminhá-los a empresa 
+                            <b>GRS Núcleo</b>, inscrita no CNPJ nº 01.510.209/0001-68, para 
+                            viabilizar o recebimento de relatórios mensais referentes a 
+                            programação dos exames periódicos dos colaboradores da 
+                            Unidade de Trabalho. Declaro estar ciente que não poderei 
+                            reproduzir, transmitir, distribuir, processar, modificar, 
+                            transmitir ou difundir as informações e dados recebidos a 
+                            terceiros não autorizados.
+                        </p>
+                    </div>
+                </div>
+
+            </fieldset>
+            <div class="d-flex alig">
+                {{ form.botao_salvar(class="btn btn-success mt-2 w-100", id='b1') }}
+            </div>
+        </form>
+    </div>
+
+{% endblock %}

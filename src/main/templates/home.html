@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<style>
+    body {
+        background-image: url("{{ url_for('static', filename='connect/bg_login.png') }}");
+        background-repeat: no-repeat;
+        background-size: cover;
+    }
+</style>
+
+
+<div class="text-center mt-3">
+    <iframe id="pbi_frame" src="{{ power_bi_url }}" allowFullScreen="true"></iframe>
+</div>
+
+{% endblock %}

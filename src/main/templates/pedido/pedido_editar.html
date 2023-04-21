@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container justify-content-center d-flex mt-2 mb-2">
+    <div class="card p-4">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <div class="d-flex">
+                <legend><span>Pedido #{{pedido.id_ficha}}</span> <span class="badge {{pedido.status_lib.cor_tag}}">{{pedido.status_lib.nome_status_lib}}</span></legend>
+                <img src="{{ url_for('static', filename='logos/logo_grs.png') }}" alt="Icone GRS" height="30px" width="70px">
+            </div>
+            <fieldset>
+                <!-- seq_ficha cod funcionario -->
+                <div class="d-flex justify-content-between">
+                    <!-- seq ficha -->
+                    <div class="form-group w-49">
+                        {{ form.seq_ficha.label(class="form-control-label") }}
+                        {{ form.seq_ficha(class="form-control", disabled=True) }}
+                    </div>
+                    <!-- cod_funcionario -->
+                    <div class="form-group w-49">
+                        {{ form.cod_funcionario.label(class="form-control-label") }}
+                        {{ form.cod_funcionario(class="form-control", disabled=True) }}
+                    </div>
+                </div>
+                <!-- nome cpf -->
+                <div class="d-flex justify-content-between">
+                    <!-- cpf -->
+                    <div class="form-group w-49" >
+                        {{ form.cpf.label(class="form-control-label") }}
+                        {{ form.cpf(class="form-control", disabled=True) }}
+                    </div>
+                    <!-- nome_funcionario -->
+                    <div class="form-group w-49">
+                        {{ form.nome_funcionario.label(class="form-control-label") }}
+                        {{ form.nome_funcionario(class="form-control", disabled=True) }}
+                    </div>
+                </div>
+                <!-- data ficha tipo exame -->
+                <div class="d-flex justify-content-between">
+                    <!-- data ficha -->
+                    <div class="form-group w-49">
+                        {{ form.data_ficha.label(class="form-control-label") }}
+                        {% if form.data_ficha.errors %}
+                            {{ form.data_ficha(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.data_ficha.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.data_ficha(class="form-control editavel") }}
+                        {% endif %}
+                    </div>
+                    <!-- tipo exame -->
+                    <div class="form-group w-49">
+                    {{ form.tipo_exame.label(class="form-control-label") }}
+                    {% if form.tipo_exame.errors %}
+                        {{ form.tipo_exame(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                            {% for erro in form.tipo_exame.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                            </div>
+                    {% else %}
+                        {{ form.tipo_exame(class="form-control editavel") }}
+                    {% endif %}
+                </div>
+                </div>
+                <!-- prazo prev lib -->
+                <div class="d-flex justify-content-between">
+                    <!-- prazo -->
+                    <div class="form-group w-49">
+                        {{ form.prazo.label(class="form-control-label") }}
+                        {% if form.prazo.errors %}
+                            {{ form.prazo(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.prazo.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.prazo(class="form-control editavel") }}
+                        {% endif %}
+                    </div>
+                    <!-- prev liberacao -->
+                    <div class="form-group w-49">
+                        {{ form.prev_liberacao.label(class="form-control-label") }}
+                        {% if form.prev_liberacao.errors %}
+                            {{ form.prev_liberacao(class="form-control is-invalid editavel") }}
+                            <div class="invalid-feedback">
+                            {% for erro in form.prev_liberacao.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                            </div>
+                        {% else %}
+                            {{ form.prev_liberacao(class="form-control editavel") }}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    {{ form.cod_empresa_principal.label(class="form-control-label") }}
+                    {% if form.cod_empresa_principal.errors %}
+                        {{ form.cod_empresa_principal(class="form-control is-invalid", disabled=True) }}
+                            <div class="invalid-feedback">
+                            {% for erro in form.cod_empresa_principal.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                            </div>
+                    {% else %}
+                        {{ form.cod_empresa_principal(class="form-control", disabled=True) }}
+                    {% endif %}
+                </div>
+
+                <!-- EMPRESA -->
+                <div class="form-group">
+                    {{ form.empresa.label(class="form-control-label") }}
+                    {% if form.empresa.errors %}
+                        {{ form.empresa(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.empresa.errors %}
+                            {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.empresa(class="form-control editavel") }}
+                    {% endif %}
+                </div>
+                <!-- UNIDADE -->
+                <div class="form-group">
+                    {{ form.unidade.label(class="form-control-label") }}
+                    {% if form.unidade.errors %}
+                        {{ form.unidade(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.unidade.errors %}
+                            {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.unidade(class="form-control editavel") }}
+                    {% endif %}
+                </div>
+                <!-- PRESTADOR -->
+                <div class="form-group">
+                    {{ form.prestador.label(class="form-control-label") }}
+                    {% if form.prestador.errors %}
+                        {{ form.prestador(class="form-control is-invalid") }}
+                        <div class="invalid-feedback">
+                            {% for erro in form.prestador.errors %}
+                            {{ erro }}
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        {{ form.prestador(class="form-control editavel") }}
+                    {% endif %}
+                </div>
+                <!-- status data rec -->
+                <div class="d-flex justify-content-between">
+                    <!-- STATUS -->
+                    <div class="form-group w-49">
+                        {{ form.status.label(class="form-control-label") }}
+                        {% if form.status.errors %}
+                            {{ form.status(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.status.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.status(class="form-control editavel") }}
+                        {% endif %}
+                    </div>
+                    <!-- data recebido -->
+                    <div class="form-group w-49">
+                        {{ form.data_recebido.label(class="form-control-label") }}
+                        {% if form.data_recebido.errors %}
+                            {{ form.data_recebido(class="form-control is-invalid") }}
+                                <div class="invalid-feedback">
+                                {% for erro in form.data_recebido.errors %}
+                                    {{ erro }}
+                                {% endfor %}
+                                </div>
+                        {% else %}
+                            {{ form.data_recebido(class="form-control editavel") }}
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- obs -->
+                <div class="form-group">
+                    {{ form.obs.label(class="form-control-label") }}
+                    {% if form.obs.errors %}
+                        {{ form.obs(class="form-control is-invalid") }}
+                            <div class="invalid-feedback">
+                            {% for erro in form.obs.errors %}
+                                {{ erro }}
+                            {% endfor %}
+                            </div>
+                    {% else %}
+                        {{ form.obs(class="form-control editavel") }}
+                    {% endif %}
+                </div>
+                <!-- datas incl alt-->
+                <div class="d-flex justify-content-between">
+                    <!-- data inclusao -->
+                    <div class="form-group w-49">
+                        {{ form.data_inclusao.label(class="form-control-label") }}
+                        {{ form.data_inclusao(class="form-control", disabled="disabled") }}
+                    </div>
+                    <!-- data alteracao -->
+                    <div class="form-group w-49">
+                        {{ form.data_alteracao.label(class="form-control-label") }}
+                        {{ form.data_alteracao(class="form-control", disabled="disabled") }}
+                    </div>
+                </div>
+                <!-- incl alt por -->
+                <div class="d-flex justify-content-between">
+                    <div class="form-group w-49">
+                        {{ form.incluido_por.label(class="form-control-label") }}
+                        {{ form.incluido_por(class="form-control", disabled="disabled") }}
+                    </div>
+                    <div class="form-group w-49">
+                        {{ form.alterado_por.label(class="form-control-label") }}
+                        {{ form.alterado_por(class="form-control", disabled="disabled") }}
+                    </div>
+                </div>
+            </fieldset>
+            <!-- BOTAO -->
+            <div class="d-flex justify-content-between">
+                <a href="{{ url_for('busca') }}" id="botao_voltar">
+                    <button type="button" class="btn btn-info text-nowrap mt-2" style="width: fit-content;">
+                        <span class="material-icons align-middle">arrow_back</span> Voltar
+                    </button>
+                </a>
+                <button type="button" id="botao_editar" onclick="enableFields()" class="btn btn-primary text-nowrap mt-2">
+                    <span class="material-icons align-middle">edit_note</span> Editar
+                </button>
+                <button hidden type="submit" id="botao_salvar" class="btn btn-primary text-nowrap mt-2">
+                    <span class="material-icons align-middle">save</span> Salvar
+                </button>
+                <button hidden type="button" id="botao_cancelar" onclick="window.location.reload()" class="btn btn-secondary text-nowrap mt-2" style="width: fit-content;">
+                    <span class="material-icons align-middle">close</span> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger mt-2" data-bs-toggle="modal" data-bs-target="#excluir_prestador">
+                    <span class="material-icons align-middle">delete</span> Excluir
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<!-- Modal -->
+<div class="modal fade" id="excluir_prestador" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Excluir Pedido</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+                <div class="modal-body">
+                    <p><b>Atenção:</b></p> 
+                    <p>O Pedido "{{pedido.seq_ficha}}" será excluído!</p>
+                    <p>Esta ação não pode ser desfeita.</p>
+                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form action="{{ url_for('pedido_excluir', id_ficha=pedido.id_ficha) }}" method="POST">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.onload =  function disableFields(){
+        var campos = document.getElementsByClassName("editavel");
+        for(var i = 0; i < campos.length; i++){
+            campos[i].disabled = true;
+        };
+    };
+
+    function enableFields(){
+        var campos = document.getElementsByClassName("editavel");
+        var btnEditar = document.getElementById("botao_editar");
+        var btnCancelar = document.getElementById("botao_cancelar");
+        var btnSalvar = document.getElementById("botao_salvar");
+        var btnVoltar = document.getElementById("botao_voltar");
+        
+        for(var i = 0; i < campos.length; i++){
+            campos[i].disabled = false;
+        };
+        btnEditar.hidden = true;
+        btnCancelar.hidden = false;
+        btnSalvar.hidden = false;
+        btnVoltar.hidden = true
+    };
+</script>
+
+{% endblock %}
