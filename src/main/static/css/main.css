@@ -80,3 +80,7 @@ margin-top: -9px;
 .ppt_color {
     background-color: #D04423;
 }
+
+img {
+    object-fit: contain;
+}
