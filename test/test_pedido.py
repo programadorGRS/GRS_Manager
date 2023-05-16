@@ -19,11 +19,14 @@ def test_carregar_pedidos(app: Flask):
         )
 
 def test_carregar_pedidos_command(app: Flask, runner: CliRunner):
+    COD_GRS = 423
+
     with app.app_context():
-        qtd_empresas = Empresa.query.count()
-        
+        empresas = Empresa.query.filter_by(cod_empresa_principal=423).all()
+        emp: Empresa = random.choice(empresas)
+
         args_list = [
-            '--id-empresa', random.randint(1, qtd_empresas),
+            '--id-empresa', emp.id_empresa,
             '--data-inicio', (datetime.now() - timedelta(days=1)).strftime('%d/%m/%Y'),
             '--data-fim', (datetime.now() + timedelta(days=1)).strftime('%d/%m/%Y')
         ]

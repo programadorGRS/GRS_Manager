@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import click
 
 from src import app
+from src.extensions import database
 
 from ..empresa.empresa import Empresa
 from ..job.job import Job
@@ -44,6 +45,8 @@ def carregar_pedidos(id_empresa, data_inicio, data_fim):
 
         Obs: o período máximo é de 30 dias.
     '''
+    # NOTE: sempre carregar apenas pedidos da base da GRS
+    COD_GRS = 423
 
     total_inseridos = 0
     total_atualizados = 0
@@ -52,7 +55,11 @@ def carregar_pedidos(id_empresa, data_inicio, data_fim):
     if id_empresa:
         EMPRESAS: list[Empresa] = [Empresa.query.get(id_empresa)]
     else:
-        EMPRESAS: list[Empresa] = Empresa.query.all()
+        EMPRESAS: list[Empresa] = (
+            database.session.query(Empresa)
+            .filter(Empresa.cod_empresa_principal == COD_GRS)
+            .all()
+        )
 
     click.echo(f'Carregando Pedidos no período: {data_inicio} - {data_fim}...')
 

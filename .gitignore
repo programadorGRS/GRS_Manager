@@ -12,6 +12,8 @@ db/
 aws/
 keys/
 documents/
+configs/
+src/soc_web_service/xml/
 
 # Flask
 venv
