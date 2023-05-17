@@ -8,7 +8,7 @@ from src import app
 
 
 @app.errorhandler(404)
-def error404():
+def error404(error):
     return render_template(
         'erro.html',
         title='GRS+Connect',
