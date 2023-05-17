@@ -6,7 +6,7 @@ import pandas as pd
 from flask import jsonify, request
 from flask_sqlalchemy import BaseQuery
 from pytz import timezone
-from sqlalchemy import or_, func
+from sqlalchemy import and_, func, or_
 
 from src import app, bcrypt, database
 from src.main.conv_exames.models import ConvExames, PedidoProcessamento
@@ -513,15 +513,26 @@ def get_empresas():
 @app.route('/get_ped_proc')
 @token_required
 def get_ped_proc():
-    query = (
-        database.session.query(PedidoProcessamento, func.max(PedidoProcessamento.data_criacao))
+    sub_query = (
+        database.session.query(PedidoProcessamento.id_empresa, func.max(PedidoProcessamento.data_criacao).label('max_date'))
         .filter(PedidoProcessamento.resultado_importado == True)
         .group_by(PedidoProcessamento.id_empresa)
+        .subquery()
+    )
+
+    query = (
+        database.session.query(PedidoProcessamento)
+        .join(
+            sub_query, and_(
+                sub_query.c.id_empresa == PedidoProcessamento.id_empresa,
+                sub_query.c.max_date == PedidoProcessamento.data_criacao
+            )
+        )
     )
 
     df = pd.read_sql(sql=query.statement, con=database.session.bind)
 
-    df.drop(columns=['relatorio_enviado', 'id_empresa','max_1'], inplace=True)
+    df.drop(columns=['relatorio_enviado', 'id_empresa'], inplace=True)
     df['data_criacao'] = pd.to_datetime(df['data_criacao']).dt.strftime('%d/%m/%Y')
 
     return jsonify(df.to_dict(orient='records')), 200
