@@ -50,16 +50,16 @@ def token_required(funcao):
                     algorithms=['HS256']
                 )
             except:
-                return {"message": "Token invalido"}, 401
+                return {"message": "Token invalido"}, 200
 
             # validar expiracao
             timestamp_now = int(datetime.utcnow().timestamp())
             if timestamp_now < data['expires']:
                 return funcao(*args, **kwargs)
             else:
-                return {"message": "Token expirado"}, 401
+                return {"message": "Token expirado"}, 200
         else:
-            return {"message": "Providencie um token"}, 401
+            return {"message": "Providencie um token"}, 200
     return wrap
 
 

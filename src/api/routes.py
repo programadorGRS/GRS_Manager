@@ -69,9 +69,9 @@ def get_token():
             )
             return {'token': token}, 200
         else:
-            return {"message": "Username ou password invalido"}, 401 # unauthorized
+            return {"message": "Username ou password invalido"}, 200
     else:
-        return {"message": "Providencie username e password"}, 400 # bad request
+        return {"message": "Providencie username e password"}, 200
 
 
 # GET PEDIDO-----------------------------------------------------
@@ -425,7 +425,7 @@ def get_conv_exames():
     id_empresa = request.args.get(key='id_empresa', type=int)
 
     if not id_empresa:
-        return {"message": "Indique id_empresa"}, 400
+        return {"message": "Indique id_empresa"}, 200
 
     models = [
         (ConvExames),
