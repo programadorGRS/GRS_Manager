@@ -417,6 +417,83 @@ def get_licencas():
 
     return jsonify(dados_json), 200
 
+@app.route('/get_licencas_v2')
+@token_required
+def get_licencas2():
+    cod_empresa_principal = request.args.get(key='cod_empresa_principal', type=int)
+    subgrupo = request.args.get(key='subgrupo', type=str)
+
+    if not cod_empresa_principal:
+        return {"message": "cod_empresa_principal e obrigatorio"}
+
+    query: BaseQuery = (
+        database.session.query(
+            Licenca,
+            EmpresaPrincipal.nome,
+            Empresa.cod_empresa,
+            Empresa.razao_social,
+            Unidade.cod_unidade,
+            Unidade.nome_unidade,
+            Funcionario.nome_setor,
+            Funcionario.nome_cargo,
+            Funcionario.id_funcionario,
+            Funcionario.cod_funcionario,
+            Funcionario.nome_funcionario,
+            Funcionario.situacao
+        )
+        .join(EmpresaPrincipal, Licenca.cod_empresa_principal == EmpresaPrincipal.cod)
+        .join(Empresa, Licenca.id_empresa == Empresa.id_empresa)
+        .join(Unidade, Licenca.id_unidade == Unidade.id_unidade)
+        .join(Funcionario, Licenca.id_funcionario == Funcionario.id_funcionario)
+        .filter(Licenca.cod_empresa_principal == cod_empresa_principal)
+    )
+
+    if subgrupo == '0':
+        query = query.filter(Empresa.subgrupo == None)
+    elif subgrupo is not None:
+        query = query.filter(Empresa.subgrupo == subgrupo)
+
+    dados: pd.DataFrame = pd.read_sql(sql=query.statement, con=database.session.bind)
+    dados = dados[[
+            'cod_empresa_principal',
+            'nome',
+            'cod_empresa',
+            'razao_social',
+            'cod_unidade',
+            'nome_unidade',
+            'nome_setor',
+            'nome_cargo',
+            'cod_funcionario',
+            'nome_funcionario',
+            'situacao',
+            'tipo_licenca',
+            'motivo_licenca',
+            'cod_cid',
+            'cid_contestado',
+            'cid',
+            'tipo_cid',
+            'cod_medico',
+            'nome_medico',
+            'solicitante',
+            'data_inclusao_licenca',
+            'data_ficha',
+            'data_inicio_licenca',
+            'data_fim_licenca',
+            'dias_afastado',
+            'afast_horas',
+            'periodo_afastado',
+            'hora_inicio_licenca',
+            'hora_fim_licenca',
+            'abonado'
+    ]]
+
+    for col in ['data_inclusao_licenca','data_ficha', 'data_inicio_licenca', 'data_fim_licenca']:
+        dados[col] = dados[col].astype(str).replace('None', None)
+
+    dados_json: list[dict[str, any]] = dados.to_dict(orient='records')
+
+    return jsonify(dados_json)
+
 
 # GET CONV EXAMES-----------------------------------------------------
 @app.route('/get_conv_exames')

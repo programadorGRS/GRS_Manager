@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pandas as pd
+from sqlalchemy import text
 
 from src import TIMEZONE_SAO_PAULO, database
 from src.exporta_dados import ExportaDadosWS
@@ -23,7 +24,9 @@ class Empresa(database.Model):
     emails = database.Column(database.String(500))
     cnpj = database.Column(database.String(100))
     uf = database.Column(database.String(5))
-    
+
+    subgrupo = database.Column(database.String(50))
+
     pedidos = database.relationship('Pedido', backref='empresa', lazy=True) # one to many
     pedidos_proc = database.relationship('PedidoProcessamento', backref='empresa', lazy=True) # one to many
     grupo = database.relationship('Grupo', secondary=grupo_empresa, backref='empresas', lazy=True) # many to many
