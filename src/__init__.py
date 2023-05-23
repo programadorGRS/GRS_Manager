@@ -4,7 +4,7 @@ import os
 from flask import Flask
 from pytz import timezone
 
-from .extensions import bcrypt, database, login_manager, mail
+from .extensions import bcrypt, database, login_manager, mail, migrate
 
 app = Flask(
     import_name=__name__,
@@ -26,6 +26,7 @@ else:
 
 login_manager.init_app(app)
 database.init_app(app)
+migrate.init_app(app=app, db=database)
 mail.init_app(app)
 bcrypt.init_app(app)
 
