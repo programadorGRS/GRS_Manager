@@ -4,7 +4,7 @@ import os
 from flask import Flask
 from pytz import timezone
 
-from .extensions import bcrypt, database, login_manager, mail
+from .extensions import bcrypt, database, login_manager, mail, migrate
 
 app = Flask(
     import_name=__name__,
@@ -15,17 +15,18 @@ app = Flask(
 # carregar configs universais
 app.config.from_file("../configs/email.json", load=json.load)
 
-dev = False
-if dev:
-    # using sqlite
-    app.config.from_file("../configs/dev.json", load=json.load)
-else:
+env = app.config.get('ENV')
+if env == 'production':
     # using mysql
     app.config.from_file("../configs/prod.json", load=json.load)
+else:
+    # using sqlite
+    app.config.from_file("../configs/dev.json", load=json.load)
 
 
 login_manager.init_app(app)
 database.init_app(app)
+migrate.init_app(app=app, db=database)
 mail.init_app(app)
 bcrypt.init_app(app)
 
