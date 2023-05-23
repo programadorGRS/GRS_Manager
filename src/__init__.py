@@ -15,13 +15,13 @@ app = Flask(
 # carregar configs universais
 app.config.from_file("../configs/email.json", load=json.load)
 
-dev = False
-if dev:
-    # using sqlite
-    app.config.from_file("../configs/dev.json", load=json.load)
-else:
+env = app.config.get('ENV')
+if env == 'production':
     # using mysql
     app.config.from_file("../configs/prod.json", load=json.load)
+else:
+    # using sqlite
+    app.config.from_file("../configs/dev.json", load=json.load)
 
 
 login_manager.init_app(app)
