@@ -4,69 +4,51 @@ from src.soc_web_service.exporta_dados import ExportaDados
 from datetime import date
 
 
-def test_get_client():
-    ws = SOCWebService()
-    client = ws.get_client(wsdl_url=ws.CONFIGS.get('WSDL_MODELO_2_TESTE'))
+def test_init():
+    ws = SOCWebService(wsdl_filename='prod/ExportaDadosWs.xml')
 
-def test_service():
-    ws = SOCWebService()
-
-    client = ws.get_client(
-        wsdl_url=ws.CONFIGS.get('WSDL_MODELO_2_TESTE'),
-        raw_response=True
-    )
-
-    resp = client.service.importacaoFuncionario()
-
-    assert resp.status_code == 500
-    assert 'ERRO DESCONHECIDO' in resp.text
-
-def test_import_funcionario():
+def test_funcionario_service():
     COD_EMPRESA = 268104 # empresa: BASE TREINAMENTO NUCLEO
     COD_FUNCIONARIO = 177 # funcionario: Teste1
 
-    ws = SOCWebService()
+    m2 = Modelo2(wsdl_filename='teste/FuncionarioModelo2Ws.xml')
 
-    client = ws.get_client(wsdl_url=ws.CONFIGS.get('WSDL_MODELO_2_TESTE'))
-    factory=client.type_factory('ns0')
+    m2.set_webservice_keys(filename='grs.json')
 
-    modelo2 = Modelo2(factory=factory)
+    funcionario = m2.Funcionario()
 
-    funcionario = modelo2.Funcionario()
+    m2.config_criacoes(funcionario=funcionario)
+    m2.config_atualizacoes(funcionario=funcionario, atualizarFuncionario=8)
 
-    modelo2.config_criacoes(funcionario=funcionario)
-    modelo2.config_atualizacoes(funcionario=funcionario, atualizarFuncionario=8)
+    funcionario.identificacaoWsVo = m2.generate_identificacaoUsuarioWsVo()
 
-    funcionario.identificacaoWsVo = ws.generate_identificacaoUsuarioWsVo(factory=factory)
-    funcionario.funcionarioWsVo = modelo2.funcionarioWsVo(
+    funcionario.funcionarioWsVo = m2.funcionarioWsVo(
         codigo=COD_FUNCIONARIO,
         codigoEmpresa=COD_EMPRESA,
         nomeFuncionario='Teste 1 - modificado modelo 2'
     )
 
-    resp = client.service.importacaoFuncionario(funcionario)
+    resp = m2.call_service(request_body=funcionario)
 
     assert resp['informacaoGeral']['codigoMensagem'] == 'SOC-100'
 
-def test_exporta_dados():
-    ws = SOCWebService()
-
-    client = ws.get_client(
-        wsdl_url=ws.CONFIGS.get('WSDL_EXPORTA_DADOS'),
-        create_username_token=False
+def test_exporta_dados_service():
+    ex = ExportaDados(
+        wsdl_filename='prod/ExportaDadosWs.xml',
+        exporta_dados_keys_filename='grs.json'
     )
-
-    ex = ExportaDados(factory=client.type_factory('ns0'))
 
     param = ex.pedido_exame(
         empresa=423,
-        codigo=ws.EXPORTA_DADOS_KEYS.get('PEDIDO_EXAMES_COD'),
-        chave=ws.EXPORTA_DADOS_KEYS.get('PEDIDO_EXAMES_KEY'),
+        codigo=ex.EXPORTA_DADOS_KEYS.get('PEDIDO_EXAMES_COD'),
+        chave=ex.EXPORTA_DADOS_KEYS.get('PEDIDO_EXAMES_KEY'),
         dataInicio=date.today(),
         dataFim=date.today()
     )
 
-    resp = client.service.exportaDadosWs(ex.build_request_body(param=param))
+    body = ex.build_request_body(param=param)
+
+    resp = ex.call_service(request_body=body)
 
     assert resp['erro'] == False
     assert resp['mensagemErro'] is None

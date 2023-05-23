@@ -1,13 +1,30 @@
 from typing import Literal
 
-from zeep.client import Factory
+from .soc_web_service import SOCWebService
+from requests import Response
 
 
-class Modelo2:
-    factory: Factory
+class Modelo2(SOCWebService):
+    def __init__(self, wsdl_filename: str, **kwargs) -> None:
+        """Classe para integração com o módulo Modelo 2 do SOC"""
+        super().__init__(wsdl_filename=wsdl_filename, **kwargs)
 
-    def __init__(self, factory: Factory) -> None:
-        self.factory = factory
+    def call_service(self, request_body: dict) -> object | Response:
+        """
+            Gera usernameToken e envia request para o servico
+
+            Args:
+                request_body (zeep.object -> dict): corpo XML do request para ser enviado.
+                Deve ser construido usando os metodos zeep da classe
+
+            Retorna requests.Response ou zeep.ResponseObject (dict) de acordo com
+            o atributo client_raw_response (bool) da classe.
+        """
+        self.generate_username_token()
+
+        resp = self.client.service.importacaoFuncionario(request_body)
+
+        return resp
 
     def Funcionario(
             self,

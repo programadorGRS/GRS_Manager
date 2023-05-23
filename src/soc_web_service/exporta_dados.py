@@ -1,20 +1,51 @@
 import json
 from datetime import date
 
-from zeep.client import Factory
 import pandas as pd
+from requests import Response
+
+from .soc_web_service import SOCWebService
 
 
-class ExportaDados:
-    '''
-        Classe para gerar os parametros usados no Exporta Dados do SOC
-    '''
-    factory: Factory
+class ExportaDados(SOCWebService):
     date_format: str
+    EXPORTA_DADOS_KEYS: dict
 
-    def __init__(self, factory: Factory) -> None:
+    def __init__(
+        self,
+        wsdl_filename: str,
+        exporta_dados_keys_filename: str,
+        **kwargs
+    ) -> None:
+        '''Classe para integração com o Exporta Dados do SOC'''
+        super().__init__(wsdl_filename=wsdl_filename, **kwargs)
         self.date_format = '%d/%m/%Y'
-        self.factory = factory
+        self.set_exporta_dados_keys(filename=exporta_dados_keys_filename)
+
+    def call_service(self, request_body: dict) -> object | Response:
+        """
+            Envia request para o servico
+
+            Args:
+                request_body (zeep.object -> dict): corpo XML do request para ser enviado.
+                Deve ser construido usando os metodos zeep da classe
+
+            Retorna requests.Response ou zeep.ResponseObject (dict) de acordo com
+            o atributo client_raw_response (bool) da classe.
+        """
+        resp = self.client.service.exportaDadosWs(request_body)
+
+        return resp
+
+    def set_exporta_dados_keys(self, filename: str):
+        '''
+            Seta EXPORTA_DADOS_KEYS.
+
+            Args:
+                filename (str): nome do arquivo. O arquivo deve estar na pasta keys/soc/exporta_dados/
+        '''
+        self.EXPORTA_DADOS_KEYS: dict = self.read_json(path=f'keys/soc/exporta_dados/{filename}')
+        return None
 
     def build_request_body(self, param: str):
         # NOTE: zeep entende que a tag erro é obrigatória no request\

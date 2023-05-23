@@ -9,19 +9,23 @@ from zeep.wsse.username import UsernameToken
 from zeep.wsse.utils import WSU
 
 
-class SOCWebService():
-    CONFIGS: dict[str, any]
-    WS_KEYS: dict[str, any]
-    EXPORTA_DADOS_KEYS: dict[str, any]
+class SOCWebService:
+    WSDL: dict[str, any]
+    WS_KEYS: dict[str, any] | None
     HOMOLOGACAO: Literal[0, 1]
     ENCODING: str
 
+    client: Client | None
+    factory: Factory | None
+
     def __init__(
             self,
-            ws_keys_file: str = 'grs.json',
-            exporta_dados_keys_file: str = 'grs.json',
+            wsdl_filename: str,
+            client_raw_response: bool = False,
+            client_plugins: list[Plugin] | None = None,
             homologacao: Literal[0, 1] = 0,
-            encoding: str = 'UTF-8'
+            encoding: str = 'UTF-8',
+            **kwargs
         ):
         """
             Classe para integração com os Web Services do SOC
@@ -38,70 +42,42 @@ class SOCWebService():
         """
         self.ENCODING = encoding
         self.HOMOLOGACAO = homologacao
-        
-        self.CONFIGS: dict = self.read_json(path='configs/soc/web_service.json')
-        self.WS_KEYS: dict = self.read_json(path=f'keys/soc/web_service/{ws_keys_file}')
-        self.EXPORTA_DADOS_KEYS: dict = self.read_json(path=f'keys/soc/exporta_dados/{exporta_dados_keys_file}')
 
-    def get_client(
-            self,
-            wsdl_url: str,
-            create_username_token: bool = True,
-            raw_response: bool = False,
-            plugins: list[Plugin] | None = None
-        ) -> Client:
-        """Cria client para o WSDL especificado
+        self.WSDL = f'configs/soc/wsdl/{wsdl_filename}'
+
+        self.client_raw_response = client_raw_response
+        self.client_plugins = client_plugins
+
+        self.__init_client()
+        self.__init_factory()
+
+    def set_webservice_keys(self, filename: str):
+        '''
+        Seta WS_KEYS
 
         Args:
-            raw_response (bool, optional): Tipo de retorno ao chamar o servico. Defaults to False.
-            - True: resquests.Response
-            - False: zeep.object (dict)
-
-            plugins (list[Plugin] | None, optional): Lista de instancias de zeep plugins. Defaults to None.
-        """
-        conf = Settings(raw_response=raw_response)
-
-        client = Client(wsdl=wsdl_url, settings=conf)
-
-        if create_username_token:
-            client.wsse = self.__generate_username_token()
-
-        if plugins:
-            client.plugins = plugins
-
-        return client
-
-    def generate_identificacaoUsuarioWsVo(self, factory: Factory):
+            filename (str): nome do arquivo. O arquivo deve estar na pasta keys/soc/web_service/
         '''
-            Cria a tag padrão do SOC de identificação do Usuário do WebService
+        self.WS_KEYS = self.read_json(path=f'keys/soc/web_service/{filename}')
+        return None
 
-            Nome da tag no XML deve ser: identificacaoWsVo
-            Tipo da tag: identificacaoUsuarioWsVo (é uma extensão da tag original identificacaoWsVo)
+    def __init_client(self):
+        conf = Settings(raw_response=self.client_raw_response)
 
-            Vide Manual/WSDL para encontrar local correto da tag em cada API
+        self.client = Client(wsdl=self.WSDL, settings=conf)
 
-            Propriedades:
-            - chaveAcesso: chave de acesso da Empresa para o webservice
-            - codigoEmpresaPrincipal: cod da Empresa Principal da base no SOC
-            - codigoResponsavel: responsável pela empresa no SOC
-            - codigoUsuario: usuário que está usando o Web Service (encontrado em Usuários Web Service na tela 337,\
-                o primeiro caractere "U" deve ser desconsiderado)
-            - homologacao: indica se a empresa acessada no momento é de homologação.
+        if self.client_plugins:
+            self.client.plugins = self.client_plugins
 
-            Essas propriedades são definidas na tela 337 - Empresa/Cliente do SOC no link Configuração de Integração.
+        return None
+
+    def __init_factory(self):
+        self.factory = self.client.type_factory("ns0")
+        return None
+
+    def generate_username_token(self, add_timestamp_token: bool = True) -> UsernameToken:
         '''
-        identificacao = factory.identificacaoUsuarioWsVo(
-            chaveAcesso=self.WS_KEYS.get('PASSWORD'),
-            codigoEmpresaPrincipal=self.WS_KEYS.get('COD_EMP_PRINCIPAL'),
-            codigoResponsavel=self.WS_KEYS.get('COD_RESP'),
-            codigoUsuario=self.WS_KEYS.get('USER'),
-            homologacao=str(self.HOMOLOGACAO)
-        )
-        return identificacao
-
-    def __generate_username_token(self, add_timestamp_token: bool = True) -> UsernameToken:
-        '''
-            Gera Header UsernameToken de acordo com WSSE.
+            Gera Header UsernameToken para o client atual de acordo com WSSE.
 
             Cria Nonce e PasswordDigest automaticamente por padrão.
         '''
@@ -116,7 +92,9 @@ class SOCWebService():
         if add_timestamp_token:
             username_token.timestamp_token = self.__generate_timestamp_token()
 
-        return username_token
+        self.client.wsse = username_token
+
+        return None
 
     def __generate_timestamp_token(self):
         '''
@@ -135,4 +113,36 @@ class SOCWebService():
     def read_json(self, path: str) -> dict:
         with open(path, mode='r', encoding=self.ENCODING) as f:
             return dict(json.loads(f.read()))
+
+    def generate_identificacaoUsuarioWsVo(self):
+        '''
+            Cria a tag padrão do SOC de identificação do Usuário do WebService
+
+            Nome da tag no XML deve ser: identificacaoWsVo
+            Tipo da tag: identificacaoUsuarioWsVo (é uma extensão da tag original identificacaoWsVo)
+
+            Vide Manual/WSDL para encontrar local correto da tag em cada API
+
+            Propriedades:
+            - chaveAcesso: chave de acesso da Empresa para o webservice
+            - codigoEmpresaPrincipal: cod da Empresa Principal da base no SOC
+            - codigoResponsavel: responsável pela empresa no SOC
+            - codigoUsuario: usuário que está usando o Web Service (encontrado em Usuários Web Service na tela 337,\
+                o primeiro caractere "U" deve ser desconsiderado)
+            - homologacao: indica se a empresa acessada no momento é de homologação.
+
+            Essas propriedades são definidas na tela 337 - Empresa/Cliente do SOC no link Configuração de Integração.
+        '''
+
+        if not hasattr(self, "factory"):
+            raise AttributeError("Inicialize factory neste objeto antes usar os metodos")
+
+        identificacao = self.factory.identificacaoUsuarioWsVo(
+            chaveAcesso=self.WS_KEYS.get('PASSWORD'),
+            codigoEmpresaPrincipal=self.WS_KEYS.get('COD_EMP_PRINCIPAL'),
+            codigoResponsavel=self.WS_KEYS.get('COD_RESP'),
+            codigoUsuario=self.WS_KEYS.get('USER'),
+            homologacao=str(self.HOMOLOGACAO)
+        )
+        return identificacao
 
