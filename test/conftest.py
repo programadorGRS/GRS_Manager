@@ -1,12 +1,25 @@
+import json
+
 import pytest
-from flask import Flask
 from click.testing import CliRunner
 from dotenv import dotenv_values
+from flask import Flask
 
 from src import app as original_app
 
+
 @pytest.fixture()
 def app():
+    conf = dotenv_values(dotenv_path='.flaskenv')
+
+    env = conf.get('FLASK_ENV')
+    if env == 'production':
+        # using mysql
+        original_app.config.from_file("../configs/prod.json", load=json.load)
+    else:
+        # using sqlite
+        original_app.config.from_file("../configs/dev.json", load=json.load)
+
     yield original_app
 
 @pytest.fixture()
