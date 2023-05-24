@@ -23,6 +23,7 @@ class Empresa(database.Model):
     emails = database.Column(database.String(500))
     cnpj = database.Column(database.String(100))
     uf = database.Column(database.String(5))
+    subgrupo = database.Column(database.String(50))
     
     pedidos = database.relationship('Pedido', backref='empresa', lazy=True) # one to many
     pedidos_proc = database.relationship('PedidoProcessamento', backref='empresa', lazy=True) # one to many

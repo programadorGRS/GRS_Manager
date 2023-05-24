@@ -521,13 +521,14 @@ def get_ped_proc():
     )
 
     query = (
-        database.session.query(PedidoProcessamento)
+        database.session.query(PedidoProcessamento, Empresa.razao_social, Empresa.subgrupo)
         .join(
             sub_query, and_(
                 sub_query.c.id_empresa == PedidoProcessamento.id_empresa,
                 sub_query.c.max_date == PedidoProcessamento.data_criacao
             )
         )
+        .join(Empresa, PedidoProcessamento.id_empresa == Empresa.id_empresa)
     )
 
     df = pd.read_sql(sql=query.statement, con=database.session.bind)
