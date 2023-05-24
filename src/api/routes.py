@@ -696,7 +696,7 @@ def get_ped_proc():
     )
 
     query = (
-        database.session.query(PedidoProcessamento, Empresa.razao_social, Empresa.subgrupo)
+        database.session.query(PedidoProcessamento, Empresa.razao_social, Empresa.subgrupo, Empresa.ativo)
         .join(
             sub_query, and_(
                 sub_query.c.id_empresa == PedidoProcessamento.id_empresa,
