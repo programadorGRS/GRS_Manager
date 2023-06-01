@@ -11,7 +11,7 @@ def test_funcionario_service():
     COD_EMPRESA = 268104 # empresa: BASE TREINAMENTO NUCLEO
     COD_FUNCIONARIO = 177 # funcionario: Teste1
 
-    m2 = Modelo2(wsdl_filename='teste/FuncionarioModelo2Ws.xml')
+    m2 = Modelo2(wsdl_filename='prod/FuncionarioModelo2Ws.xml')
 
     m2.set_webservice_keys(filename='grs.json')
 
@@ -30,7 +30,7 @@ def test_funcionario_service():
 
     resp = m2.call_service(request_body=funcionario)
 
-    assert resp['informacaoGeral']['codigoMensagem'] == 'SOC-100'
+    assert resp['encontrouFuncionario'] == True
 
 def test_exporta_dados_service():
     ex = ExportaDados(
