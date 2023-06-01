@@ -417,6 +417,83 @@ def get_licencas():
 
     return jsonify(dados_json), 200
 
+@app.route('/get_licencas_v2')
+@token_required
+def get_licencas2():
+    cod_empresa_principal = request.args.get(key='cod_empresa_principal', type=int)
+    subgrupo = request.args.get(key='subgrupo', type=str)
+
+    if not cod_empresa_principal:
+        return {"message": "cod_empresa_principal e obrigatorio"}
+
+    query: BaseQuery = (
+        database.session.query(
+            Licenca,
+            EmpresaPrincipal.nome,
+            Empresa.cod_empresa,
+            Empresa.razao_social,
+            Unidade.cod_unidade,
+            Unidade.nome_unidade,
+            Funcionario.nome_setor,
+            Funcionario.nome_cargo,
+            Funcionario.id_funcionario,
+            Funcionario.cod_funcionario,
+            Funcionario.nome_funcionario,
+            Funcionario.situacao
+        )
+        .join(EmpresaPrincipal, Licenca.cod_empresa_principal == EmpresaPrincipal.cod)
+        .join(Empresa, Licenca.id_empresa == Empresa.id_empresa)
+        .join(Unidade, Licenca.id_unidade == Unidade.id_unidade)
+        .join(Funcionario, Licenca.id_funcionario == Funcionario.id_funcionario)
+        .filter(Licenca.cod_empresa_principal == cod_empresa_principal)
+    )
+
+    if subgrupo == '0':
+        query = query.filter(Empresa.subgrupo == None)
+    elif subgrupo is not None:
+        query = query.filter(Empresa.subgrupo == subgrupo)
+
+    dados: pd.DataFrame = pd.read_sql(sql=query.statement, con=database.session.bind)
+    dados = dados[[
+            'cod_empresa_principal',
+            'nome',
+            'cod_empresa',
+            'razao_social',
+            'cod_unidade',
+            'nome_unidade',
+            'nome_setor',
+            'nome_cargo',
+            'cod_funcionario',
+            'nome_funcionario',
+            'situacao',
+            'tipo_licenca',
+            'motivo_licenca',
+            'cod_cid',
+            'cid_contestado',
+            'cid',
+            'tipo_cid',
+            'cod_medico',
+            'nome_medico',
+            'solicitante',
+            'data_inclusao_licenca',
+            'data_ficha',
+            'data_inicio_licenca',
+            'data_fim_licenca',
+            'dias_afastado',
+            'afast_horas',
+            'periodo_afastado',
+            'hora_inicio_licenca',
+            'hora_fim_licenca',
+            'abonado'
+    ]]
+
+    for col in ['data_inclusao_licenca','data_ficha', 'data_inicio_licenca', 'data_fim_licenca']:
+        dados[col] = dados[col].astype(str).replace('None', None)
+
+    dados_json: list[dict[str, any]] = dados.to_dict(orient='records')
+
+    return jsonify(dados_json)
+
 
 # GET CONV EXAMES-----------------------------------------------------
 @app.route('/get_conv_exames')
@@ -499,6 +576,104 @@ def get_conv_exames():
     return jsonify(dados), 200
 
 
+# GET CONV EXAMES-----------------------------------------------------
+@app.route('/get_conv_exames_v2')
+@token_required
+def get_conv_exames2():
+    cod_empresa_principal = request.args.get(key='cod_empresa_principal', type=int)
+    subgrupo = request.args.get(key='subgrupo', type=str)
+
+    if not cod_empresa_principal:
+        return {"message": "cod_empresa_principal e obrigatorio"}
+
+    empresas: BaseQuery = (
+        database.session.query(Empresa)
+        .filter(Empresa.cod_empresa_principal == cod_empresa_principal)
+    )
+
+    if subgrupo == '0':
+        empresas = empresas.filter(Empresa.subgrupo == None)
+    elif subgrupo is not None:
+        empresas = empresas.filter(Empresa.subgrupo == subgrupo)
+
+    empresas_list: list[Empresa] = empresas.all()
+
+    if not empresas_list:
+        return {}
+
+    ped_proc_list: list[int] = []
+    for emp in empresas_list:
+        ped_proc = (
+            database.session.query(PedidoProcessamento)
+            .filter(PedidoProcessamento.id_empresa == emp.id_empresa)
+            .filter(PedidoProcessamento.resultado_importado == True)
+            .order_by(PedidoProcessamento.data_criacao.desc())
+            .first()
+        )
+
+        if ped_proc:
+            ped_proc_list.append(ped_proc.id_proc)
+
+    if not ped_proc_list:
+        return {}
+
+    conv_exames = (
+        database.session.query(
+            ConvExames,
+            PedidoProcessamento,
+            Empresa,
+            Unidade,
+            Funcionario,
+            Exame
+        )
+        .join(PedidoProcessamento, ConvExames.id_proc == PedidoProcessamento.id_proc)
+        .join(Empresa, ConvExames.id_empresa == Empresa.id_empresa)
+        .join(Unidade, ConvExames.id_unidade == Unidade.id_unidade)
+        .join(Funcionario, ConvExames.id_funcionario == Funcionario.id_funcionario)
+        .join(Exame, ConvExames.id_exame == Exame.id_exame)
+        .filter(ConvExames.id_proc.in_(ped_proc_list))
+    )
+
+    if not conv_exames:
+        return {}
+
+    dados = pd.read_sql(conv_exames.statement, con=database.session.bind)
+
+    if dados.empty:
+        return {}
+
+    dados = dados[[
+        'cod_empresa_principal',
+        'id_proc',
+        'cod_solicitacao',
+        'data_criacao',
+        'id_empresa',
+        'cod_empresa',
+        'razao_social',
+        'cod_unidade',
+        'nome_unidade',
+        'nome_setor',
+        'nome_cargo',
+        'id_funcionario',
+        'cod_funcionario',
+        'nome_funcionario',
+        'situacao',
+        'data_adm',
+        'nome_exame',
+        'ult_pedido',
+        'data_res',
+        'refazer'
+    ]]
+
+    for col in ['data_criacao', 'data_adm','ult_pedido','data_res','refazer']:
+        dados[col] = pd.to_datetime(dados[col]).dt.strftime('%Y-%m-%d')
+    
+    dados.replace({np.nan: None}, inplace=True)
+
+    dados = dados.to_dict(orient='records')
+
+    return jsonify(dados)
+
 # GET EMPRESAS-----------------------------------------------------
 @app.route('/get_empresas')
 @token_required
@@ -521,7 +696,7 @@ def get_ped_proc():
     )
 
     query = (
-        database.session.query(PedidoProcessamento, Empresa.razao_social, Empresa.subgrupo)
+        database.session.query(PedidoProcessamento, Empresa.razao_social, Empresa.subgrupo, Empresa.ativo)
         .join(
             sub_query, and_(
                 sub_query.c.id_empresa == PedidoProcessamento.id_empresa,

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pandas as pd
+from sqlalchemy import text
 
 from src import TIMEZONE_SAO_PAULO, database
 from src.exporta_dados import ExportaDadosWS
