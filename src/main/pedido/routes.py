@@ -103,6 +103,7 @@ def atualizar_status():
         id_empresa=request.args.get('id_empresa', type=int, default=None),
         id_unidade=request.args.get('id_unidade', type=int, default=None),
         id_prestador=request.args.get('id_prestador', type=int, default=None),
+        cod_tipo_exame=request.args.get('cod_tipo_exame', type=int, default=None),
         seq_ficha=request.args.get('seq_ficha', type=int, default=None),
         nome_funcionario=request.args.get('nome_funcionario', type=str, default=None),
         obs=request.args.get('obs', type=str, default=None)
@@ -219,6 +220,7 @@ def enviar_emails():
         id_empresa=request.args.get('id_empresa', type=int, default=None),
         id_unidade=request.args.get('id_unidade', type=int, default=None),
         id_prestador=request.args.get('id_prestador', type=int, default=None),
+        cod_tipo_exame=request.args.get('cod_tipo_exame', type=int, default=None),
         seq_ficha=request.args.get('seq_ficha', type=int, default=None),
         nome_funcionario=request.args.get('nome_funcionario', type=str, default=None),
         obs=request.args.get('obs', type=str, default=None)

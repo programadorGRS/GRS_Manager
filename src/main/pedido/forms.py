@@ -11,6 +11,7 @@ from ..grupo.grupo import Grupo
 from ..status.status import Status
 from ..status.status_lib import StatusLiberacao
 from ..status.status_rac import StatusRAC
+from ..tipo_exame.tipo_exame import TipoExame
 
 
 class FormBuscarASO(FlaskForm):
@@ -23,6 +24,7 @@ class FormBuscarASO(FlaskForm):
     id_empresa = SelectField('Empresa', choices=[], validators=[Optional()], render_kw=kws_id_empresa, validate_choice=False)
     id_unidade = SelectField('Unidade', choices=[], validators=[Optional()], validate_choice=False)
     id_prestador = SelectField('Prestador', choices=[], validators=[Optional()], validate_choice=False)
+    cod_tipo_exame = SelectField('Tipo Exame', choices=[], validators=[Optional()])
     data_inicio = DateField('Inicio', validators=[Optional()])
     data_fim = DateField('Fim', validators=[Optional()])
     nome_funcionario = StringField('Nome Funcionário', validators=[Optional(), Length(0, 255)])
@@ -37,7 +39,7 @@ class FormBuscarASO(FlaskForm):
         if data_inicio.data and self.data_fim.data:
             if data_inicio.data > self.data_fim.data:
                 raise ValidationError('Inicio deve ser menor do que Fim')
-    
+
     def load_choices(self):
         self.cod_empresa_principal.choices = (
             [('', 'Selecione')] +
@@ -82,6 +84,16 @@ class FormBuscarASO(FlaskForm):
             [
                 (gp.id_grupo, gp.nome_grupo)
                 for gp in Grupo.query.all()
+            ]
+        )
+
+        self.cod_tipo_exame.choices = (
+            [('', 'Selecione')] +
+            [
+                (i.cod_tipo_exame, i.nome_tipo_exame)
+                for i in TipoExame.query
+                .order_by(TipoExame.nome_tipo_exame)
+                .all()
             ]
         )
         return None

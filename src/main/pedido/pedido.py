@@ -99,6 +99,7 @@ class Pedido(database.Model, CarregarPedidos):
         id_empresa: int | None = None,
         id_unidade: int | None = None,
         id_prestador: int | None = None,
+        cod_tipo_exame: int | None = None,
         seq_ficha: int | None = None,
         nome_funcionario: str | None = None,
         obs: str | None = None
@@ -126,6 +127,8 @@ class Pedido(database.Model, CarregarPedidos):
                 filtros.append(self.id_prestador == None)
             else:
                 filtros.append(self.id_prestador == id_prestador)
+        if cod_tipo_exame:
+            filtros.append(self.cod_tipo_exame == cod_tipo_exame)
         if nome_funcionario:
             filtros.append(self.nome_funcionario.like(f'%{nome_funcionario}%'))
         if seq_ficha:
