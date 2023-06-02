@@ -84,3 +84,8 @@ margin-top: -9px;
 img {
     object-fit: contain;
 }
+
+
+.material-icons:hover, a:hover {
+    font-weight: bold;
+}

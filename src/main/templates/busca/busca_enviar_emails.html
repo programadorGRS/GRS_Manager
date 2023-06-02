@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
 
+{% from 'macros.html' import render_pagination %}
+
 {% block body %}
 <div class="mx-5 my-2">
     <form method="POST">
@@ -64,7 +66,13 @@
         </div>
 
         <div>
-            <p>Total: {{ total }}</p>
+            <div class="d-flex justify-content-between my-3">
+                <b>Total: {{ total }}</b>
+                {% if busca.pages > 1 %}
+                    {{ render_pagination(busca, 'enviar_emails', url_args) }}
+                {% endif %}
+                <span>Exibindo: <b>{{ results_per_page }}</b> resultados/pag</span>
+            </div>
             <table class="table table-sm table-striped small_font">
                 <thead>
                     <tr>
@@ -78,7 +86,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for pedido in busca %}
+                    {% for pedido in busca.items %}
                         <tr>
                             <td>
                                 <input class="form-check-input" type="checkbox" value="{{ pedido.id_ficha }}" id="checkItem" name="checkItem">
@@ -121,6 +129,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <div class="text-center mb-4">{% if busca.pages > 1 %}{{ render_pagination(busca, 'enviar_emails', url_args) }}{% endif %}</div>
         </div>
     </form>
 </div>
