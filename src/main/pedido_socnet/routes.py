@@ -24,7 +24,7 @@ from src.main.prestador.prestador import Prestador
 from src.main.status.status import Status
 from src.main.status.status_rac import StatusRAC
 from src.main.tipo_exame.tipo_exame import TipoExame
-from src.utils import admin_required
+from src.utils import admin_required, get_data_from_form
 
 from .forms import (FormBuscarASOSOCNET, FormCarregarPedidosSOCNET,
                     FormEditarPedidoSOCNET, FormUpload)
@@ -36,53 +36,28 @@ def busca_socnet():
     form = FormBuscarASOSOCNET()
     # opcoes dinamicas de busca, como empresa, unidade \
     # prestador etc, sao incluidas via fetch no javascript
-    
-    # opcoes emp principal
-    form.cod_empresa_principal.choices = (
-        [(i.cod, i.nome) for i in EmpresaPrincipal.query.all()]
-    )
-    # opcoes status
-    form.id_status.choices = (
-        [('', 'Selecione')] +
-        [(i.id_status, i.nome_status) for i in Status.query.all()]
-    )
-    form.id_status_rac.choices = (
-        [('', 'Selecione')] +
-        [(i.id_status, i.nome_status) for i in StatusRAC.query.all()]
-    )
+
+    form.load_choices()
 
     if form.validate_on_submit():
-        parametros:  dict[str, any] = {
-            'pesquisa_geral': int(form.pesquisa_geral.data),
-            'cod_empresa_principal': form.cod_empresa_principal.data,
-            'data_inicio': form.data_inicio.data,
-            'data_fim': form.data_fim.data,
-            'id_status': form.id_status.data,
-            'id_status_rac': form.id_status_rac.data,
-            'seq_ficha': form.seq_ficha.data,
-            'id_empresa': form.id_empresa.data,
-            'id_prestador': form.id_prestador.data,
-            'nome_funcionario': form.nome_funcionario.data,
-            'obs': form.obs.data
-        }
-
-        parametros2: dict[str, any] = {}
-        for chave, valor in parametros.items():
-            if valor not in (None, ''):
-                parametros2[chave] = valor
+        parametros = get_data_from_form(data=form.data, ignore_keys=['pesquisa_geral'])
 
         if 'btn_buscar' in request.form:
-            return redirect(url_for('atualizar_status_socnet', **parametros2))
+            return redirect(url_for('atualizar_status_socnet', **parametros))
 
         elif 'btn_emails' in request.form:
-            return redirect(url_for('enviar_emails_socnet', **parametros2))
+            return redirect(url_for('enviar_emails_socnet', **parametros))
 
         elif 'btn_csv' in request.form:
-            query = PedidoSOCNET.buscar_pedidos(**parametros2)
-            
+            parametros['id_grupos'] = PedidoSOCNET.handle_group_choice(choice=parametros['id_grupos'])
+
+            query = PedidoSOCNET.buscar_pedidos(**parametros)
+            query = PedidoSOCNET.add_csv_cols(query=query)
+
             df = pd.read_sql(sql=query.statement, con=database.session.bind)
-            df = df[PedidoSOCNET.colunas_planilha]
-            
+
+            df = df[PedidoSOCNET.COLS_CSV]
+
             nome_arqv = f'Pedidos_exames_SOCNET_{int(dt.datetime.now().timestamp())}'
             camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
             df.to_csv(
@@ -118,7 +93,7 @@ def atualizar_status_socnet():
             datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
 
     query_pedidos = PedidoSOCNET.buscar_pedidos(
-        pesquisa_geral=request.args.get('pesquisa_geral', type=int, default=None),
+        id_grupos=PedidoSOCNET.handle_group_choice(choice=request.args.get('id_grupos')),
         cod_empresa_principal=request.args.get('cod_empresa_principal', type=int, default=None),
         data_inicio=datas['data_inicio'],
         data_fim=datas['data_fim'],
@@ -126,13 +101,13 @@ def atualizar_status_socnet():
         id_status_rac=request.args.get('id_status_rac', type=int, default=None),
         id_empresa=request.args.get('id_empresa', type=int, default=None),
         id_prestador=request.args.get('id_prestador', type=int, default=None),
+        cod_tipo_exame=request.args.get('cod_tipo_exame', type=int, default=None),
         seq_ficha=request.args.get('seq_ficha', type=int, default=None),
         nome_funcionario=request.args.get('nome_funcionario', type=str, default=None),
         obs=request.args.get('obs', type=str, default=None)
     )
 
-    # total de resultados na query
-    total = query_pedidos.count()
+    total = PedidoSOCNET.get_total_busca(query=query_pedidos)
 
     # ATUALIZAR STATUS-----------------------------------------------
     if form.validate_on_submit():
@@ -220,7 +195,7 @@ def enviar_emails_socnet():
             datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
 
     query_pedidos = PedidoSOCNET.buscar_pedidos(
-        pesquisa_geral=request.args.get('pesquisa_geral', type=int, default=None),
+        id_grupos=PedidoSOCNET.handle_group_choice(choice=request.args.get('id_grupos')),
         cod_empresa_principal=request.args.get('cod_empresa_principal', type=int, default=None),
         data_inicio=datas['data_inicio'],
         data_fim=datas['data_fim'],
@@ -228,13 +203,13 @@ def enviar_emails_socnet():
         id_status_rac=request.args.get('id_status_rac', type=int, default=None),
         id_empresa=request.args.get('id_empresa', type=int, default=None),
         id_prestador=request.args.get('id_prestador', type=int, default=None),
+        cod_tipo_exame=request.args.get('cod_tipo_exame', type=int, default=None),
         seq_ficha=request.args.get('seq_ficha', type=int, default=None),
         nome_funcionario=request.args.get('nome_funcionario', type=str, default=None),
         obs=request.args.get('obs', type=str, default=None)
     )
 
-    # total de resultados na query
-    total = query_pedidos.count()
+    total = PedidoSOCNET.get_total_busca(query=query_pedidos)
 
     if form.validate_on_submit():
         lista_enviar = request.form.getlist('checkItem', type=int)
@@ -273,16 +248,9 @@ def enviar_emails_socnet():
                     if emails_prestador and "@" in emails_prestador:
                         try:
                             # selecionar colunas
-                            tab_aux = tab_aux[PedidoSOCNET.colunas_tab_email]
+                            tab_aux = tab_aux[list(PedidoSOCNET.COLS_EMAIL.keys())]
                             # renomear colunas
-                            tab_aux = tab_aux.rename(
-                                columns = dict(
-                                    zip(
-                                        PedidoSOCNET.colunas_tab_email,
-                                        PedidoSOCNET.colunas_tab_email2
-                                    )
-                                )
-                            )
+                            tab_aux.rename(columns=PedidoSOCNET.COLS_EMAIL, inplace=True)
 
                             # formatar datas
                             tab_aux['Data Ficha'] = (

@@ -5,7 +5,6 @@ from flask import (flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import current_user, login_required
 from pytz import timezone
-from sqlalchemy import delete, insert
 
 from src import UPLOAD_FOLDER, app, database
 from src.main.empresa.empresa import Empresa
@@ -318,9 +317,8 @@ def grupos_csv():
 @login_required
 def grupos_excluir():
     grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
-    
-    database.session.delete(grupo)
-    database.session.commit()
+
+    Grupo.delete_grupo(id_grupo=grupo.id_grupo)
 
     # registrar acao
     LogAcoes.registrar_acao(
@@ -329,18 +327,18 @@ def grupos_excluir():
         id_registro=int(grupo.id_grupo),
         nome_registro=grupo.nome_grupo
     )
-    
+
     flash('Grupo excluído!', 'alert-danger')
     return redirect(url_for('grupos'))
 
 @app.route('/grupos/empresas_socnet',  methods=['GET', 'POST'])
 @login_required
 def grupos_empresas_socnet():
-    grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
-    
+    grupo: Grupo = Grupo.query.get(request.args.get('id_grupo', type=int))
+
     # already in group
     pre_selected = [i.id_empresa for i in grupo.empresas_socnet]
-    
+
     # create form with pre selected values
     form = FormGrupoPrestadores(select=pre_selected)
     form.select.choices = [
@@ -349,38 +347,23 @@ def grupos_empresas_socnet():
     ]
     # sort choices by name, ascending
     form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
-    
+
     if form.validate_on_submit():
-        # reset current group
-        delete_query = database.session.execute(
-            delete(grupo_empresa_socnet).
-            where(grupo_empresa_socnet.c.id_grupo == grupo.id_grupo)
+        Grupo.update_grupo_empresa_socnet(
+            id_grupo=grupo.id_grupo,
+            id_empresas=request.form.getlist(key='select', type=int),
+            alterado_por=current_user.username
         )
 
-        # insert all the selected objects
-        insert_items = [
-            {'id_grupo': grupo.id_grupo, 'id_empresa': i}
-            for i in request.form.getlist(key='select', type=int)
-        ]
-        insert_query = database.session.execute(
-            insert(grupo_empresa_socnet).
-            values(insert_items)
-        )
-
-        grupo.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
-        grupo.alterado_por = current_user.username
-        database.session.commit()
-
-        # registrar acao
         LogAcoes.registrar_acao(
             nome_tabela='Grupo',
             tipo_acao='Editar Empresas SOCNET',
             id_registro=int(grupo.id_grupo),
             nome_registro=grupo.nome_grupo
         )
-    
+
         return redirect(url_for('grupos'))
-    
+
     return render_template(
         'grupo/grupo_empresas_socnet.html',
         title='GRS+Connect',

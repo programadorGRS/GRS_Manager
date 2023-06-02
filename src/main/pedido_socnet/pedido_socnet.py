@@ -1,13 +1,16 @@
 from datetime import date
 from io import StringIO
+from typing import Literal
 
 import pandas as pd
 from flask_login import current_user
+from flask_sqlalchemy import BaseQuery
+from sqlalchemy import and_
 
 from src import database
 
 from ..empresa_socnet.empresa_socnet import EmpresaSOCNET
-from ..grupo.grupo import grupo_empresa_socnet, grupo_prestador
+from ..grupo.grupo import Grupo, grupo_empresa_prestador_socnet
 from ..prestador.prestador import Prestador
 from ..status.status import Status
 from ..status.status_rac import StatusRAC
@@ -46,24 +49,21 @@ class PedidoSOCNET(database.Model):
     alterado_por = database.Column(database.String(50))
 
     # colunas para a planilha de pedidos
-    colunas_planilha = [
+    COLS_CSV = [
+        'cod_empresa_principal',
+        'cod_empresa_referencia',
         'seq_ficha',
-        'cpf',
+        'cod_funcionario',
         'nome_funcionario',
         'data_ficha',
-        'nome_tipo_exame',
-        'nome_prestador',
-        'nome_empresa',
-        'nome_status',
-        'nome_status_rac',
-        'cod_funcionario',
-        'cod_tipo_exame',
-        'cod_prestador',
+        'tipo_exame',
         'cod_empresa',
-        'data_inclusao',
-        'data_alteracao',
-        'incluido_por',
-        'alterado_por',
+        'empresa',
+        'cod_prestador',
+        'prestador',
+        'status_aso',
+        'status_rac',
+        'nome_grupo',
         'id_ficha',
         'id_status',
         'id_status_rac',
@@ -72,31 +72,20 @@ class PedidoSOCNET(database.Model):
         'obs'
     ]
 
-    # colunas para a tabela enviada no email
-    colunas_tab_email = [
-        'seq_ficha',
-        'cpf',
-        'nome_funcionario',
-        'data_ficha',
-        'nome_tipo_exame',
-        'nome_prestador',
-        'nome_empresa',
-    ]
-
-    colunas_tab_email2 = [
-        'Seq. Ficha',
-        'CPF',
-        'Nome Funcionário',
-        'Data Ficha',
-        'Tipo Exame',
-        'Prestador',
-        'Empresa',
-    ]
+    COLS_EMAIL = {
+        'seq_ficha': 'Seq. Ficha',
+        'cpf': 'CPF',
+        'nome_funcionario': 'Nome Funcionário',
+        'data_ficha': 'Data Ficha',
+        'nome_tipo_exame': 'Tipo Exame',
+        'nome_prestador': 'Prestador',
+        'nome_empresa': 'Empresa'
+    }
 
     @classmethod
     def buscar_pedidos(
         self,
-        pesquisa_geral:  int | None = None,
+        id_grupos: int | list[int],
         cod_empresa_principal: int | None = None,
         data_inicio: date | None = None,
         data_fim: date | None = None,
@@ -104,38 +93,19 @@ class PedidoSOCNET(database.Model):
         id_status_rac: int | None = None,
         id_empresa: int | None = None,
         id_prestador: int | None = None,
+        cod_tipo_exame: int | None = None,
         seq_ficha: int | None = None,
         nome_funcionario: str | None = None,
         obs: str | None = None
-    ):
-        '''
-        Realiza query filtrada pelos parametros passados
-
-        Retorna BaseQuery com os pedidos filtrados ou com todos os pedidos
-        '''
-        models = [
-            (PedidoSOCNET.id_ficha),
-            (PedidoSOCNET.cod_empresa_principal), (PedidoSOCNET.seq_ficha), (PedidoSOCNET.data_ficha),
-            (PedidoSOCNET.data_recebido), (PedidoSOCNET.data_comparecimento),
-            (PedidoSOCNET.obs), (PedidoSOCNET.data_inclusao), (PedidoSOCNET.data_alteracao),
-            (PedidoSOCNET.incluido_por), (PedidoSOCNET.alterado_por), (PedidoSOCNET.cpf),
-            (PedidoSOCNET.cod_funcionario), (PedidoSOCNET.nome_funcionario),
-            (TipoExame.nome_tipo_exame), (TipoExame.cod_tipo_exame),
-            (EmpresaSOCNET.cod_empresa), (EmpresaSOCNET.nome_empresa),
-            (Prestador.cod_prestador), (Prestador.nome_prestador),
-            (PedidoSOCNET.id_status), (Status.nome_status),
-            (PedidoSOCNET.id_status_rac), (StatusRAC.nome_status.label('nome_status_rac'))
-        ]
-
-        joins = [
-            (EmpresaSOCNET, PedidoSOCNET.id_empresa == EmpresaSOCNET.id_empresa),
-            (Prestador, PedidoSOCNET.id_prestador == Prestador.id_prestador),
-            (TipoExame, PedidoSOCNET.cod_tipo_exame == TipoExame.cod_tipo_exame),
-            (Status, PedidoSOCNET.id_status == Status.id_status),
-            (StatusRAC, PedidoSOCNET.id_status_rac == StatusRAC.id_status),
-        ]
-        
+    ) -> BaseQuery:
         filtros = []
+        if id_grupos is not None:
+            if id_grupos == 0:
+                filtros.append(Grupo.id_grupo == None)
+            elif isinstance(id_grupos, list):
+                filtros.append(Grupo.id_grupo.in_(id_grupos))
+            else:
+                filtros.append(Grupo.id_grupo == id_grupos)
         if cod_empresa_principal:
             filtros.append(self.cod_empresa_principal == cod_empresa_principal)
         if data_inicio:
@@ -149,6 +119,8 @@ class PedidoSOCNET(database.Model):
                 filtros.append(self.id_prestador == None)
             else:
                 filtros.append(self.id_prestador == id_prestador)
+        if cod_tipo_exame:
+            filtros.append(self.cod_tipo_exame == cod_tipo_exame)
         if nome_funcionario:
             filtros.append(self.nome_funcionario.like(f'%{nome_funcionario}%'))
         if seq_ficha:
@@ -159,30 +131,68 @@ class PedidoSOCNET(database.Model):
             filtros.append(self.id_status_rac == id_status_rac)
         if obs:
             filtros.append(self.obs.like(f'%{obs}%'))
-        
-        # se nao for pesquisa geral, usar grupos do usuario atual
-        if not pesquisa_geral:
-            subquery_grupos = [grupo.id_grupo for grupo in current_user.grupo]
 
-            joins.append((grupo_empresa_socnet, self.id_empresa == grupo_empresa_socnet.columns.id_empresa))
-            joins.append((grupo_prestador, self.id_prestador == grupo_prestador.columns.id_prestador))
-            filtros.append((grupo_prestador.columns.id_grupo.in_(subquery_grupos)))
-            filtros.append((grupo_empresa_socnet.columns.id_grupo.in_(subquery_grupos)))
+        joins = [
+            (
+                grupo_empresa_prestador_socnet,
+                and_(
+                    self.id_empresa == grupo_empresa_prestador_socnet.c.id_empresa,
+                    self.id_prestador == grupo_empresa_prestador_socnet.c.id_prestador
+                )
+            ),
+            (Grupo, grupo_empresa_prestador_socnet.c.id_grupo == Grupo.id_grupo)
+        ]
 
         query = (
-            database.session.query(*models)
-            .filter(*filtros)
+            database.session.query(self)
             .outerjoin(*joins)
+            .filter(*filtros)
             .order_by(PedidoSOCNET.data_ficha.desc(), PedidoSOCNET.nome_funcionario)
         )
-        
+
         return query
 
+    @staticmethod
+    def handle_group_choice(choice: int | Literal['my_groups', 'all', 'null']):
+        match choice:
+            case 'my_groups':
+                return [gp.id_grupo for gp in current_user.grupo]
+            case 'all':
+                return None
+            case 'null':
+                return 0
+            case _:
+                return int(choice)
 
     @classmethod
-    def inserir_pedidos():
-        pass
-    
+    def add_csv_cols(self, query: BaseQuery):
+        cols = [
+            TipoExame.nome_tipo_exame.label('tipo_exame'),
+            EmpresaSOCNET.cod_empresa, EmpresaSOCNET.nome_empresa.label('empresa'),
+            Prestador.cod_prestador, Prestador.nome_prestador.label('prestador'),
+            Status.nome_status.label('status_aso'), StatusRAC.nome_status.label('status_rac'),
+            Grupo.nome_grupo
+        ]
+
+        joins = [
+            (TipoExame, self.cod_tipo_exame == TipoExame.cod_tipo_exame),
+            (EmpresaSOCNET, self.id_empresa == EmpresaSOCNET.id_empresa),
+            (Prestador, self.id_prestador == Prestador.id_prestador),
+            (Status, self.id_status == Status.id_status),
+            (StatusRAC, self.id_status_rac == StatusRAC.id_status)
+        ]
+
+        query = query.outerjoin(*joins)
+        query = query.add_columns(*cols)
+
+        return query
+
+    @staticmethod
+    def get_total_busca(query: BaseQuery) -> int:
+        fichas = [i.id_ficha for i in query.all()]
+        fichas = dict.fromkeys(fichas)
+        return len(fichas)
+
     @staticmethod
     def tratar_pedidos_socnet(
         caminho_arqv: str = None,

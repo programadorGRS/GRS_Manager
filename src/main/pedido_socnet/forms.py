@@ -4,7 +4,12 @@ from wtforms import (BooleanField, DateField, IntegerField, SelectField,
                      StringField, SubmitField)
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 
+from ..empresa_principal.empresa_principal import EmpresaPrincipal
+from ..grupo.grupo import Grupo
 from ..pedido.forms import FormEditarPedido
+from ..status.status import Status
+from ..status.status_rac import StatusRAC
+from ..tipo_exame.tipo_exame import TipoExame
 
 
 class FormBuscarASOSOCNET(FlaskForm):
@@ -13,6 +18,7 @@ class FormBuscarASOSOCNET(FlaskForm):
     cod_empresa_principal = SelectField('Empresa Principal', choices=[], validators=[Optional()], render_kw={'onchange': "CarregarOpcoesBuscaSOCNET('cod_empresa_principal', 'id_empresa', 'id_prestador', 'flexSwitch')"})
     id_empresa = SelectField('Empresa', choices=opcoes, validators=[Optional()], validate_choice=False)
     id_prestador = SelectField('Prestador', choices=opcoes, validators=[Optional()], validate_choice=False)
+    cod_tipo_exame = SelectField('Tipo Exame', choices=[], validators=[Optional()])
     data_inicio = DateField('Inicio', validators=[Optional()])
     data_fim = DateField('Fim', validators=[Optional()])
     nome_funcionario = StringField('Nome Funcionário', validators=[Optional(), Length(0, 255)])
@@ -20,11 +26,60 @@ class FormBuscarASOSOCNET(FlaskForm):
     obs = StringField('Observação', validators=[Optional(), Length(0, 100)])
     id_status = SelectField('Status ASO', choices=[], validators=[Optional()])
     id_status_rac = SelectField('Status RAC', choices=[], validators=[Optional()])
+    id_grupos = SelectField('Grupo', choices=[], validators=[Optional()])
     
     def validate_data_inicio(self, data_inicio):
         if data_inicio.data and self.data_fim.data:
             if data_inicio.data > self.data_fim.data:
                 raise ValidationError('Inicio deve ser menor do que Fim')
+
+    def load_choices(self):
+        self.cod_empresa_principal.choices = (
+            [('', 'Selecione')] +
+            [(i.cod, i.nome) for i in EmpresaPrincipal.query.all()]
+        )
+
+        self.id_status.choices = (
+            [('', 'Selecione')] +
+            [
+                (i.id_status, i.nome_status)
+                for i in Status.query
+                .order_by(Status.nome_status)
+                .all()
+            ]
+        )
+        self.id_status_rac.choices = (
+            [('', 'Selecione')] +
+            [
+                (i.id_status, i.nome_status)
+                for i in StatusRAC.query
+                .order_by(StatusRAC.nome_status)
+                .all()
+            ]
+        )
+
+        self.id_grupos.choices = (
+            [
+                ('my_groups', 'Meus Grupos'),
+                ('all', 'Todos'),
+                ('null', 'Sem Grupo')
+            ] + 
+            [
+                (gp.id_grupo, gp.nome_grupo)
+                for gp in Grupo.query.all()
+            ]
+        )
+
+        self.cod_tipo_exame.choices = (
+            [('', 'Selecione')] +
+            [
+                (i.cod_tipo_exame, i.nome_tipo_exame)
+                for i in TipoExame.query
+                .order_by(TipoExame.nome_tipo_exame)
+                .all()
+            ]
+        )
+        return None
 
 
 class FormUpload(FlaskForm):
