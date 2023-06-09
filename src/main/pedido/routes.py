@@ -112,7 +112,7 @@ def atualizar_status():
     total = Pedido.get_total_busca(query=query_pedidos)
 
     page_num = request.args.get(key='page', type=int, default=1)
-    results_per_page = 100
+    results_per_page = 500
     query_pagination = query_pedidos.paginate(page=page_num, per_page=results_per_page)
 
     # remove page argument, because it is defined by the link in the template
@@ -240,7 +240,7 @@ def enviar_emails():
     total = Pedido.get_total_busca(query=query_pedidos)
 
     page_num = request.args.get(key='page', type=int, default=1)
-    results_per_page = 100
+    results_per_page = 500
     query_pagination = query_pedidos.paginate(page=page_num, per_page=results_per_page)
 
     # remove page argument, because it is defined by the link in the template
