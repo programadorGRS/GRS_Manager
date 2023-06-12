@@ -109,15 +109,6 @@ def atualizar_status_socnet():
 
     total = PedidoSOCNET.get_total_busca(query=query_pedidos)
 
-    page_num = request.args.get(key='page', type=int, default=1)
-    results_per_page = 500
-    query_pagination = query_pedidos.paginate(page=page_num, per_page=results_per_page)
-
-    # remove page argument, because it is defined by the link in the template
-    url_args = request.args.copy()
-    if 'page' in url_args.keys():
-        url_args.pop('page')
-
     # ATUALIZAR STATUS-----------------------------------------------
     if form.validate_on_submit():
         lista_atualizar = request.form.getlist('checkItem', type=int)
@@ -184,12 +175,9 @@ def atualizar_status_socnet():
 
     return render_template(
         'busca/busca_atualizar_status_socnet.html',
-        title='GRS+Connect',
         form=form,
-        busca=query_pagination,
-        total=total,
-        url_args=url_args,
-        results_per_page=results_per_page
+        busca=query_pedidos,
+        total=total
     )
 
 @app.route('/enviar_emails_socnet', methods=['GET', 'POST'])
@@ -221,15 +209,6 @@ def enviar_emails_socnet():
     )
 
     total = PedidoSOCNET.get_total_busca(query=query_pedidos)
-
-    page_num = request.args.get(key='page', type=int, default=1)
-    results_per_page = 500
-    query_pagination = query_pedidos.paginate(page=page_num, per_page=results_per_page)
-
-    # remove page argument, because it is defined by the link in the template
-    url_args = request.args.copy()
-    if 'page' in url_args.keys():
-        url_args.pop('page')
 
     if form.validate_on_submit():
         lista_enviar = request.form.getlist('checkItem', type=int)
@@ -375,12 +354,9 @@ def enviar_emails_socnet():
 
     return render_template(
         'busca/busca_enviar_emails_socnet.html',
-        title='GRS+Connect',
         form=form,
-        busca=query_pagination,
-        total=total,
-        url_args=url_args,
-        results_per_page=results_per_page
+        busca=query_pedidos,
+        total=total
     )
 
 @app.route('/pedidos_socnet/editar', methods=['GET', 'POST'])
