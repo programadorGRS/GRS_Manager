@@ -26,3 +26,49 @@
     </span>
 {% endmacro %}
 
+{% macro render_form_field(form_field, render_label = True, show_errors = True, kwargs = {}) %}
+<div class="form-group">
+    {% if render_label %}
+        {{ form_field.label(class="form-control-label") }}
+    {% endif %}
+
+    {% if show_errors %}
+        {{ __show_field_erros(form_field, kwargs) }}
+    {% else %}
+        {{ form_field(class="form-control", **kwargs) }}
+    {% endif %}
+</div>
+{% endmacro %}
+
+{% macro __show_field_erros(form_field, kwargs = {}) %}
+    {% if form_field.errors %}
+        {{ form_field(class="form-control is-invalid", **kwargs) }}
+        <div class="invalid-feedback">
+            {% for err in form_field.errors %}
+                {{ err }}
+            {% endfor %}
+        </div>
+    {% else %}
+        {{ form_field(class="form-control", **kwargs) }}
+    {% endif %}
+{% endmacro %}
+
+{% macro render_checkbox_field(form_field, kwargs = {}) %}
+    {{ form_field(class="form-check-input", **kwargs) }}
+    {{ form_field.label(class="form-check-label") }}
+{% endmacro %}
+
+{% macro render_search_buttons() %}
+    <button type="submit" id="botao_buscar" class="btn btn-primary text-nowrap"
+    name="botao_buscar" style="width: fit-content;">
+    <span class="material-icons align-middle">manage_search</span> Buscar</button>
+
+    <button type="button" id="botao_limpar" class="btn btn-secondary text-nowrap"
+    name="botao_limpar" onclick="limpar()" style="width: fit-content;">
+    <span class="material-icons align-middle">close</span> Limpar</button>
+
+    <button type="submit" id="botao_csv" class="btn btn-success text-nowrap"
+    name="botao_csv" style="width: fit-content;">
+    <span class="material-icons align-middle">download</span> Gerar relatório</button>
+{% endmacro %}
+

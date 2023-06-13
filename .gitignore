@@ -6,6 +6,7 @@
 *.pdf
 *.json
 *.pem
+*.Identifier
 
 # My folders
 db/
