@@ -33,25 +33,25 @@ class Empresa(database.Model):
     jobs = database.relationship('Job', backref='empresa', lazy=True) # one to many
 
     # convocacao de exames
-    conv_exames = database.Column(database.Boolean, default=True)
+    conv_exames = database.Column(database.Boolean, default=True, server_default=text('1'))
     conv_exames_emails = database.Column(database.String(500))
-    conv_exames_corpo_email = database.Column(database.Integer, default=1)
-    
-    conv_exames_convocar_clinico = database.Column(database.Boolean, default=False)
-    conv_exames_nunca_realizados = database.Column(database.Boolean, default=True)
-    conv_exames_per_nunca_realizados = database.Column(database.Boolean, default=False)
-    conv_exames_pendentes = database.Column(database.Boolean, default=True)
-    conv_exames_pendentes_pcmso = database.Column(database.Boolean, default=False)
-    conv_exames_selecao = database.Column(database.Integer, default=1)
+    conv_exames_corpo_email = database.Column(database.Integer, default=1, server_default=text('1'))
+
+    conv_exames_convocar_clinico = database.Column(database.Boolean, default=False, server_default=text('0'))
+    conv_exames_nunca_realizados = database.Column(database.Boolean, default=False, server_default=text('0'))
+    conv_exames_per_nunca_realizados = database.Column(database.Boolean, default=False, server_default=text('0'))
+    conv_exames_pendentes = database.Column(database.Boolean, default=False, server_default=text('0'))
+    conv_exames_pendentes_pcmso = database.Column(database.Boolean, default=False, server_default=text('0'))
+    conv_exames_selecao = database.Column(database.Integer, default=1, server_default=text('1'))
 
     # exames realizados
-    exames_realizados = database.Column(database.Boolean, default=True)
+    exames_realizados = database.Column(database.Boolean, default=True, server_default=text('1'))
     exames_realizados_emails = database.Column(database.String(500))
 
     # absenteismo
-    absenteismo = database.Column(database.Boolean, default=True)
+    absenteismo = database.Column(database.Boolean, default=True, server_default=text('1'))
     absenteismo_emails = database.Column(database.String(500))
-    
+
     data_inclusao = database.Column(database.DateTime)
     data_alteracao = database.Column(database.DateTime)
     incluido_por = database.Column(database.String(50))
