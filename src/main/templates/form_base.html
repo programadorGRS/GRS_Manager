@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container justify-content-center d-flex my-2">
+    <div class="card p-4">
+        <form method="POST" id="formBusca" {% if form.form_action %} action="{{ form.form_action }}" {% endif %}>
+            {{ form.csrf_token }}
+            <div class="d-flex">
+                <div class="w-100">
+                    {% if form.title %}<legend>{{ form.title }}</legend>{% endif %}
+                    {% if form.sub_title %}<h5>{{ form.sub_title }}</h5>{% endif %}
+                </div>
+                {% if form.socnet %}
+                <img src="{{ url_for('static', filename='logos/logo_socnet.png') }}" alt="Icone SOCNET" height="25px"
+                    width="100px">
+                {% else %}
+                <img src="{{ url_for('static', filename='logos/logo_grs.png') }}" alt="Icone GRS" height="30px"
+                    width="70px">
+                {% endif %}
+            </div>
+            <hr>
+
+            <fieldset>
+                {% block fieldset %}
+                {% endblock %}
+            </fieldset>
+
+            <div class="d-flex mt-3 justify-content-between">
+                {% block buttons %}
+                {% endblock %}
+            </div>
+        </form>
+        {% block scripts %}
+        {% endblock %}
+    </div>
+</div>
+
+{% endblock %}
