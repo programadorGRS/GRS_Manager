@@ -16,8 +16,9 @@ from src.main.unidade.unidade import Unidade
 from src.utils import admin_required
 
 from .forms import (FormAtivarConvExames, FormBuscarConvEXames,
-                    FormBuscarPedidoProcessamento, FormConfigurarsConvExames)
+                    FormBuscarPedidoProcessamento, FormConfigurarsConvExames, FormGerarRelatorios)
 from .models import ConvExames, PedidoProcessamento
+from src.utils import get_data_from_form
 
 
 # BUSCA EMPRESAS----------------------------------------
@@ -279,100 +280,64 @@ def conv_exames_configs():
         busca=empresas
     )
 
-
-# BUSCA PEDIDOS DE PROCESSAMENTO---------------------------------------------
 @app.route('/convocacao_exames/pedidos_proc/busca', methods=['GET', 'POST'])
 @login_required
 def buscar_pedidos_proc():
-    form: FormBuscarPedidoProcessamento = FormBuscarPedidoProcessamento()
-
-    empresas_principais = (
-        [('', 'Selecione')] +
-        [(emp.cod, emp.nome) for emp in EmpresaPrincipal.query.all()]
-    )
-    
-    form.cod_empresa_principal.choices = empresas_principais
+    form = FormBuscarPedidoProcessamento()
+    form.load_choices()
+    form.title = 'Buscar Pedidos de Processamento'
 
     if form.validate_on_submit():
-        parametros = {
-            'cod_empresa_principal': form.cod_empresa_principal.data,
-            'id_empresa': form.id_empresa.data,
-            'data_inicio': form.data_inicio.data,
-            'data_fim': form.data_fim.data,
-            'cod_solicitacao': form.cod_solicitacao.data,
-            'resultado_importado': form.resultado_importado.data,
-            'obs': form.obs.data
-        }
+        params = get_data_from_form(form.data)
 
-        parametros2: dict[str, any] = {}
-        for chave, valor in parametros.items():
-            if valor not in (None, ''):
-                parametros2[chave] = valor
-
-        # BUSCAR -----------------------------------
         if 'botao_buscar' in request.form:
-            return redirect(url_for('pedidos_proc', **parametros2))
+            return redirect(url_for('listar_pedidos_proc', **params))
 
-        # CRIAR CSV-----------------------------------------------
         elif 'botao_csv' in request.form:
-            query = PedidoProcessamento.buscar_pedidos_proc(**parametros2)
-            query = (
-                query
-                .join(EmpresaPrincipal, PedidoProcessamento.cod_empresa_principal == EmpresaPrincipal.cod)
-                .join(Empresa, PedidoProcessamento.id_empresa == Empresa.id_empresa)
-                .add_columns(Empresa.razao_social, EmpresaPrincipal.nome)
-            )
-            df = pd.read_sql(sql=query.statement, con=database.session.bind)
-            df = df[PedidoProcessamento.COLUNAS_CSV]
-            
-            timestamp = int(dt.datetime.now().timestamp())
-            nome_arqv = f'PedidosProcessamento_{timestamp}.csv'
-            camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
-            df.to_csv(
-                camihno_arqv,
-                sep=';',
-                index=False,
-                encoding='iso-8859-1'
-            )
-            return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=nome_arqv)
+            return redirect(url_for('csv_pedidos_proc', **params))
 
-    return render_template(
-        'conv_exames/busca_ped_proc.html',
-        form=form,
-        title='Manager'
-    )
+    return render_template('conv_exames/busca_ped_proc.html', form=form)
 
-
-# PEDIDOS DE PROCESSAMENTO-----------------------------------------------------
 @app.route('/convocacao_exames/pedidos_proc/busca/resultados', methods=['GET', 'POST'])
 @login_required
-def pedidos_proc():
-    datas = {
-        'data_inicio': request.args.get('data_inicio', type=str, default=None),
-        'data_fim': request.args.get('data_fim', type=str, default=None)
-    }
-    for chave, valor in datas.items():
-        if valor:
-            datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
+def listar_pedidos_proc():
+    prev_form = FormBuscarPedidoProcessamento()
+    args = prev_form.get_url_args(data=request.args)
 
-    query = PedidoProcessamento.buscar_pedidos_proc(
-        cod_empresa_principal=request.args.get(key='cod_empresa_principal', type=int, default=None),
-        data_inicio=datas['data_inicio'],
-        data_fim=datas['data_fim'],
-        id_empresa=request.args.get(key='id_empresa', default=None, type=int),
-        cod_solicitacao=request.args.get(key='cod_solicitacao', default=None, type=int),
-        resultado_importado=request.args.get(key='resultado_importado', default=None, type=int),
-        obs=request.args.get(key='obs', default=None, type=str)
-    ).all()
+    query = PedidoProcessamento.buscar_pedidos_proc(**args)
 
-    qtd = len(query)
+    total = query.count()
 
-    return render_template(
-        'conv_exames/pedidos_proc.html',
-        title='Manager',
-        lista_pedidos_proc=query,
-        qtd=qtd
-    )
+    return render_template('conv_exames/pedidos_proc.html', query=query, total=total)
+
+@app.route('/convocacao_exames/pedidos_proc/busca/csv')
+@login_required
+def csv_pedidos_proc():
+        prev_form = FormBuscarPedidoProcessamento()
+        args = prev_form.get_url_args(data=request.args)
+
+        query = PedidoProcessamento.buscar_pedidos_proc(**args)
+
+        query = (
+            query
+            .join(EmpresaPrincipal, PedidoProcessamento.cod_empresa_principal == EmpresaPrincipal.cod)
+            .add_columns(Empresa.razao_social, EmpresaPrincipal.nome, Empresa.ativo)
+        )
+
+        df = pd.read_sql(sql=query.statement, con=database.session.bind)
+        df = df[PedidoProcessamento.COLUNAS_CSV]
+
+        timestamp = int(dt.datetime.now().timestamp())
+        nome_arqv = f'PedidosProcessamento_{timestamp}.csv'
+        camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
+        df.to_csv(
+            camihno_arqv,
+            sep=';',
+            index=False,
+            encoding='iso-8859-1'
+        )
+
+        return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=nome_arqv)
 
 
 @app.route('/convocacao_exames/pedidos_proc/gerar_relatorio', methods=['GET', 'POST'])

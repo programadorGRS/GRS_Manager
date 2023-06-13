@@ -1,9 +1,10 @@
 from datetime import datetime
 
-from sqlalchemy import delete, insert
+from sqlalchemy import delete, insert, Table
 
 from src import TIMEZONE_SAO_PAULO, database
-
+from typing import Literal
+from flask_login import current_user
 
 grupo_usuario = database.Table('grupo_usuario',
     database.Column('id_grupo', database.Integer, database.ForeignKey('Grupo.id_grupo')),
@@ -52,6 +53,25 @@ class Grupo(database.Model):
     data_alteracao = database.Column(database.DateTime)
     incluido_por = database.Column(database.String(50))
     alterado_por = database.Column(database.String(50))
+
+    @staticmethod
+    def handle_group_filter(
+        id_usuario: int,
+        tabela: Table,
+        grupo: int | Literal['my_groups', 'all', 'null']
+    ) -> tuple | None:
+        match grupo:
+            case 'my_groups':
+                from ..usuario.usuario import Usuario
+                usuario = Usuario.query.get(id_usuario)
+                grupos_usuario = [gp.id_grupo for gp in usuario.grupo]
+                return (tabela.c.id_grupo.in_(grupos_usuario))
+            case 'all':
+                return None
+            case 'null':
+                return (tabela.c.id_grupo == None)
+            case _:
+                return (tabela.c.id_grupo == int(grupo))
 
     @classmethod
     def update_grupo_usuario(self, id_grupo: int, id_usuarios: list[int], alterado_por: str):

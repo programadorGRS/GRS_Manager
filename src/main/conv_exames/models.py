@@ -1,6 +1,6 @@
 import os
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 
 import pandas as pd
 from pptx import Presentation
@@ -18,6 +18,8 @@ from src.main.exame.exame import Exame
 from src.main.funcionario.funcionario import Funcionario
 from src.main.unidade.unidade import Unidade
 from src.utils import get_json_configs, zipar_arquivos
+
+from flask_sqlalchemy import BaseQuery
 
 
 class PedidoProcessamento(database.Model):
@@ -42,6 +44,7 @@ class PedidoProcessamento(database.Model):
         'id_empresa',
         'cod_empresa',
         'razao_social',
+        'ativo',
         'cod_solicitacao',
         'data_criacao',
         'resultado_importado',
@@ -53,47 +56,40 @@ class PedidoProcessamento(database.Model):
     def buscar_pedidos_proc(
         self,
         cod_empresa_principal: int | None = None,
-        data_inicio: datetime | None = None,
-        data_fim: datetime | None = None,
         id_empresa: int | None = None,
+        empresas_ativas: bool | None = None,
         cod_solicitacao: int | None = None,
-        resultado_importado: int | None = None,
-        relatorio_enviado: int | None = None,
+        resultado_importado: bool | None = None,
+        relatorio_enviado: bool | None = None,
         obs: str | None = None,
+        data_inicio: datetime | None = None,
+        data_fim: datetime | None = None
     ):
-        '''
-        Realiza query filtrada pelos parametros passados
+        parametros = [
+            (cod_empresa_principal, self.cod_empresa_principal == cod_empresa_principal),
+            (id_empresa, self.id_empresa == id_empresa),
+            (empresas_ativas, Empresa.ativo == empresas_ativas),
+            (cod_solicitacao, self.cod_solicitacao == cod_solicitacao),
+            (resultado_importado, self.resultado_importado == resultado_importado),
+            (relatorio_enviado, self.relatorio_enviado == relatorio_enviado),
+            (obs, self.obs.like(f'%{obs}%')),
+            (data_inicio, self.data_criacao >= data_inicio if data_inicio else None),
+            (data_fim, self.data_criacao <= data_fim if data_fim else None)
+        ]
 
-        Retorna BaseQuery com os pedidos filtrados ou com todos os pedidos
-
-        Retorna apenas os pedidos associados as empresas e prestadores dos grupos do current_user
-        '''
-        parametros = []
-        
-        if data_inicio:
-            parametros.append(self.data_criacao >= data_inicio)
-        if data_fim:
-            parametros.append(self.data_criacao <= data_fim)
-        if cod_empresa_principal:
-            parametros.append(self.cod_empresa_principal == cod_empresa_principal)
-        if id_empresa:
-            parametros.append(self.id_empresa == id_empresa)
-        if cod_solicitacao:
-            parametros.append(self.cod_solicitacao == cod_solicitacao)
-        if resultado_importado == 0 or resultado_importado == 1:
-            parametros.append(self.resultado_importado == resultado_importado)
-        if relatorio_enviado == 0 or relatorio_enviado == 1:
-            parametros.append(self.relatorio_enviado == relatorio_enviado)
-        if obs:
-            parametros.append(self.obs.like(f'%{obs}%'))
+        filtros = []
+        for value, param in parametros:
+            if value is not None:
+                filtros.append(param)
 
         query = (
             database.session.query(self)
-            .filter(*parametros)
+            .join(Empresa, self.id_empresa == Empresa.id_empresa)
+            .filter(*filtros)
             .order_by(self.id_proc.desc(), self.id_empresa)
         )
         return query
-    
+
     @classmethod
     def criar_pedido_processamento(self, id_empresa: int, dias: int = 730) -> dict:
         """Envia request SOAP para criar Pedido de Processamento Assincrono \

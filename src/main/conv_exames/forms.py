@@ -1,7 +1,13 @@
+from datetime import datetime
+
 from flask_wtf import FlaskForm
-from wtforms import (DateField, IntegerField, SelectField, SelectMultipleField,
-                     StringField, SubmitField)
+from wtforms import (BooleanField, DateField, Field, IntegerField, SelectField,
+                     SelectMultipleField, StringField, SubmitField, TextAreaField)
 from wtforms.validators import DataRequired, Length, Optional
+from ..empresa_principal.empresa_principal import EmpresaPrincipal
+from ..unidade.unidade import Unidade
+
+from src.extensions import database
 
 
 class FormBuscarConvEXames(FlaskForm):
@@ -52,18 +58,45 @@ class FormConfigurarsConvExames(FlaskForm):
 
 class FormBuscarPedidoProcessamento(FlaskForm):
     opcoes = [('', 'Selecione'), (1, 'Sim'), (0, 'Não')]
-    cod_empresa_principal = SelectField(
-        'Empresa Principal',
-        choices=[],
-        validators=[Optional()],
-        render_kw={'onchange': "carregarOpcoesEmpresa('cod_empresa_principal', 'id_empresa')"}
-    )
-    id_empresa = SelectField('Empresa (Opcional)', choices=[('', 'Selecione')], validators=[Optional()], validate_choice=False)
+    cod_empresa_principal = SelectField('Empresa Principal', choices=[], validators=[Optional()])
+    empresas_ativas = SelectField('Empresas Ativas', choices=opcoes, validators=[Optional()])
+    id_empresa = SelectField('Empresa', choices=[], validators=[Optional()], validate_choice=False)
     data_inicio = DateField('Inicio', validators=[Optional()])
     data_fim = DateField('Fim', validators=[Optional()])
-    cod_solicitacao = IntegerField('Cód Pedido de Processamento (Opcional)', validators=[Optional()])
+    cod_solicitacao = IntegerField('Cód Pedido de Processamento', validators=[Optional()])
     resultado_importado = SelectField('Importado', choices=opcoes, validators=[Optional()])
     obs = StringField('Observação', validators=[Optional(), Length(0, 100)])
+
+    def load_choices(self):
+        self.cod_empresa_principal.choices = (
+            [('', 'Selecione')] +
+            [(i.cod, i.nome) for i in EmpresaPrincipal.query.all()]
+        )
+        return None
+
+    def get_url_args(self, data: dict):
+        DATE_FORMAT = '%Y-%m-%d'
+
+        ignore_v = [None, '']
+
+        new_data = {}
+
+        for key, value in data.items():
+            if value in ignore_v:
+                continue
+
+            field: Field = getattr(self, key)
+            match field.type:
+                case 'SelectField':
+                    new_data[key] = int(value)
+                case 'DateField':
+                    new_data[key] = datetime.strptime(value, DATE_FORMAT).date()
+                case 'IntegerField':
+                    new_data[key] = int(value)
+                case _:
+                    new_data[key] = value
+
+        return new_data
 
 
 class FormGerarRelatorios(FlaskForm):

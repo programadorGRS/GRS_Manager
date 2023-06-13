@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <h5>Qtd Pedidos: {{ qtd }}</h5>
+    <h5>Qtd Pedidos: {{ total }}</h5>
     <table class="table table-sm table-striped small_font">
         <thead>
             <tr>
@@ -36,7 +36,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for ped_proc in lista_pedidos_proc %}
+            {% for ped_proc in query %}
                 <tr>
                     <td style="white-space: nowrap;">
                         ID: {{ped_proc.id_proc}} <br>
@@ -57,9 +57,9 @@
                         {% endif %}
                     </td>
                     <td class="align-middle">
-                        <a href="{{ url_for('ped_proc_gerar_relatorio', id_proc=ped_proc.id_proc) }}">
+                        <a href="{{ url_for('pag_pedido_proc', id_proc=ped_proc.id_proc) }}">
                             <button type="button" class="btn btn-primary text-nowrap" style="width: fit-content;">
-                                <span class="material-icons align-middle">download</span> Relatórios
+                                <span class="material-icons align-middle">description</span> Relatórios
                             </button>
                         </a>
                     </td>

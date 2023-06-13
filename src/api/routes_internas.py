@@ -1,12 +1,13 @@
-from flask import jsonify
+from flask import jsonify, request
 from flask_login import current_user, login_required
+import pandas as pd
 
 from src import app, database
 from src.main.empresa.empresa import Empresa
 from src.main.empresa_socnet.empresa_socnet import EmpresaSOCNET
 from src.main.exame.exame import Exame
 from src.main.grupo.grupo import (grupo_empresa, grupo_empresa_socnet,
-                                  grupo_prestador)
+                                  grupo_prestador, Grupo)
 from src.main.prestador.prestador import Prestador
 from src.main.unidade.unidade import Unidade
 
@@ -46,6 +47,52 @@ def fetch_empresas(cod_empresa_principal, todos):
         opcoes.append(dic)
     
     return jsonify({'dados': opcoes})
+
+# FETCH EMPRESAS-----------------------------------------------------------
+@app.route('/fetch_empresas_v2')
+@login_required
+def fetch_empresas2():
+    cod_empresa_principal = request.args.get('cod_empresa_principal', type=int)
+    status_empresas = request.args.get('status_empresas', type=int, default=None)
+    filtro_grupos = request.args.get('filtro_grupos', type=str, default=None)
+
+    if not cod_empresa_principal:
+        return jsonify('cod_empresa_principal e obrigatorio'), 400
+
+    filtros = [(Empresa.cod_empresa_principal == int(cod_empresa_principal))]
+    joins = []
+
+    if status_empresas is not None:
+        filtros.append((Empresa.ativo == status_empresas))
+
+    if filtro_grupos:
+        filtro_grupos = Grupo.handle_group_filter(
+            id_usuario=current_user.id_usuario,
+            tabela=grupo_empresa,
+            grupo=filtro_grupos
+        )
+        if filtro_grupos:
+            filtros.append(filtro_grupos)
+
+        joins.append((grupo_empresa, grupo_empresa.c.id_empresa == Empresa.id_empresa))
+
+    query = (
+        database.session.query(Empresa.id_empresa, Empresa.razao_social, Empresa.ativo)
+        .order_by(Empresa.razao_social)
+    )
+
+    for arg in joins:
+        query = query.join(arg)
+
+    for arg in filtros:
+        query = query.filter(arg)
+
+    df = pd.read_sql(query.statement, database.session.bind)
+    df.rename(columns={'id_empresa': 'id', 'razao_social': 'nome'}, inplace=True)
+
+    dados_json = df.to_dict(orient='records')
+
+    return jsonify(dados_json)
 
 
 # FETCH EMPRESAS SOCNET-----------------------------------------------------------

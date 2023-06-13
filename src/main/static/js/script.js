@@ -84,6 +84,39 @@ function carregarOpcoesEmpresa(idEmpresaPrincipal, idEmpresa, idPesquisaGeral){
     }
 }
 
+function carregarOpcoesEmpresa2(idEmpresaPrincipal, idEmpresa, idEmpresasAtivas){
+    let empresaPrincipal = document.getElementById(idEmpresaPrincipal);
+    let empresa = document.getElementById(idEmpresa);
+    let empresasAtivas = null;
+
+    let statusEmpresas = null;
+
+    if (idEmpresasAtivas){
+        empresasAtivas = document.getElementById(idEmpresasAtivas);
+        statusEmpresas = empresasAtivas.value;
+    }
+
+    if (empresaPrincipal.value == '') {
+        empresa.innerHTML = '<option value="">Selecione uma Empresa Principal</option>';
+    } else {
+        const queryParams = new URLSearchParams({
+            cod_empresa_principal: empresaPrincipal.value,
+            status_empresas: statusEmpresas
+        });
+
+        fetch('/fetch_empresas_v2?' + queryParams)
+            .then((resp) => resp.json())
+            .then((jsonData) => {
+                    let optionHTML = '<option value="">Selecione</option>';
+                    for (let i of jsonData) {
+                        optionHTML += '<option value="' + i.id + '">' + i.nome + '</option>';
+                    }
+                    empresa.innerHTML = optionHTML;
+                }
+            )
+            .catch((err) => console.error(err))
+    }
+}
 
 function carregarOpcoesUnidade(idEmpresaPrincipal, idEmpresa, idUnidade){
     let empresa_principal = document.getElementById(idEmpresaPrincipal);
