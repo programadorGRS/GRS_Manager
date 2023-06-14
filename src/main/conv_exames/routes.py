@@ -1,10 +1,12 @@
-import datetime as dt
+import os
+from datetime import datetime
 
 import pandas as pd
 from flask import (flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import login_required
 from sqlalchemy import update
+from werkzeug.utils import secure_filename
 
 from src import UPLOAD_FOLDER, app, database
 from src.main.empresa.empresa import Empresa
@@ -13,12 +15,12 @@ from src.main.exame.exame import Exame
 from src.main.funcionario.funcionario import Funcionario
 from src.main.log_acoes.log_acoes import LogAcoes
 from src.main.unidade.unidade import Unidade
-from src.utils import admin_required
+from src.utils import admin_required, get_data_from_form, zipar_arquivos
 
 from .forms import (FormAtivarConvExames, FormBuscarConvEXames,
-                    FormBuscarPedidoProcessamento, FormConfigurarsConvExames, FormGerarRelatorios)
+                    FormBuscarPedidoProcessamento, FormConfigurarsConvExames,
+                    FormGerarRelatorios)
 from .models import ConvExames, PedidoProcessamento
-from src.utils import get_data_from_form
 
 
 # BUSCA EMPRESAS----------------------------------------
@@ -327,7 +329,7 @@ def csv_pedidos_proc():
         df = pd.read_sql(sql=query.statement, con=database.session.bind)
         df = df[PedidoProcessamento.COLUNAS_CSV]
 
-        timestamp = int(dt.datetime.now().timestamp())
+        timestamp = int(datetime.now().timestamp())
         nome_arqv = f'PedidosProcessamento_{timestamp}.csv'
         camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
         df.to_csv(
@@ -339,41 +341,89 @@ def csv_pedidos_proc():
 
         return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=nome_arqv)
 
-
-@app.route('/convocacao_exames/pedidos_proc/gerar_relatorio', methods=['GET', 'POST'])
+@app.route('/convocacao_exames/pedidos_proc/<int:id_proc>', methods=['GET', 'POST'])
 @login_required
-def ped_proc_gerar_relatorio():
-    ped_proc: PedidoProcessamento = PedidoProcessamento.query.get(request.args.get(key='id_proc', type=int))
+def pag_pedido_proc(id_proc):
+    ped_proc = PedidoProcessamento.query.get(id_proc)
+
+    form: FormGerarRelatorios = FormGerarRelatorios()
+    form.form_action = url_for('ped_proc_gerar_reports', id_proc=id_proc)
+    form.load_choices(id_empresa=ped_proc.id_empresa)
+
+    form.title = f'Pedido de Processamento #{ped_proc.id_proc}'
+    form.sub_title = 'Gerar Relatórios'
+
+    if form.validate_on_submit():
+        return redirect(url_for('ped_proc_gerar_reports', id_proc=id_proc))
+
+    return render_template('conv_exames/gerar_relatorios.html', form=form, ped_proc=ped_proc, ppt_trigger=ConvExames.PPT_TRIGGER)
+
+@app.route('/convocacao_exames/pedidos_proc/<int:id_proc>/gerar_relatorios', methods=['GET', 'POST'])
+@login_required
+def ped_proc_gerar_reports(id_proc):
+    ped_proc: PedidoProcessamento = PedidoProcessamento.query.get(id_proc)
+
     empresa: Empresa = Empresa.query.get(ped_proc.id_empresa)
 
-    df = pd.read_sql(
-        sql=(
-            database.session.query(
-                ConvExames,
-                Empresa,
-                Unidade,
-                Funcionario,
-                Exame
-            )
-            .join(Empresa, ConvExames.id_empresa == Empresa.id_empresa)
-            .join(Unidade, ConvExames.id_unidade == Unidade.id_unidade)
-            .join(Funcionario, ConvExames.id_funcionario == Funcionario.id_funcionario)
-            .join(Exame, ConvExames.id_exame == Exame.id_exame)
-            .filter(ConvExames.id_proc  == ped_proc.id_proc)
-        ).statement,
-        con=database.session.bind
-    )
-    
-    pasta_zip = ConvExames.criar_relatorios(
-        df=df,
-        nome_empresa=empresa.razao_social,
-        data_origem=ped_proc.data_criacao,
-        gerar_ppt=True
+    prev_form = FormGerarRelatorios()
+    args: dict[str, any] = prev_form.get_request_form_data(data=request.form)
+
+    query = (
+        database.session.query(
+            ConvExames,
+            Empresa.razao_social,
+            Unidade.nome_unidade,
+            Funcionario.cpf_funcionario,
+            Funcionario.nome_funcionario,
+            Funcionario.cod_setor,
+            Funcionario.nome_setor,
+            Funcionario.cod_cargo,
+            Funcionario.nome_cargo,
+            Exame.nome_exame
+        )
+        .join(Empresa, ConvExames.id_empresa == Empresa.id_empresa)
+        .join(Unidade, ConvExames.id_unidade == Unidade.id_unidade)
+        .join(Funcionario, ConvExames.id_funcionario == Funcionario.id_funcionario)
+        .join(Exame, ConvExames.id_exame == Exame.id_exame)
+        .filter(ConvExames.id_proc  == ped_proc.id_proc)
     )
 
-    if pasta_zip:
-        return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=pasta_zip.split('/')[-1])
+    nome_unidade = 'Todas'
+    unidades: list[int] = args.get('unidades')
+    if unidades:
+        query = query.filter(ConvExames.id_unidade.in_(unidades))
+
+        if len(unidades) == 1:
+            nome_unidade = Unidade.query.get(unidades[0]).nome_unidade
+        elif len(unidades) > 1:
+            nome_unidade = 'Várias'
+
+    arquivos = ConvExames.criar_relatorios2(
+        query=query,
+        nome_empresa=empresa.razao_social,
+        gerar_ppt=args.get('gerar_ppt'),
+        nome_unidade=nome_unidade,
+        data_origem=ped_proc.data_criacao,
+        filtro_status=args.get('status'),
+        filtro_a_vencer=args.get('a_vencer')
+    )
+
+    if arquivos:
+        nome_empresa = secure_filename(empresa.razao_social).replace('.', '_').upper()
+        timestamp = int(datetime.now().timestamp())
+        nome_pasta = os.path.join(UPLOAD_FOLDER, f'ConvExames_{nome_empresa}_{timestamp}.zip')
+
+        pasta_zip = zipar_arquivos(
+            caminhos_arquivos=list(arquivos.values()),
+            caminho_pasta_zip=nome_pasta
+        )
+        return send_from_directory(
+            directory=UPLOAD_FOLDER,
+            path='/',
+            filename=pasta_zip.split('/')[-1]
+        )
     else:
-        flash('Sem resultado', 'alert-info')
-        return redirect(url_for('buscar_pedidos_proc'))
+        flash('Sem resultados', 'alert-info')
+        return redirect(url_for('pag_pedido_proc', id_proc=ped_proc.id_proc))
+
 

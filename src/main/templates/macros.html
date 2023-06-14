@@ -29,7 +29,7 @@
 {% macro render_form_field(form_field, render_label = True, show_errors = True, kwargs = {}) %}
 <div class="form-group">
     {% if render_label %}
-        {{ form_field.label(class="form-control-label") }}
+        {{ form_field.label(id=form_field.id + '_label', class="form-control-label") }}
     {% endif %}
 
     {% if show_errors %}
@@ -55,7 +55,7 @@
 
 {% macro render_checkbox_field(form_field, kwargs = {}) %}
     {{ form_field(class="form-check-input", **kwargs) }}
-    {{ form_field.label(class="form-check-label") }}
+    {{ form_field.label(id=form_field.id + '_label', class="form-check-label") }}
 {% endmacro %}
 
 {% macro render_search_buttons() %}

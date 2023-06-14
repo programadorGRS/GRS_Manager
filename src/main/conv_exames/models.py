@@ -1,8 +1,9 @@
 import os
 import time
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 
 import pandas as pd
+from flask_sqlalchemy import BaseQuery
 from pptx import Presentation
 from pptx.chart.data import ChartData
 from pptx.util import Pt
@@ -18,8 +19,6 @@ from src.main.exame.exame import Exame
 from src.main.funcionario.funcionario import Funcionario
 from src.main.unidade.unidade import Unidade
 from src.utils import get_json_configs, zipar_arquivos
-
-from flask_sqlalchemy import BaseQuery
 
 
 class PedidoProcessamento(database.Model):
@@ -218,6 +217,24 @@ class ConvExames(database.Model):
         'data_res',
         'refazer',
     ]
+
+    STATUS_EXAMES = {
+        1: 'Exame Em dia',
+        2: 'Exame A vencer',
+        3: 'Exame Vencido',
+        4: 'Resultado do Exame Pendente',
+        5: 'Exame nunca foi realizado'
+    }
+
+    DIAS_VENCER_EXAMES = {
+        0: 'Vazio',
+        30: 30,
+        60: 60,
+        90: 90,
+        365: 365
+    }
+
+    PPT_TRIGGER = 50
 
     @classmethod
     def inserir_conv_exames(self, id_proc: int) -> dict:
@@ -535,6 +552,152 @@ class ConvExames(database.Model):
             return nome_zip
         else:
             return None
+
+    @classmethod
+    def criar_relatorios2(
+        self,
+        query: BaseQuery,
+        nome_empresa: str,
+        nome_unidade: str = None,
+        gerar_ppt: bool = False,
+        data_origem: datetime | None = None,
+        filtro_status: list[str] = None,
+        filtro_a_vencer: list[int] = None
+    ):
+        if gerar_ppt and not data_origem:
+            raise ValueError('data_origem é obrigatório se gerar_ppt for True')
+
+        df = pd.read_sql(query.statement, con=database.session.bind)
+
+        if df.empty:
+            return None
+
+        df = self.__tratar_df(df=df)
+
+        if filtro_status:
+            df = df[df['id_status'].isin(filtro_status)]
+
+        if filtro_a_vencer:
+            if 0 in filtro_a_vencer:
+                # substituir zero por pd.NA
+                filtro_a_vencer[filtro_a_vencer.index(0)] = pd.NA
+
+            df = df[df['a_vencer'].isin(filtro_a_vencer)]
+
+        if df.empty:
+            return None
+
+        # define path for files
+        nome = secure_filename(nome_empresa).replace('.', '_').upper()
+        timestamp = int(datetime.now().timestamp())
+        file_path = os.path.join(UPLOAD_FOLDER, f'{nome}_{timestamp}')
+
+        nome_excel = f'{file_path}.xlsx'
+        self.__gerar_excel(df=df, file_path=nome_excel)
+
+        arquivos = {'excel': nome_excel}
+
+        if gerar_ppt and len(df['refazer'].dropna()) >= self.PPT_TRIGGER:
+            nome_ppt = f'{file_path}.pptx'
+            self.criar_ppt(
+                df=df,
+                data_origem=data_origem,
+                nome_arquivo=nome_ppt,
+                nome_empresa=nome_empresa,
+                nome_unidade=nome_unidade
+            )
+            arquivos['ppt'] = nome_ppt
+
+        return arquivos
+
+    @classmethod
+    def __tratar_df(self, df: pd.DataFrame):
+        df = df.copy()
+
+        df['id_status'] = (
+            list(
+                map(
+                self.__get_id_status,
+                    df['ult_pedido'],
+                    df['data_res'],
+                    df['refazer']
+                )
+            )
+        )
+
+        df['status'] = list(map(self.STATUS_EXAMES.get, df['id_status']))
+
+        df['dias_vencer'] = list(map(self.dias_a_vencer, df['refazer']))
+        df.loc[df['dias_vencer'] <= 0, 'dias_vencer'] = pd.NA
+
+        df = self.__criar_cat_a_vencer(df=df)
+
+        return df
+
+    @staticmethod
+    def __get_id_status(
+        data_ult_pedido: datetime,
+        data_res: datetime,
+        data_refazer: datetime
+    ):
+        TODAY = datetime.now().date()
+
+        # se nunca foi realizado
+        if not data_ult_pedido:
+            return 5
+
+        # se ultimo pedido nao foi realizado
+        if not data_res:
+            return 4
+
+        # se data ja passou ou vence hoje
+        if data_refazer <= TODAY:
+            return 3
+        # se ainda vai vencer ate em 365 dias
+        elif data_refazer > TODAY and (data_refazer - TODAY).days <= 365:
+            return 2
+        # se vai vencer em mais de 365 dias
+        elif data_refazer > TODAY and (data_refazer - TODAY).days > 365:
+            return 1
+
+    @staticmethod
+    def __criar_cat_a_vencer(df: pd.DataFrame):
+        df = df.copy()
+        df['a_vencer'] = pd.NA
+        df.loc[df['dias_vencer'].between(0, 30, 'both'), 'a_vencer'] = 30
+        df.loc[df['dias_vencer'].between(31, 60, 'both'), 'a_vencer'] = 60
+        df.loc[df['dias_vencer'].between(61, 90, 'both'), 'a_vencer'] = 90
+        df.loc[df['dias_vencer'].between(91, 365, 'both'), 'a_vencer'] = 365
+        return df
+
+    @staticmethod
+    def __gerar_excel(df: pd.DataFrame, file_path: str):
+        COLS_EXCEL = {
+            'razao_social': 'Empresa',
+            'nome_unidade': 'Unidade',
+            'nome_setor': 'Setor',
+            'nome_cargo': 'Cargo',
+            'cpf_funcionario': 'CPF Funcionario',
+            'nome_funcionario': 'Nome Funcionario',
+            'nome_exame': 'Exame',
+            'refazer': 'Data Vencimento',
+            'status': 'Status Exame',
+            'cat_vencer': 'Vencera em ate'
+        }
+
+        df = df.copy()
+
+        df['cat_vencer'] = df['a_vencer'].apply(lambda x: f'{x} dias' if x is not pd.NA else None)
+
+        df_excel: pd.DataFrame = df[COLS_EXCEL.keys()]
+        df_excel = df_excel.rename(columns=COLS_EXCEL)
+        df_excel.to_excel(
+            file_path,
+            index=False,
+            freeze_panes=(1,0)
+        )
+
+        return None
 
     @staticmethod
     def criar_status(

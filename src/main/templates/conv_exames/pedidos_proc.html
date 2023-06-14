@@ -43,7 +43,14 @@
                         Número do Pedido: <b>{{ped_proc.cod_solicitacao}}</b> <br>
                         Data criação: <b>{{ped_proc.data_criacao.strftime('%d/%m/%Y')}}</b>
                     </td>
-                    <td>{{ped_proc.empresa.razao_social}} <span class="fw-lighter">#{{ ped_proc.empresa.cod_empresa }}</span></td>
+                    <td>
+                        {{ped_proc.empresa.razao_social}} <span class="fw-lighter">#{{ ped_proc.empresa.cod_empresa }}</span>
+                        {% if ped_proc.empresa.ativo %}
+                            <span class="badge bg-success align-middle">Ativa</span>
+                        {% else %}
+                            <span class="badge bg-secondary align-middle">Inativa</span>
+                        {% endif %}
+                    </td>
                     <td style="white-space: nowrap;">
                         Importado: 
                         <b>{% if ped_proc.resultado_importado %}Sim{% else %}Não{% endif %}</b>

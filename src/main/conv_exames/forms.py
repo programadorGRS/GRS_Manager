@@ -2,12 +2,14 @@ from datetime import datetime
 
 from flask_wtf import FlaskForm
 from wtforms import (BooleanField, DateField, Field, IntegerField, SelectField,
-                     SelectMultipleField, StringField, SubmitField, TextAreaField)
+                     SelectMultipleField, StringField, SubmitField)
 from wtforms.validators import DataRequired, Length, Optional
-from ..empresa_principal.empresa_principal import EmpresaPrincipal
-from ..unidade.unidade import Unidade
 
 from src.extensions import database
+
+from ..empresa_principal.empresa_principal import EmpresaPrincipal
+from ..unidade.unidade import Unidade
+from .models import ConvExames
 
 
 class FormBuscarConvEXames(FlaskForm):
@@ -100,7 +102,40 @@ class FormBuscarPedidoProcessamento(FlaskForm):
 
 
 class FormGerarRelatorios(FlaskForm):
-    filtro_unidades = SelectMultipleField('Unidades', choices=[], validators=[Optional()], render_kw={'data-actions-box':"true"})
-    filtro_status = SelectMultipleField('Status', choices=[], validators=[Optional()], render_kw={'data-actions-box':"true"})
-    filtro_a_vencer = SelectMultipleField('A vencer', choices=[], validators=[Optional()], render_kw={'data-actions-box':"true"})
+    unidades = SelectMultipleField('Unidades', validate_choice=False)
+    status = SelectMultipleField('Status', validate_choice=False)
+    a_vencer = SelectMultipleField('A vencer', validate_choice=False)
+    gerar_ppt = BooleanField('Gerar Powerpoint', validators=[Optional()])
 
+    def load_choices(self, id_empresa: int):
+        unidades = (
+            database.session.query(Unidade)
+            .filter(Unidade.id_empresa == id_empresa)
+            .order_by(Unidade.nome_unidade)
+            .all()
+        )
+        self.unidades.choices = ([(i.id_unidade, i.nome_unidade) for i in unidades])
+
+        self.status.choices = [(key, val) for key, val in ConvExames.STATUS_EXAMES.items()]
+
+        self.a_vencer.choices = [(key, val) for key, val in ConvExames.DIAS_VENCER_EXAMES.items()]
+        return None
+
+    def get_request_form_data(self, data: dict):
+        ignore_v = [None, '']
+
+        new_data = {}
+
+        for key, value in data.items():
+            if value in ignore_v:
+                continue
+
+            field: Field = getattr(self, key)
+            match field.type:
+                case 'SelectMultipleField':
+                    # NOTE: getlist é um metodo de Flask.request.form
+                    new_data[key] = data.getlist(key, type=int)
+                case 'BooleanField':
+                    new_data[key] = bool(value)
+
+        return new_data
