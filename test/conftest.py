@@ -27,7 +27,7 @@ def client(app: Flask):
     return app.test_client()
 
 @pytest.fixture()
-def runner():
+def runner(app: Flask):
     '''
         Use this runner to run the apps CLI commands
 

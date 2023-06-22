@@ -56,12 +56,21 @@ class ExportaDados(SOCWebService):
         )
         return arg0
 
-    def dataframe_from_zeep(self, retorno: str) -> pd.DataFrame:
+    @staticmethod
+    def dataframe_from_zeep(retorno: str) -> pd.DataFrame:
         """
             Recebe json string da tag 'retorno' de uma Response do Exporta Dados e \
             transforma em pd.DataFrame
         """
         return pd.DataFrame(data=json.loads(retorno))
+
+    @staticmethod
+    def json_from_zeep(retorno: str) -> list[dict[str, any]]:
+        """
+            Recebe json string da tag 'retorno' de uma Response do Exporta Dados e \
+            transforma em list[dict]
+        """
+        return json.loads(retorno)
 
     def __processar_parametro(self, param: dict) -> str:
         param_tratado = param.copy()
@@ -71,6 +80,8 @@ class ExportaDados(SOCWebService):
                 param_tratado.pop(key)
             elif isinstance(value, date): # parse dates to string
                 param_tratado[key] = param_tratado[key].strftime(self.date_format)
+            elif isinstance(value, bool): # boolean to int
+                param_tratado[key] = int(param_tratado[key])
 
         return json.dumps(param_tratado)
 
@@ -540,4 +551,56 @@ class ExportaDados(SOCWebService):
         }
 
         return param
+
+    def mandato_cipa(
+        self,
+        empresa: int,
+        codigo: int,
+        chave: str,
+        dataInicio: date,
+        dataFim: date,
+        ativo: bool,
+        tipoSaida: str = 'json'
+    ):
+        '''
+            Esse exporta dados exibe os dados dos mandatos da empresa.
+
+            Parâmetros de entrada:
+
+            - empresa: Tipo: Numérico (8)
+            - dataInicio: Tipo: Data
+            - dataFim: Tipo: Data
+            - ativo: Tipo: Numérico (8); Obs.: Valores possíveis: 1 - Ativo e 2 - Inativo.
+
+            - Obs: dataInicio e dataFim maximo de 1 ano (365 dias)
+
+            Campos de saída:
+            CODIGOEMPRESA: Tipo: numérico (8), NOMEEMPRESA: Tipo: alfanumérico (200),
+            CODIGOUNIDADE: Tipo: alfanumérico (20), NOMEUNIDADE: Tipo: alfanumérico (130),
+            CODIGOSETOR: Tipo: alfanumérico (10), NOMESETOR: Tipo: alfanumérico (130),
+            CODIGOMANDATO: Tipo: numérico (8), CODIGOFUNCIONARIO: Tipo: numérico (20),
+            MATRICULA: Tipo: alfanumérico (30), NOMEFUNCIONARIO: Tipo: alfanumérico (120),
+            APELIDO: Tipo: alfanumérico (60), CPF: Tipo: alfanumérico (19),
+            DATAINICIOMANDATO: Tipo: data (10), DATAFIMMANDATO: Tipo: data (10),
+            DATACANDIDATURA: Tipo: data (10), TIPOESTABILIDADE: Tipo: alfanumérico (1),
+            FUNCIONARIOELEITO: Tipo: alfanumérico (3), TIPOREPRESENTACAO: Tipo: alfanumérico (10),
+            FUNCAO: Tipo: alfanumérico (80), TIPOSITUACAO: Tipo: alfanumérico (9),
+            DATAINICIOELEITORAL: Tipo: data (10), DATAINICIOPROCESSO: Tipo: data (10),
+            DATAINICIALINSCRICAO: Tipo: data (10), DATAFINALINSCRICAO: Tipo: data (10),
+            DATAELEICAOCIPA: Tipo: data (10), DATAPRORROGACAO: Tipo: data (10),
+            RENUNCIADO: Tipo: alfanumérico (3), DATAESTABILIDADEFUNCIONARIO: Tipo: data (10),
+            DSESTABILIDADE: Tipo: alfanumérico (1000)
+        '''
+
+        param = {
+            'empresa': empresa,
+            'codigo': codigo,
+            'chave': chave,
+            'tipoSaida': tipoSaida,
+            'dataInicio': dataInicio,
+            'dataFim': dataFim,
+            'ativo': ativo
+        }
+
+        return self.__processar_parametro(param=param)
 

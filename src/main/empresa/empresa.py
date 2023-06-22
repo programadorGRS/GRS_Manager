@@ -52,6 +52,11 @@ class Empresa(database.Model):
     absenteismo = database.Column(database.Boolean, default=True, server_default=text('1'))
     absenteismo_emails = database.Column(database.String(500))
 
+    # mandatos cipa
+    hist_mandt_cipa = database.Column(database.Boolean, server_default=text('0'), nullable=False)
+    erros_mandt_cipa = database.Column(database.Boolean, server_default=text('0'), nullable=False)
+    mandatos_cipa_emails = database.Column(database.String(500))
+
     data_inclusao = database.Column(database.DateTime)
     data_alteracao = database.Column(database.DateTime)
     incluido_por = database.Column(database.String(50))

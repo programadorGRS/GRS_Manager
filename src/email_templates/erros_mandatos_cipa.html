@@ -1,0 +1,25 @@
+{% extends 'src/email_templates/base.html' %}
+
+{% block body %}
+<p>Olá.</p>
+<p>Segue o relatório de <b>Pendências/Vencimentos dos Mandatos CIPA</b> encontrados nos cadastros de sua Empresa/Unidade no <b>SOC</b>.</p>
+<br>
+{% if pendencias %}
+    <b>{{ pendencias[0] }}:</b>
+    <p>{{ pendencias[1].to_html(index=False) }}</p>
+    <br>
+{% endif %}
+
+{% if vencimentos %}
+    <b>{{ vencimentos[0] }}:</b>
+    <p>
+        <b>{{ vencimentos[1] }}</b> Mandatos irão vencer nos próximos <b>{{ vencimentos[2] }}</b> dias.
+        Verifique a Aba 'Vencimentos' para ver os detalhes.
+    </p>
+{% endif %}
+
+<br>
+<p>Para corrigir as pendências, acesse sua conta no <b>SOC</b> em: https://sistema.soc.com.br/WebSoc/</p>
+<p>Após o login, use a tela <b>"Localizar Empresas"</b> para entrar em sua Empresa e acesse a tela <b>"742 - Mandatos"</b>.</p>
+<p>Em seguida, insira o <b>código do mandato</b> no campo <b>"Mandato"</b></p>
+{% endblock %}

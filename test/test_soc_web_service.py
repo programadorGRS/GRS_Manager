@@ -2,6 +2,7 @@ from src.soc_web_service.soc_web_service import SOCWebService
 from src.soc_web_service.modelo_2 import Modelo2
 from src.soc_web_service.exporta_dados import ExportaDados
 from datetime import date
+from zeep.plugins import HistoryPlugin
 
 
 def test_init():
@@ -33,9 +34,12 @@ def test_funcionario_service():
     assert resp['encontrouFuncionario'] == True
 
 def test_exporta_dados_service():
+    history = HistoryPlugin()
+
     ex = ExportaDados(
         wsdl_filename='prod/ExportaDadosWs.xml',
-        exporta_dados_keys_filename='grs.json'
+        exporta_dados_keys_filename='grs.json',
+        client_plugins=[history]
     )
 
     param = ex.pedido_exame(
@@ -48,10 +52,11 @@ def test_exporta_dados_service():
 
     body = ex.build_request_body(param=param)
 
-    resp = ex.call_service(request_body=body)
+    try:
+        resp = ex.call_service(request_body=body)
+    except:
+        pass
 
     assert resp['erro'] == False
     assert resp['mensagemErro'] is None
-
-
 

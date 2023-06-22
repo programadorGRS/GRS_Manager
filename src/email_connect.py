@@ -3,6 +3,10 @@ import smtplib
 import time
 from email.message import EmailMessage
 from email.utils import make_msgid
+import jinja2
+from flask_mail import Attachment, Message
+from src.extensions import mail
+from dataclasses import dataclass
 
 from src import app, database
 import os
@@ -37,6 +41,7 @@ class EmailConnect(database.Model):
         ),
         'cid_placeholder': 'AssEmail'
     }
+    ASSINATURA_PATH: str = os.path.join(app.static_folder, 'connect', 'ass_bot.png')
     EMAIL_TEMPLATES: str = 'src/email_templates/'
 
     def __repr__(self) -> str:
@@ -213,4 +218,42 @@ class EmailConnect(database.Model):
 
         return email_body
 
+    @staticmethod
+    def render_email_body(template_path: str, cid_assinatura: str | None = None, **kwargs):
+        '''
+            Renderiza corpo de um email com Jinja2 para HTML contendo as variaveis passadas.
+
+            Args:
+                cid_assinatura (str, optional): cid da assinatura do Bot (.png).
+                Obs: já remove os simbolos <> se houver.
+        '''
+        template_loader = jinja2.FileSystemLoader('./')
+        template_env = jinja2.Environment(loader=template_loader)
+
+        template = template_env.get_template(name=template_path)
+
+        if cid_assinatura:
+            for symbol in('<', '>'):
+                cid_assinatura = cid_assinatura.replace(symbol, '')
+
+            kwargs['cid_assinatura'] = cid_assinatura
+
+        return template.render(**kwargs)
+
+    @classmethod
+    def get_assinatura_attachment(self):
+        '''
+            Cria objeto FlaskMail.Attachment para a Assinatura de email do Bot.
+            Gera CID automaticamente para a assinatura. Atributo: obj.cid
+        '''
+        CID = make_msgid()
+        ass = Attachment(
+            filename=self.ASSINATURA_PATH,
+            content_type='image/png',
+            data=app.open_resource(self.ASSINATURA_PATH).read(),
+            disposition='inline',
+            headers=[['Content-ID', CID]]
+        )
+        ass.cid = CID
+        return ass
 

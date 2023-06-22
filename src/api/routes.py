@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import jwt
 import numpy as np
@@ -22,6 +22,8 @@ from src.main.status.status import Status
 from src.main.unidade.unidade import Unidade
 from src.main.usuario.usuario import Usuario
 from src.utils import token_required
+
+from ..main.mandato_cipa.historico_mandatos import HistoricoMandatos
 
 
 def organizar_grupos(pedido: object):
@@ -712,4 +714,64 @@ def get_ped_proc():
     df['data_criacao'] = pd.to_datetime(df['data_criacao']).dt.strftime('%d/%m/%Y')
 
     return jsonify(df.to_dict(orient='records')), 200
+
+@app.route('/get_hist_mandato')
+@token_required
+def get_hist_mandato():
+    cod_empresa_principal = request.args.get('cod_empresa_principal', type=int)
+    cod_empresa = request.args.get('cod_empresa', type=int)
+    data_inicio_historico = request.args.get('data_inicio_historico', type=str)
+    data_fim_historico = request.args.get('data_fim_historico', type=str)
+
+    DATE_FORMAT = '%d-%m-%Y'
+
+    args: dict[str, int | date] = {
+        'cod_empresa_principal': cod_empresa_principal,
+        'cod_empresa': cod_empresa,
+        'data_inicio_historico': data_inicio_historico,
+        'data_fim_historico': data_fim_historico
+    }
+
+    for key, val in args.items():
+        if not val:
+            return jsonify(f'{key} é obrigatório')
+        if 'data_' in key:
+            try:
+                args[key] = datetime.strptime(val, DATE_FORMAT).date()
+            except ValueError:
+                return jsonify(f'o formato de {key} deve ser dd-mm-yyyy')
+
+    query = (
+        database.session.query(
+            HistoricoMandatos,
+            Empresa.razao_social,
+            Empresa.cod_empresa,
+            Unidade.nome_unidade
+        )
+        .join(Empresa, HistoricoMandatos.id_empresa == Empresa.id_empresa)
+        .join(
+            Unidade,
+            and_(
+                HistoricoMandatos.id_empresa == Unidade.id_empresa,
+                HistoricoMandatos.cod_unidade == Unidade.cod_unidade
+            )
+        )
+        .filter(HistoricoMandatos.cod_empresa_principal == args.get('cod_empresa_principal'))
+        .filter(Empresa.cod_empresa == args.get('cod_empresa'))
+        .filter(HistoricoMandatos.data_inclusao >= args.get('data_inicio_historico'))
+        .filter(HistoricoMandatos.data_inclusao <= args.get('data_fim_historico'))
+    )
+
+    df = pd.read_sql(sql=query.statement, con=database.session.bind)
+
+    df.drop(columns=['id_empresa', 'id'], inplace=True)
+    df.replace({np.nan: None}, inplace=True)
+
+    for col in df.columns:
+        if 'data_' in col:
+            df[col] = df[col].fillna('').astype(str)
+
+    dados_json = df.to_dict(orient='records')
+
+    return jsonify(dados_json)
 

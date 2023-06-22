@@ -1,0 +1,58 @@
+<html>
+    <head>
+        <style type="text/css">
+            table {
+                border: none;
+                border-collapse: collapse;
+                border-spacing: 0;
+                color: black;
+                font-size: 11px;
+                font-family:Arial, Helvetica, sans-serif;
+                table-layout: fixed
+            }
+            thead {
+                border-bottom: 1px solid black;
+                vertical-align: bottom
+            }
+            th, td {
+                padding: 2px;
+                border: 1px solid lightgray
+            }
+            tr, th, td {
+                text-align: right;
+                vertical-align: middle;
+                padding: 0.5em 0.5em;
+                line-height: normal;
+                white-space: normal;
+                max-width: none;
+                border: none
+            }
+            th {font-weight: bold}
+            tbody tr:nth-child(odd) {background: #f5f5f5;}
+            tbody tr:hover {background: rgba(66, 165, 245, 0.2)}
+
+            p {
+                font-size: 14px;
+                font-family: Arial, Helvetica, sans-serif;
+                margin: 0
+            }
+
+            body {
+                font-size: 14px;
+                font-family: Arial, Helvetica, sans-serif;
+                padding: 0
+            }
+        </style>
+    </head>
+    <body>
+        {% block body %}
+        {% endblock %}
+        <br>
+        <p>
+            ***Este e-mail foi enviado automaticamente pelo sistema da GRS. Em caso de dúvidas, 
+            entre em contato com o nosso Setor de Relacionamento em: relacionamento@grsnucleo.com.br***
+        </p>
+        <img src="cid:{{ cid_assinatura }}" alt="Connect Bot" width="536px" height="123px">
+    </body>
+</html>
+

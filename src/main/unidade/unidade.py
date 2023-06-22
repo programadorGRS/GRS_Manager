@@ -2,6 +2,7 @@ from datetime import datetime
 
 import pandas as pd
 from pytz import timezone
+from sqlalchemy import text
 
 from src import database
 
@@ -38,7 +39,11 @@ class Unidade(database.Model):
     # absenteismo
     absenteismo = database.Column(database.Boolean, default=True)
     absenteismo_emails = database.Column(database.String(500))
-    
+
+    # mandatos cipa
+    erros_mandt_cipa = database.Column(database.Boolean, server_default=text('0'), nullable=False)
+    mandatos_cipa_emails = database.Column(database.String(500))
+
     data_inclusao = database.Column(database.DateTime)
     incluido_por = database.Column(database.String(50))
     data_alteracao = database.Column(database.DateTime)

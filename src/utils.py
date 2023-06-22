@@ -2,7 +2,7 @@ import base64
 import json
 import os
 from calendar import monthcalendar, setfirstweekday
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from functools import wraps
 from urllib.parse import urljoin, urlparse
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -174,3 +174,27 @@ def get_data_from_form(
 
     return new_data
 
+def gerar_datas(
+    data_inicio: date,
+    data_fim: date,
+    passo_dias: int
+) -> list[tuple[date, date]]:
+    '''
+        gera lista de tuplas [(data_inicio, data_fim)] baseada nos argumentos
+    '''
+    datas_inicio = []
+    datas_fim = []
+
+    while data_inicio < data_fim:
+        datas_inicio.append(data_inicio)
+        data_inicio = (data_inicio + timedelta(days=passo_dias + 1))
+
+    for dt in datas_inicio:
+        dt_fim = dt + timedelta(days=passo_dias)
+
+        if dt_fim <= data_fim:
+            datas_fim.append(dt_fim)
+        else:
+            datas_fim.append(data_fim)
+
+    return list(zip(datas_inicio, datas_fim))
