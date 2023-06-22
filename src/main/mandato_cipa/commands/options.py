@@ -1,19 +1,21 @@
 import click
 
+DATE_FORMAT = '%d-%m-%Y'
+
 data_inicio = click.Option(
     default=None,
     param_decls=['-dti', '--data-inicio'],
-    type=click.DateTime(formats=('%d/%m/%Y')),
+    type=click.DateTime(formats=[DATE_FORMAT]),
     show_default=True,
-    help='Data Inicio. Format: "dd/mm/yyyy". Defaults to current date - 2 years'
+    help='Data Inicio. Format: "dd-mm-yyyy". Defaults to current date - 2 years'
 )
 
 data_fim = click.Option(
     param_decls=['-dtf', '--data-fim'],
     default=None,
-    type=click.DateTime(formats=('%d/%m/%Y')),
+    type=click.DateTime(formats=[DATE_FORMAT]),
     show_default=True,
-    help='Data Fim. Format: "dd/mm/yyyy". Defaults to current date + 1 month'
+    help='Data Fim. Format: "dd-mm-yyyy". Defaults to current date + 1 month'
 )
 
 dias_vencimento = click.Option(
