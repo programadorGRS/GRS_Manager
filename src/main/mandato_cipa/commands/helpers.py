@@ -70,16 +70,16 @@ def validate_datas(
         fim = (date.today() + timedelta(days=30)) # hoje mais 30 dias
         return (inicio, fim)
 
-    if data_inicio > data_fim:
-        click.echo('Erro: data-inicio deve ser menor que data-fim')
-        return None
-
     if data_inicio and not data_fim:
         click.echo('Erro: indique data-fim')
         return None
 
     if data_fim and not data_inicio:
         click.echo('Erro: indique data-inicio')
+        return None
+
+    if data_inicio > data_fim:
+        click.echo('Erro: data-inicio deve ser menor que data-fim')
         return None
 
     return (data_inicio, data_fim)
