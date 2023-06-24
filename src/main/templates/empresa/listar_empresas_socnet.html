@@ -1,0 +1,44 @@
+{% extends 'base/base_listagem_paginada.html' %}
+
+{% block table_content %}
+<tbody>
+    {% for empresa in query.items %}
+        <tr>
+            <td style="white-space: nowrap;">
+                ID: <b>{{ empresa.id_empresa }}</b> <br>
+                Cód: <b>{{ empresa.cod_empresa }}</b> <br>
+                Status: 
+                    {% if empresa.ativo %}
+                    <span class="badge bg-success align-middle">Ativa</span>
+                    {% else %}
+                        <span class="badge bg-secondary align-middle">Inativa</span>
+                    {% endif %}
+            </td>
+
+            <td>
+                Nome: <b>{{ empresa.nome_empresa }}</b> <br>
+                Empresa Base: <b>{{ empresa.empresa_principal.nome }}</b> #{{ empresa.empresa_principal.cod }} <br>
+                Empresa Referência: <b>{{ empresa.empresa_referencia.nome }}</b> #{{ empresa.empresa_referencia.cod }}
+            </td>
+
+            <td>
+                Inclusão: <b>{{ empresa.data_inclusao.strftime('%d/%m/%Y') }}</b> <br>
+                Alteração: <b>{% if empresa.data_alteracao %}{{ empresa.data_alteracao.strftime('%d/%m/%Y') }}{% endif %}</b> <br>
+            </td>
+
+            <td>
+                Incluído por: <b>{{ empresa.incluido_por }}</b> <br>
+                Alterado por: <b>{% if empresa.alterado_por %}{{ empresa.alterado_por }}{% endif %}</b>
+            </td>
+
+            <td class="align-middle">
+                <a href="{{ url_for('editar_empresa_socnet', id_empresa=empresa.id_empresa) }}">
+                    <button class="btn btn-sm btn-primary">
+                        <span class="material-icons align-middle">edit_note</span> Editar
+                    </button>
+                </a>
+            </td>
+        </tr>
+    {% endfor %}
+</tbody>
+{% endblock %}

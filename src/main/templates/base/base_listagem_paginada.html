@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% from 'macros.html' import render_pagination %}
+
+{% block body %}
+
+<div class="container">
+    <div class="my-2">
+        <a href="{{ url_for(return_endpoint) }}">
+            <button type="button" id="botao_voltar" class="btn btn-info text-nowrap text-light"
+            name="botao_voltar" style="width: fit-content;">
+            <span class="material-icons align-middle">arrow_back</span> Voltar</button>
+        </a>
+    </div>
+
+
+    <div class="d-flex justify-content-between align-items-center p-2 my-2" style="background-color: #f2f2f2;">
+        <span class="fs-3">{{ page_title }}</span>
+        <span class="fs-5">Total da Busca: {{ total }}</span>
+        {% if socnet %}
+            <div><img src="/static/logos/logo_socnet.png" alt="Logo SOCNET" width="100px" height="50px"></div>
+        {% else %}
+            <div><img src="/static/logos/logo_grs.png" alt="Logo GRS" width="100px" height="50px"></div>
+        {% endif %}
+    </div>
+
+    {% if query.pages > 1 %}
+        <div class="my-2">
+                <div class="d-flex justify-content-end align-items-center">
+                    <span>Exibindo: <b>{{ results_per_page }}</b> resultados/pag</span>
+                </div>
+                <div class="d-flex justify-content-center align-items-center">
+                    {{ render_pagination(query, pagination_endpoint, pagination_url_args) }}
+                </div>
+        </div>
+    {% endif %}
+
+    <table class="table table-sm table-striped small_font">
+        {% block table_content %}
+        {% endblock %}
+    </table>
+</div>
+
+<div onclick="scrollToTop()" id="scroll-top">
+    <span class="material-icons">arrow_upward</span>
+</div>
+
+{% endblock %}

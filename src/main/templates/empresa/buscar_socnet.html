@@ -1,0 +1,33 @@
+{% extends 'form_base.html' %}
+
+{% from 'macros.html' import render_form_field, render_search_buttons %}
+
+{% block card_top %}
+    <div class="mb-2">
+        <a href="{{ url_for('criar_empresa_socnet') }}" class="btn btn-success text-nowrap"
+        style="width: fit-content"><span class="material-icons align-middle">add</span> Criar</a>
+    </div>
+    <hr>
+{% endblock %}
+
+{% block fieldset %}
+    {{ render_form_field(form.cod_empresa_principal) }}
+    {{ render_form_field(form.cod_empresa_referencia) }}
+    {{ render_form_field(form.id_empresa) }}
+    {{ render_form_field(form.cod_empresa) }}
+    {{ render_form_field(form.nome_empresa) }}
+    {{ render_form_field(form.empresa_ativa) }}
+{% endblock %}
+
+{% block buttons %}
+    {{ render_search_buttons() }}
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        function limpar() {
+            document.getElementById("formBusca").reset();
+        }
+    </script>
+{% endblock %}
+

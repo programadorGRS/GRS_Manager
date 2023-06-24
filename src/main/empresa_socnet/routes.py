@@ -1,50 +1,71 @@
-import datetime as dt
+from datetime import datetime
 
 import pandas as pd
 from flask import (flash, redirect, render_template, request,
-                   send_from_directory, session, url_for)
+                   send_from_directory, url_for)
 from flask_login import current_user, login_required
-from pytz import timezone
 from sqlalchemy.exc import IntegrityError
 
-from src import UPLOAD_FOLDER, app, database
-from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
+from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app, database
 from src.main.empresa_socnet.empresa_socnet import EmpresaSOCNET
-from src.main.log_acoes.log_acoes import LogAcoes
-from src.utils import admin_required
+from src.utils import (get_data_from_args, get_data_from_form,
+                       get_pagination_url_args)
 
-from .forms import FormCriarEmpresaSOCNET, FormEditarEmpresaSOCNET
+from .forms import FormBuscarEmpresaSOCNET, FormEmpresaSOCNET
 
+RESULTS_PER_PAGE = 200
 
-@app.route('/empresas_socnet')
+@app.route('/buscar-empresas-socnet', methods=['GET', 'POST'])
+@login_required
+def buscar_empresas_socnet():
+    form: FormBuscarEmpresaSOCNET = FormBuscarEmpresaSOCNET()
+    form.socnet = True
+    form.title = 'Buscar Empresas SOCNET'
+
+    form.load_choices()
+
+    if form.validate_on_submit():
+        data = get_data_from_form(data=form.data)
+
+        if 'botao_buscar' in request.form:
+            return redirect(url_for('empresas_socnet', **data))
+        elif 'botao_csv' in request.form:
+            return redirect(url_for('empresas_socnet_csv', **data))
+
+    return render_template('empresa/buscar_socnet.html', form=form)
+
+@app.route('/empresas-socnet')
 @login_required
 def empresas_socnet():
-    lista_empresas = (
-        EmpresaSOCNET.query
-        .order_by(EmpresaSOCNET.nome_empresa)
-        .all()
-    )
+    data = get_data_from_args(prev_form=FormBuscarEmpresaSOCNET(), data=request.args)
+    query = EmpresaSOCNET.buscar_empresas(**data)
 
-    qtd = len(lista_empresas)
-    
-    session['previous'] = 'empresas_socnet'
-    
+    page_num = request.args.get(key='page', type=int, default=1)
+    query_pagination = query.paginate(page=page_num, per_page=RESULTS_PER_PAGE)
+
+    pagination_url_args = get_pagination_url_args(data=request.args)
+
     return render_template(
-        'empresa/empresas_socnet.html',
-        title='GRS+Connect',
-        lista_empresas=lista_empresas,
-        qtd=qtd
+        'empresa/listar_empresas_socnet.html',
+        page_title='Empresas SOCNET',
+        query=query_pagination,
+        total=query.count(),
+        results_per_page=RESULTS_PER_PAGE,
+        pagination_url_args=pagination_url_args,
+        pagination_endpoint='empresas_socnet',
+        return_endpoint='buscar_empresas_socnet',
+        socnet=True
     )
 
-@app.route('/empresas_socnet_csv')
+@app.route('/empresas-socnet/csv')
 @login_required
 def empresas_socnet_csv():
-    query = EmpresaSOCNET.query.order_by(EmpresaSOCNET.nome_empresa)
-    
+    data = get_data_from_args(prev_form=FormBuscarEmpresaSOCNET(), data=request.args)
+    query = EmpresaSOCNET.buscar_empresas(**data)
+
     df = pd.read_sql(sql=query.statement, con=database.session.bind)
-    
-    # criar arquivo dentro da pasta
-    timestamp = int(dt.datetime.now().timestamp())
+
+    timestamp = int(datetime.now().timestamp())
     nome_arqv = f'Empresas_SOCNET_{timestamp}.csv'
     camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
     df.to_csv(
@@ -53,18 +74,17 @@ def empresas_socnet_csv():
         index=False,
         encoding='iso-8859-1'
     )
-    
+
     return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=nome_arqv)
 
-@app.route('/empresas_socnet/criar', methods=['GET', 'POST'])
+@app.route('/empresas-socnet/criar', methods=['GET', 'POST'])
 @login_required
 def criar_empresa_socnet():
-    form = FormCriarEmpresaSOCNET()
+    form: FormEmpresaSOCNET = FormEmpresaSOCNET()
+    form.title = 'Criar Empresa SOCNET'
+    form.socnet = True
 
-    opcoes = [('', 'Selecione')] + [(i.cod, i.nome) for i in EmpresaPrincipal.query.all()]
-    form.cod_empresa_principal.choices = opcoes
-    form.cod_empresa_referencia.choices = opcoes
-
+    form.load_choices()
 
     if form.validate_on_submit():
         empresa = EmpresaSOCNET(
@@ -72,101 +92,76 @@ def criar_empresa_socnet():
             cod_empresa_referencia=form.cod_empresa_referencia.data,
             cod_empresa=form.cod_empresa.data,
             nome_empresa=form.nome_empresa.data,
-            emails=form.emails.data,
             ativo=form.ativo.data,
-            data_inclusao=dt.datetime.now(tz=timezone('America/Sao_Paulo')),
+            data_inclusao=datetime.now(tz=TIMEZONE_SAO_PAULO),
             incluido_por=current_user.username
         )
+
         database.session.add(empresa)
         database.session.commit()
-        
-        LogAcoes.registrar_acao(
-            nome_tabela = 'EmpresaSOCNET',
-            tipo_acao = 'Inclusão',
-            id_registro = form.cod_empresa.data,
-            nome_registro = form.nome_empresa.data
-        )
-        
-        flash('Empresa criada com sucesso!', 'alert-success')
-        return redirect(url_for('empresas_socnet'))
-    
-    return render_template('empresa/empresa_criar_socnet.html', form=form, title='GRS+Connect')
 
-@app.route('/empresas_socnet/editar', methods=['GET', 'POST'])
+        flash(f'Empresa criada com sucesso! {empresa.id_empresa} - {empresa.nome_empresa}', 'alert-success')
+
+        return redirect(url_for('buscar_empresas_socnet'))
+
+    return render_template('empresa/editar_socnet.html', form=form)
+
+@app.route('/empresas-socnet/editar/<int:id_empresa>', methods=['GET', 'POST'])
 @login_required
-def editar_empresa_socnet():
-    empresa = EmpresaSOCNET.query.get(request.args.get(key='id_empresa', type=int))
+def editar_empresa_socnet(id_empresa):
+    empresa: EmpresaSOCNET = EmpresaSOCNET.query.get(id_empresa)
 
-    form = FormEditarEmpresaSOCNET(
+    form: FormEmpresaSOCNET = FormEmpresaSOCNET(
+        modo=2,
+        id_empresa=id_empresa,
         cod_empresa_principal=empresa.cod_empresa_principal,
         cod_empresa_referencia=empresa.cod_empresa_referencia,
         cod_empresa=empresa.cod_empresa,
         nome_empresa=empresa.nome_empresa,
-        emails=empresa.emails,
-        ativo=empresa.ativo,
-        data_inclusao=empresa.data_inclusao,
-        data_alteracao=empresa.data_alteracao,
-        incluido_por=empresa.incluido_por,
-        alterado_por=empresa.alterado_por
+        ativo=empresa.ativo
     )
+    form.title = 'Editar Empresa SOCNET'
+    form.socnet = True
 
-    opcoes = [('', 'Selecione')] + [(i.cod, i.nome) for i in EmpresaPrincipal.query.all()]
-    form.cod_empresa_principal.choices = opcoes
-    form.cod_empresa_referencia.choices = opcoes
+    form.load_choices()
 
     if form.validate_on_submit():
         empresa.cod_empresa_principal = form.cod_empresa_principal.data
         empresa.cod_empresa_referencia = form.cod_empresa_referencia.data
+
         empresa.cod_empresa = form.cod_empresa.data
         empresa.nome_empresa = form.nome_empresa.data
-        empresa.emails=form.emails.data
+
         empresa.ativo = form.ativo.data
 
-        empresa.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
+        empresa.data_alteracao = datetime.now(tz=TIMEZONE_SAO_PAULO)
         empresa.alterado_por = current_user.username
-        
+
         database.session.commit()
-    
-        LogAcoes.registrar_acao(
-            nome_tabela = 'EmpresaSOCNET',
-            tipo_acao = 'Alteração',
-            id_registro = empresa.id_empresa,
-            nome_registro = empresa.nome_empresa
-        )
-        
+
         flash(f'Empresa atualizada com sucesso!', 'alert-success')
-    
 
-        return redirect(url_for('empresas_socnet'))
-    
-    return render_template(
-        'empresa/empresa_editar_socnet.html',
-        title='GRS+Connect',
-        empresa=empresa,
-        form=form
-    )
+        return redirect(url_for('editar_empresa_socnet', id_empresa=empresa.id_empresa))
 
-@app.route('/empresas_socnet/excluir', methods=['GET', 'POST'])
+    return render_template('empresa/editar_socnet.html', empresa=empresa, form=form)
+
+@app.route('/empresas_socnet/excluir/<int:id_empresa>', methods=['GET', 'POST'])
 @login_required
-@admin_required
-def excluir_empresa_socnet():
-    empresa = EmpresaSOCNET.query.get(request.args.get('id_empresa', type=int))
-    
-    # excluir empresa
+def excluir_empresa_socnet(id_empresa):
+    empresa = EmpresaSOCNET.query.get(id_empresa)
+
     try:
         database.session.delete(empresa)
         database.session.commit()
 
-        LogAcoes.registrar_acao(
-            nome_tabela = 'Empresa SOCNET',
-            tipo_acao = 'Exclusão',
-            id_registro = empresa.id_empresa,
-            nome_registro = empresa.nome_empresa,
-        )
+        flash(f'Empresa excluída! {empresa.id_empresa} - {empresa.nome_empresa}', 'alert-danger')
 
-        flash(f'Empresa excluída! Empresa: {empresa.id_empresa} - {empresa.nome_empresa}', 'alert-danger')
-        return redirect(url_for('empresas_socnet'))
+        return redirect(url_for('buscar_empresas_socnet'))
+
     except IntegrityError:
         database.session.rollback()
-        flash(f'A empresa: {empresa.id_empresa} - {empresa.nome_empresa} não pode ser excluída, pois há outros registros associados a ela', 'alert-danger')
-        return redirect(url_for('empresas_socnet'))
+
+        flash(f'A empresa {empresa.id_empresa} - {empresa.nome_empresa} não pode ser excluída, pois há outros registros associados a ela', 'alert-info')
+
+        return redirect(url_for('editar_empresa_socnet', id_empresa=id_empresa))
+

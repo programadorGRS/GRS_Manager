@@ -4,6 +4,8 @@
 
 <div class="container justify-content-center d-flex my-2">
     <div class="card p-4">
+        {% block card_top %}
+        {% endblock %}
         <form method="POST" id="formBusca" {% if form.form_action %} action="{{ form.form_action }}" {% endif %}>
             {{ form.csrf_token }}
             <div class="d-flex">
@@ -31,9 +33,13 @@
                 {% endblock %}
             </div>
         </form>
-        {% block scripts %}
-        {% endblock %}
     </div>
 </div>
+
+{% block modal %}
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}
 
 {% endblock %}
