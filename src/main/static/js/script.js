@@ -233,3 +233,8 @@ function CarregarOpcoesExamesRealizados(
     
     document.getElementById(idUnidade).innerHTML = '<option value="">Selecione</option>';
 }
+
+
+function scrollToTop(){
+    window.scrollTo(0, 0);
+}

@@ -1,33 +1,38 @@
 {% macro render_pagination(pagination, endpoint, kwargs) %}
-    <span class="text-center text-secondary">
-        {% if pagination.has_prev %}
-            <a href="{{ url_for(endpoint, page=pagination.prev_num, **kwargs) }}" class="text-decoration-none text-dark">
-                <span class="material-icons align-middle">navigate_before</span>
-            </a>
-        {% endif %}
-
-        {% for page in pagination.iter_pages(right_current=3) %}
-            {% if page %}
-                {% if page != pagination.page %}
-                    <a href="{{ url_for(endpoint, page=page, **kwargs) }}" class="text-decoration-none text-secondary">{{ page }}</a>
-                {% else %}
-                    <strong class="text-dark">{{ page }}</strong>
-                {% endif %}
+    <nav>
+        <ul class="pagination">
+            {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for(endpoint, page=pagination.prev_num, **kwargs) }}">
+                        &laquo;
+                    </a>
+                </li>
             {% else %}
-                <span>...</span>
+                <li class="page-item disabled"><a class="page-link" href="">&laquo;</a></li>
             {% endif %}
-        {% endfor %}
 
-        {% if pagination.has_next %}
-            <a href="{{ url_for(endpoint, page=pagination.next_num, **kwargs) }}" class="text-decoration-none text-dark">
-                <span class="material-icons align-middle">navigate_next</span>
-            </a>
-        {% endif %}
-    </span>
+            {% for page in pagination.iter_pages(right_current=3) %}
+                {% if page %}
+                    {% if page != pagination.page %}
+                        <li class="page-item"><a class="page-link" href="{{ url_for(endpoint, page=page, **kwargs) }}">{{ page }}</a></li>
+                    {% else %}
+                        <li class="page-item active"><a class="page-link" href="">{{ page }}</a></li>
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
+
+            {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for(endpoint, page=pagination.next_num, **kwargs) }}">&raquo;</a>
+                </li>
+                {% else %}
+                    <li class="page-item disabled"><a class="page-link" href="">&raquo;</a></li>
+            {% endif %}
+        </ul>
+    </nav>
 {% endmacro %}
 
 {% macro render_form_field(form_field, render_label = True, show_errors = True, kwargs = {}) %}
-<div class="form-group">
     {% if render_label %}
         {{ form_field.label(id=form_field.id + '_label', class="form-control-label") }}
     {% endif %}
@@ -37,7 +42,6 @@
     {% else %}
         {{ form_field(class="form-control", **kwargs) }}
     {% endif %}
-</div>
 {% endmacro %}
 
 {% macro __show_field_erros(form_field, kwargs = {}) %}
@@ -53,9 +57,11 @@
     {% endif %}
 {% endmacro %}
 
-{% macro render_checkbox_field(form_field, kwargs = {}) %}
+{% macro render_checkbox_field(form_field, render_label = True, kwargs = {}) %}
     {{ form_field(class="form-check-input", **kwargs) }}
-    {{ form_field.label(id=form_field.id + '_label', class="form-check-label") }}
+    {% if render_label %}
+        {{ form_field.label(id=form_field.id + '_label', class="form-check-label") }}
+    {% endif %}
 {% endmacro %}
 
 {% macro render_search_buttons() %}
@@ -70,5 +76,68 @@
     <button type="submit" id="botao_csv" class="btn btn-success text-nowrap"
     name="botao_csv" style="width: fit-content;">
     <span class="material-icons align-middle">download</span> Gerar relatório</button>
+{% endmacro %}
+
+{% macro render_edit_buttons(render_delete_btn = False) %}
+    <button type="button" id="botao_voltar" class="btn btn-info text-nowrap text-light"
+    name="botao_voltar" style="width: fit-content;" onclick="window.history.back()">
+    <span class="material-icons align-middle">arrow_back</span> Voltar</button>
+
+    <button type="button" id="botao_editar" class="btn btn-primary text-nowrap"
+    name="botao_editar" style="width: fit-content;" onclick="enableFields()">
+        <span class="material-icons align-middle">edit_note</span> Editar</button>
+
+    <button hidden type="submit" id="botao_salvar" class="btn btn-primary text-nowrap"
+    name="botao_salvar" style="width: fit-content;">
+    <span class="material-icons align-middle">save</span> Salvar</button>
+
+    <button hidden type="button" id="botao_cancelar"  class="btn btn-secondary text-nowrap"
+    style="width: fit-content;" onclick="window.location.reload()">
+    <span class="material-icons align-middle">close</span> Cancelar</button>
+
+    {% if render_delete_btn %}
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#modal">
+            <span class="material-icons align-middle">delete</span> Excluir
+        </button>
+    {% endif %}
+{% endmacro %}
+
+{% macro 
+    render_modal(
+        modal_title,
+        modal_message,
+        form_action,
+        submit_btn_label = "Excluir",
+        submit_btn_class = "btn-danger",
+        modal_sub_title = "Atenção",
+        modal_img = None
+    )
+%}
+    <div class="modal fade" id="modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modal_title">{{ modal_title }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                    <div class="modal-body">
+                        <p><b>{{ modal_sub_title }}</b></p>
+                        {% if modal_img %}
+                            <div class="text-center">
+                                <img src="{{ url_for('static', filename=modal_img) }}"
+                                alt="image" height="200px" width="400px">
+                            </div>
+                        {% endif %}
+                        <p>{{ modal_message }}</p>
+                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <form action="{{ form_action }}" method="POST">
+                        <button type="submit" class="btn {{ submit_btn_class }}">{{ submit_btn_label }}</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endmacro %}
 

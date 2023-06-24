@@ -11,6 +11,8 @@ import jwt
 import pandas as pd
 from flask import flash, redirect, request, url_for
 from flask_login import current_user
+from flask_wtf import FlaskForm
+from wtforms import Field
 
 from src import app
 
@@ -174,6 +176,38 @@ def get_data_from_form(
 
     return new_data
 
+def get_data_from_args(prev_form: FlaskForm, data: dict):
+    DATE_FORMAT = '%Y-%m-%d'
+
+    ignore_v = [None, '']
+
+    new_data = {}
+
+    for key, value in data.items():
+        if value in ignore_v:
+            continue
+        if key not in prev_form._fields.keys():
+            continue
+
+        field: Field = getattr(prev_form, key)
+        match field.type:
+            case 'SelectField':
+                new_data[key] = int(value)
+            case 'DateField':
+                new_data[key] = datetime.strptime(value, DATE_FORMAT).date()
+            case 'IntegerField':
+                new_data[key] = int(value)
+            case _:
+                new_data[key] = value
+
+    return new_data
+
+def get_pagination_url_args(data: dict):
+    pagination_url_args = data.copy()
+    if 'page' in pagination_url_args.keys():
+        pagination_url_args.pop('page')
+    return pagination_url_args
+
 def gerar_datas(
     data_inicio: date,
     data_fim: date,
@@ -198,3 +232,28 @@ def gerar_datas(
             datas_fim.append(data_fim)
 
     return list(zip(datas_inicio, datas_fim))
+
+def validate_email_fields(
+        form: FlaskForm,
+        field_name_pattern: str = '_emails',
+        field_type = 'StringField',
+        *args,
+        **kwargs
+    ):
+    validated = FlaskForm.validate(form, *args, **kwargs)
+
+    if not validated:
+        return False
+
+    for field_name, field in form._fields.items():
+        if field_name_pattern in field_name and field.type == field_type:
+            try:
+                field.data = tratar_emails(field.data)
+            except:
+                field.errors.append('Erro ao validar Emails')
+
+    if form.errors:
+        return False
+    else:
+        return True
+

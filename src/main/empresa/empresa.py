@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import pandas as pd
+from flask_sqlalchemy import BaseQuery
 from sqlalchemy import text
 
 from src import TIMEZONE_SAO_PAULO, database
@@ -73,9 +74,9 @@ class Empresa(database.Model):
         cod_empresa_principal: int | None = None,
         id_empresa: int = None,
         cod_empresa: int = None,
-        nome: str = None,
-        ativo: int = None
-    ):
+        nome_empresa: str = None,
+        empresa_ativa: int = None,
+    ) -> BaseQuery:
         params = []
 
         if cod_empresa_principal:
@@ -84,10 +85,10 @@ class Empresa(database.Model):
             params.append(self.id_empresa == id_empresa)
         if cod_empresa:
             params.append(self.cod_empresa == cod_empresa)
-        if nome:
-            params.append(self.razao_social.like(f'%{nome}%'))
-        if ativo == 0 or ativo == 1:
-            params.append(self.ativo == ativo)
+        if nome_empresa:
+            params.append(self.razao_social.like(f'%{nome_empresa}%'))
+        if empresa_ativa in (0, 1):
+            params.append(self.ativo == empresa_ativa)
 
         query = (
             database.session.query(self)
