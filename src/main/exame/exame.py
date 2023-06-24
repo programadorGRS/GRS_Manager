@@ -28,21 +28,23 @@ class Exame(database.Model):
     @classmethod
     def buscar_exames(
         self,
-        cod_empresa_principal: int,
-        id_exame: int,
-        cod_exame: str,
-        nome: str,
-        prazo: int
+        cod_empresa_principal: int = None,
+        id_exame: int = None,
+        cod_exame: str = None,
+        nome: str = None,
+        prazo: int = None
     ):
-        params = [(self.cod_empresa_principal == cod_empresa_principal)]
+        params = []
 
+        if cod_empresa_principal:
+            params.append(self.cod_empresa_principal == cod_empresa_principal)
         if id_exame:
             params.append(self.id_exame == id_exame)
         if cod_exame:
             params.append(self.cod_exame.like(f'%{cod_exame}%'))
         if nome:
             params.append(self.nome_exame.like(f'%{nome}%'))
-        if prazo != None:
+        if prazo is not None:
             params.append(self.prazo == prazo)
 
         query = (
@@ -50,6 +52,7 @@ class Exame(database.Model):
             .filter(*params)
             .order_by(self.nome_exame)
         )
+
         return query
 
 

@@ -5,13 +5,19 @@ from wtforms import (BooleanField, DateTimeField, IntegerField, SelectField,
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 
 from src import database
+from src.utils import validate_email_fields
 
-from ..empresa.forms import FormBuscarEmpresa, FormCriarEmpresa
 from .prestador import Prestador
 
 
-class FormBuscarPrestador(FormBuscarEmpresa):
-    nome = StringField('Nome', validators=[Optional()])
+class FormBuscarPrestador(FlaskForm):
+    opcoes = [('', 'Selecione'), (1, 'Sim'), (0, 'Não')]
+
+    cod_empresa_principal = SelectField('Empresa Principal', choices=[], validators=[Optional()])
+    id = IntegerField('Id', validators=[Optional()])
+    cod = IntegerField('Código', validators=[Optional()])
+    nome = StringField('Nome Prestador', validators=[Optional()])
+    ativo = SelectField('Prestador Ativo', choices=opcoes, validators=[Optional()])
 
 
 class FormCriarPrestador(FlaskForm):
@@ -47,8 +53,9 @@ class FormCriarPrestador(FlaskForm):
         if prestador:
             raise ValidationError('Já existe um prestador com esse código')
     
-    def validate_emails(self, emails):
-        FormCriarEmpresa.validate_emails(self, emails)
+    # override Flaskform validate method to validate multiple fields
+    def validate(self, *args, **kwargs):
+        return validate_email_fields(form=self, *args, **kwargs)
 
 
 class FormEditarPrestador(FormCriarPrestador):

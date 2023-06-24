@@ -30,6 +30,20 @@
                                 {{ form.cod_empresa_principal(class="form-control") }}
                             {% endif %}
                         </div>
+                        <!-- ID -->
+                        <div class="form-group">
+                            {{ form.id.label(class="form-control-label") }}
+                            {% if form.id.errors %}
+                                {{ form.id(class="form-control is-invalid") }}
+                                    <div class="invalid-feedback">
+                                    {% for erro in form.id.errors %}
+                                        {{ erro }}
+                                    {% endfor %}
+                                    </div>
+                            {% else %}
+                                {{ form.id(class="form-control") }}
+                            {% endif %}
+                        </div>
                         <!-- COD -->
                         <div class="form-group">
                             {{ form.cod.label(class="form-control-label") }}

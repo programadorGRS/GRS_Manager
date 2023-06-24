@@ -7,13 +7,15 @@ from wtforms.validators import (DataRequired, InputRequired, Optional,
 
 from src import database
 
-from ..empresa.forms import FormBuscarEmpresa
 from .exame import Exame
 
 
-class FormBuscarExames(FormBuscarEmpresa):
+class FormBuscarExames(FlaskForm):
+    cod_empresa_principal = SelectField('Empresa Principal', choices=[], validators=[Optional()])
+    id = IntegerField('Id', validators=[Optional()])
+    cod = IntegerField('Código', validators=[Optional()])
     nome = StringField('Nome', validators=[Optional()])
-    prazo = IntegerField('Id', validators=[Optional()])
+    prazo = IntegerField('Prazo', validators=[Optional()])
 
 
 class FormCriarExame(FlaskForm):

@@ -1,25 +1,29 @@
 from flask import request
 from flask_wtf import FlaskForm
-from wtforms import (BooleanField, DateTimeField, SelectField, StringField,
-                     SubmitField)
+from wtforms import (BooleanField, DateTimeField, IntegerField, SelectField,
+                     StringField, SubmitField)
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 
 from src import database
+from src.utils import validate_email_fields
 
-from ..empresa.forms import FormBuscarEmpresa, FormCriarEmpresa
 from .unidade import Unidade
 
 
-class FormBuscarUnidade(FormBuscarEmpresa):
+class FormBuscarUnidade(FlaskForm):
+    opcoes = [('', 'Selecione'), (1, 'Sim'), (0, 'Não')]
+
     cod_empresa_principal = SelectField(
         'Empresa Principal',
         choices=[],
         validators=[Optional()],
         render_kw={'onchange': "carregarOpcoesEmpresa('cod_empresa_principal', 'id_empresa')"}
     )
-    nome = StringField('Nome', validators=[Optional()])
-    cod = StringField('Código', validators=[Optional()])
     id_empresa = SelectField('Empresa', choices=[('', 'Selecione')], validators=[Optional()], validate_choice=False)
+    id = IntegerField('ID', validators=[Optional()])
+    cod = IntegerField('Código', validators=[Optional()])
+    nome = StringField('Nome', validators=[Optional()])
+    ativo = SelectField('Ativo', choices=opcoes, validators=[Optional()])
 
 
 class FormCriarUnidade(FlaskForm):
@@ -61,8 +65,9 @@ class FormCriarUnidade(FlaskForm):
         if unidade:
             raise ValidationError('Já existe uma unidade na empresa com esse código')
     
-    def validate_emails(self, emails):
-        FormCriarEmpresa.validate_emails(self, emails)
+    # override Flaskform validate method to validate multiple fields
+    def validate(self, *args, **kwargs):
+        return validate_email_fields(form=self, *args, **kwargs)
 
 
 class FormEditarUnidade(FormCriarUnidade):
