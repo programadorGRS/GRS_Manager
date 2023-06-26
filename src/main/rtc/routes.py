@@ -86,15 +86,11 @@ def gerar_rtcs():
 
         timestamp = int(dt.datetime.now().timestamp())
         nome_zip = f'RTCS_{timestamp}.zip'
-        zip_path = os.path.join(UPLOAD_FOLDER, nome_arquivo)
+        zip_path = os.path.join(UPLOAD_FOLDER, nome_zip)
 
         zipar_arquivos(caminhos_arquivos=lista_pdfs, caminho_pasta_zip=zip_path)
 
-        return send_from_directory(
-            directory=UPLOAD_FOLDER,
-            path='/',
-            filename=nome_zip.split('/')[-1]
-        )
+        return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=nome_zip)
 
     return render_template(
         'rtc/gerar_rtcs.html',

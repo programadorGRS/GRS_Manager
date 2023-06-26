@@ -88,7 +88,7 @@ def zipar_arquivos(
         for arqv in caminhos_arquivos:
             z.write(
                 filename=arqv, # caminho completo
-                arcname=arqv.split('/')[-1], # apenas nome do arqv
+                arcname=arqv.split('/')[-1] if os.name == 'posix' else arqv.split('\\')[-1], # apenas nome do arqv
             )
 
     # descartar arquivos originais
