@@ -178,19 +178,21 @@
                 </td>
             </tr>
 
-            <tr>
-                <td colspan="2" class="tiposSang">
-                    <b>Tipo Sanguíneo:</b>
-                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>A +</b> </span>
-                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>A -</b> </span>
-                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>B +</b> </span>
-                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>B -</b> </span>
-                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>AB +</b> </span>
-                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>AB -</b> </span>
-                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>O +</b> </span>
-                    <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>O -</b> </span>
-                </td>
-            </tr>
+            {% if render_tipo_sang %}
+                <tr>
+                    <td colspan="2" class="tiposSang">
+                        <b>Tipo Sanguíneo:</b>
+                        <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>A +</b> </span>
+                        <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>A -</b> </span>
+                        <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>B +</b> </span>
+                        <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>B -</b> </span>
+                        <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>AB +</b> </span>
+                        <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>AB -</b> </span>
+                        <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>O +</b> </span>
+                        <span class="tipoSang">(&nbsp&nbsp&nbsp&nbsp)  <b>O -</b> </span>
+                    </td>
+                </tr>
+            {% endif %}
     
             <tr>
                 <td colspan="2" id="obs"><b>Observações:</b></td>

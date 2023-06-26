@@ -1,11 +1,10 @@
-from datetime import datetime
 import os
-from src import app
+from datetime import datetime
 
 import jinja2
 from werkzeug.utils import secure_filename
 
-from src import UPLOAD_FOLDER, database
+from src import UPLOAD_FOLDER, app, database
 from src.main.exame.exame import Exame
 from src.main.funcionario.funcionario import Funcionario
 from src.main.pedido.pedido import Pedido
@@ -106,7 +105,8 @@ class RTC(database.Model):
         logo_empresa: str = LOGO_GRS,
         logo_width: str = LOGO_GRS_WIDTH,
         logo_height: str = LOGO_GRS_HEIGHT,
-        criar_arquivo: bool = False
+        criar_arquivo: bool = False,
+        render_tipo_sang: bool = True
     ) -> str:
         """Recebe informacoes sobre a Ficha e Funcionario e cria modelo HTML da RTC
 
@@ -120,6 +120,7 @@ class RTC(database.Model):
         """
         PEDIDO: Pedido = Pedido.query.get(infos['id_ficha'])
 
+        infos['render_tipo_sang'] = render_tipo_sang
 
         # format cpf
         if len(infos['cpf_funcionario']) == 11:

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+<div class="container">
+    <div class="my-2">
+        <button type="button" id="botao_voltar" class="btn btn-info text-nowrap text-light"
+        name="botao_voltar" style="width: fit-content;" onclick="window.history.back()">
+        <span class="material-icons align-middle">arrow_back</span> Voltar</button>
+    </div>
+
+
+    <div class="d-flex justify-content-between align-items-center p-2 my-2" style="background-color: #f2f2f2;">
+        <span class="fs-3">{{ page_title }}</span>
+        <span class="fs-5">Total da Busca: {{ total }}</span>
+        {% if socnet %}
+            <div><img src="/static/logos/logo_socnet.png" alt="Logo SOCNET" width="100px" height="50px"></div>
+        {% else %}
+            <div><img src="/static/logos/logo_grs.png" alt="Logo GRS" width="100px" height="50px"></div>
+        {% endif %}
+    </div>
+
+    <form method="POST" id="formAtualizarStatus" {% if form.form_action %} action="{{ form.form_action }}" {% endif %}>
+        {{ form.csrf_token }}
+        <div class="border p-4 w-100">
+            <div class="w-100">
+                {% if form.title %}<legend>{{ form.title }}</legend>{% endif %} <br>
+                {% if form.sub_title %}<h5>{{ form.sub_title }}</h5>{% endif %}
+            </div>
+
+            <fieldset>
+                {% block fieldset %}
+                {% endblock %}
+            </fieldset>
+
+            <div class="d-flex mt-3 justify-content-between">
+                {% block buttons %}
+                {% endblock %}
+            </div>
+        </div>
+
+        <table class="table table-sm table-striped small_font">
+            {% block table_content %}
+            {% endblock %}
+        </table>
+    </form>
+</div>
+
+<div onclick="scrollToTop()" id="scroll-top">
+    <span class="material-icons">arrow_upward</span>
+</div>
+
+{% block scripts %}
+{% endblock %}
+
+{% endblock %}

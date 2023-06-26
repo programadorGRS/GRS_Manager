@@ -1,4 +1,5 @@
 import datetime as dt
+import os
 
 import pdfkit
 from flask import (redirect, render_template, request, send_from_directory,
@@ -9,55 +10,39 @@ from werkzeug.utils import secure_filename
 from src import UPLOAD_FOLDER, app
 from src.main.pedido.forms import FormBuscarASO
 from src.main.pedido.pedido import Pedido
-from src.utils import get_data_from_form, zipar_arquivos
+from src.utils import get_data_from_args, get_data_from_form, zipar_arquivos
 
 from .forms import FormGerarRTC
 from .models import RTC
 
 
-# BUSCA ----------------------------------------
-@app.route('/busca_rtc', methods=['GET', 'POST'])
+@app.route('/buscar-rtcs', methods=['GET', 'POST'])
 @login_required
 def busca_rtc():
     form = FormBuscarASO()
     form.load_choices()
-    
+
     if form.validate_on_submit():
         parametros = get_data_from_form(data=form.data, ignore_keys=['pesquisa_geral'])
         return redirect(url_for('gerar_rtcs', **parametros))
-    return render_template('rtc/busca.html', form=form, title='GRS+Connect')
+
+    return render_template('rtc/busca.html', form=form)
 
 
-@app.route('/gerar_rtcs', methods=['GET', 'POST'])
+@app.route('/gerar-rtcs', methods=['GET', 'POST'])
 @login_required
 def gerar_rtcs():
-    form = FormGerarRTC()
+    form: FormGerarRTC = FormGerarRTC()
 
-    datas = {
-        'data_inicio': request.args.get('data_inicio', type=str, default=None),
-        'data_fim': request.args.get('data_fim', type=str, default=None)
-    }
-    for chave, valor in datas.items():
-        if valor:
-            datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
+    data = get_data_from_args(prev_form=FormBuscarASO(), data=request.args)
 
-    query_pedidos = Pedido.buscar_pedidos(
-        id_grupos=Pedido.handle_group_choice(choice=request.args.get('id_grupos')),
-        cod_empresa_principal=request.args.get('cod_empresa_principal', type=int, default=None),
-        data_inicio=datas['data_inicio'],
-        data_fim=datas['data_fim'],
-        id_status=request.args.get('id_status', type=int, default=None),
-        id_status_rac=request.args.get('id_status_rac', type=int, default=None),
-        id_tag=request.args.get('id_tag', type=int, default=None),
-        id_empresa=request.args.get('id_empresa', type=int, default=None),
-        id_unidade=request.args.get('id_unidade', type=int, default=None),
-        id_prestador=request.args.get('id_prestador', type=int, default=None),
-        seq_ficha=request.args.get('seq_ficha', type=int, default=None),
-        nome_funcionario=request.args.get('nome_funcionario', type=str, default=None),
-        obs=request.args.get('obs', type=str, default=None)
-    )
+    id_grupos = data.get('id_grupos')
+    if id_grupos is not None:
+        data['id_grupos'] = Pedido.handle_group_choice(choice=id_grupos)
 
-    total = Pedido.get_total_busca(query=query_pedidos)
+    query = Pedido.buscar_pedidos(**data)
+
+    total = Pedido.get_total_busca(query=query)
 
     if form.validate_on_submit():
         config = pdfkit.configuration(wkhtmltopdf=app.config['WKHTMLTOPDF_PATH'])
@@ -72,37 +57,49 @@ def gerar_rtcs():
         lista_pdfs: list[str] = []
         for id_ficha in request.form.getlist('checkItem', type=int):
             pedido: Pedido = Pedido.query.get(id_ficha)
-            nome_funcionario = secure_filename(pedido.nome_funcionario).upper()
 
             infos_ficha = RTC.buscar_infos_rtc(id_ficha)
+
             html_str = RTC.criar_RTC_html(
                 infos=infos_ficha,
                 logo_empresa=RTC.LOGO_MANSERV,
                 logo_width=RTC.LOGO_MANSERV_WIDTH,
-                logo_height=RTC.LOGO_MANSERV_HEIGHT
+                logo_height=RTC.LOGO_MANSERV_HEIGHT,
+                render_tipo_sang=form.tipo_sang.data
             )
 
-            nome_pdf = f'{UPLOAD_FOLDER}/RTC_{nome_funcionario}_{int(dt.datetime.now().timestamp())}.pdf'
+            nome_funcionario = secure_filename(pedido.nome_funcionario).upper()
+            timestamp = int(dt.datetime.now().timestamp())
+            nome_arquivo = f'RTC_{nome_funcionario}_{timestamp}.pdf'
             if len(infos_ficha['cod_exames']) == 0:
-                nome_pdf = f'{UPLOAD_FOLDER}/__VAZIO__RAC_{nome_funcionario}_{int(dt.datetime.now().timestamp())}.pdf'
+                nome_arquivo = f'__VAZIO__RTC_{nome_funcionario}_{timestamp}.pdf'
+
+            file_path = os.path.join(UPLOAD_FOLDER, nome_arquivo)
 
             pdfkit.from_string(
                 input=html_str,
-                output_path=nome_pdf,
+                output_path=file_path,
                 configuration=config,
                 options=opt
             )
-            lista_pdfs.append(nome_pdf)
-        
-        nome_zip = f'{UPLOAD_FOLDER}/RTCS_{int(dt.datetime.now().timestamp())}.zip'
-        zipar_arquivos(caminhos_arquivos=lista_pdfs, caminho_pasta_zip=nome_zip)
+            lista_pdfs.append(file_path)
 
-        return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=nome_zip.split('/')[-1])
+        timestamp = int(dt.datetime.now().timestamp())
+        nome_zip = f'RTCS_{timestamp}.zip'
+        zip_path = os.path.join(UPLOAD_FOLDER, nome_arquivo)
+
+        zipar_arquivos(caminhos_arquivos=lista_pdfs, caminho_pasta_zip=zip_path)
+
+        return send_from_directory(
+            directory=UPLOAD_FOLDER,
+            path='/',
+            filename=nome_zip.split('/')[-1]
+        )
 
     return render_template(
         'rtc/gerar_rtcs.html',
-        title='GRS+Connect',
-        busca=query_pedidos,
+        page_title='Gerar RTCs',
+        query=query,
         total=total,
         form=form
     )

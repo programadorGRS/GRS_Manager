@@ -1,7 +1,8 @@
 from flask_wtf import FlaskForm
-from wtforms import SubmitField
+from wtforms import BooleanField
+from wtforms.validators import Optional
 
 
 class FormGerarRTC(FlaskForm):
-    btn = SubmitField('Gerar RACs')
+    tipo_sang = BooleanField('Incluir Tipo Sanguíneo', validators=[Optional()])
 

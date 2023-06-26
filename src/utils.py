@@ -192,7 +192,10 @@ def get_data_from_args(prev_form: FlaskForm, data: dict):
         field: Field = getattr(prev_form, key)
         match field.type:
             case 'SelectField':
-                new_data[key] = int(value)
+                try:
+                    new_data[key] = int(value)
+                except ValueError:
+                    new_data[key] = value
             case 'DateField':
                 new_data[key] = datetime.strptime(value, DATE_FORMAT).date()
             case 'IntegerField':
