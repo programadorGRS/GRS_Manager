@@ -1,22 +1,29 @@
 import datetime as dt
 import os
+from io import BytesIO
 
+import pandas as pd
 import pdfkit
-from flask import (redirect, render_template, request, send_from_directory,
-                   url_for)
+from flask import (flash, redirect, render_template, request,
+                   send_from_directory, url_for)
 from flask_login import login_required
+from sqlalchemy import delete
+from werkzeug.datastructures import FileStorage
 from werkzeug.utils import secure_filename
 
 from src import UPLOAD_FOLDER, app
+from src.extensions import database
 from src.main.pedido.forms import FormBuscarASO
 from src.main.pedido.pedido import Pedido
-from src.utils import get_data_from_args, get_data_from_form, zipar_arquivos
+from src.utils import (get_data_from_args, get_data_from_form,
+                       validate_upload_file_size, zipar_arquivos)
 
-from .forms import FormGerarRTC
-from .models import RTC
+from ..empresa_principal.empresa_principal import EmpresaPrincipal
+from .forms import FormGerarRTC, FormUploadCSV
+from .models import RTC, RTCCargos, RTCValidationError
 
 
-@app.route('/buscar-rtcs', methods=['GET', 'POST'])
+@app.route('/rtc/buscar', methods=['GET', 'POST'])
 @login_required
 def busca_rtc():
     form = FormBuscarASO()
@@ -29,7 +36,7 @@ def busca_rtc():
     return render_template('rtc/busca.html', form=form)
 
 
-@app.route('/gerar-rtcs', methods=['GET', 'POST'])
+@app.route('/rtc/gerar', methods=['GET', 'POST'])
 @login_required
 def gerar_rtcs():
     form: FormGerarRTC = FormGerarRTC()
@@ -100,3 +107,92 @@ def gerar_rtcs():
         form=form
     )
 
+
+@app.route('/rtc/importar_dados', methods=['GET', 'POST'])
+@login_required
+def importar_dados():
+    form: FormUploadCSV = FormUploadCSV()
+
+    form.cod_emp_princ.choices = (
+        [('', 'Selecione')] +
+        [(emp.cod, emp.nome)  for emp in EmpresaPrincipal.query.all()]
+    )
+
+    if form.validate_on_submit():
+        df = __get_df_from_form(form=form)
+
+        if df is None:
+            return redirect(url_for('importar_dados'))
+
+        try:
+            __handle_choice_tabela(form=form, df=df)
+        except RTCValidationError as err:
+            flash(f'Erro: {err.message}', 'alert-danger')
+
+        return redirect(url_for('importar_dados'))
+
+    return render_template(
+        'rtc/upload.html',
+        page_title='Importar Dados RTC',
+        form=form
+    )
+
+def __get_df_from_form(form: FormUploadCSV):
+    file_storage: FileStorage = form.csv_file.data
+    data: bytes = file_storage.read()
+
+    # validate size of data
+    validated = validate_upload_file_size(file_data=data)
+    max_size = app.config['MAX_UPLOAD_SIZE_MB']
+
+    if not validated:
+        flash(f'O arquivo deve ser menor que {max_size} MB', 'alert-info')
+        return None
+
+    # read dataframe
+    sep = form.SEP.get(int(form.file_sep.data))
+    enc = form.ENCODING.get(int(form.file_sep.data))
+
+    df = pd.read_csv(BytesIO(data), sep=sep, encoding=enc)
+
+    if df.empty:
+        flash(f'Tabela vazia', 'alert-info')
+        return None
+
+    return df
+
+def __handle_choice_tabela(form: FormUploadCSV, df: pd.DataFrame):
+    choice = int(form.tabela.data)
+    emp_princ = int(form.cod_emp_princ.data)
+
+    match choice:
+        case 1:
+            __atualizar_cargos(cod_emp_princ=emp_princ, df=df)
+
+    return None
+
+def __atualizar_cargos(cod_emp_princ: int, df: pd.DataFrame):
+    df: pd.DataFrame = RTC.tratar_df_rtc_cargos(
+        cod_emp_princ=int(cod_emp_princ),
+        df=df
+    )
+
+    database.session.execute(delete(RTCCargos))
+    database.session.commit()
+
+    df = df[['cod_cargo', 'id_rtc']]
+
+    qtd = df.to_sql(
+        name='RTCCargos',
+        con=database.session.bind,
+        if_exists='append',
+        index=False
+    )
+    database.session.commit()
+
+    flash(
+        f'Tabela RTC X Cargos atualizada com sucesso! Linhas afetadas: {qtd}',
+        'alert-success'
+    )
+
+    return None

@@ -1,0 +1,26 @@
+{% extends 'base/base_upload.html'%}
+
+{% from 'macros.html' import render_form_field, render_modal %}
+
+
+{% block fieldset %}
+    {{ render_form_field(form.cod_emp_princ) }}
+    {{ render_form_field(form.tabela) }}
+    {{ render_form_field(form.file_encoding) }}
+    {{ render_form_field(form.file_sep) }}
+    {{ render_form_field(form.csv_file) }}
+{% endblock %}
+
+{% block modal %}
+    {{ render_modal(
+        modal_title='Atualizar Tabelas RTC',
+        modal_message='Você está prestes a realizar uma alteração em massa. \
+        Essa ação não pode ser desfeita. Tenha certeza de que os dados do \
+        arquivo estão corretos.',
+        render_form=False,
+        form_button_bind='formUpload',
+        submit_btn_label='Confirmar',
+        submit_btn_class='btn-primary'
+    ) }}
+{% endblock %}
+

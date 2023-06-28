@@ -525,11 +525,12 @@ class ExportaDados(SOCWebService):
         return param
 
     def cargos(
+        self,
         empresa: int,
         codigo: int,
         chave: str,
         tipoSaida: str = 'json'
-    ):
+    ) -> str:
         '''
             Cadastro de Cargos (todas empresas)
 
@@ -550,7 +551,7 @@ class ExportaDados(SOCWebService):
             'tipoSaida': tipoSaida
         }
 
-        return param
+        return self.__processar_parametro(param=param)
 
     def mandato_cipa(
         self,

@@ -22,6 +22,7 @@ class SOCWebService:
             self,
             wsdl_filename: str,
             client_raw_response: bool = False,
+            xml_huge_tree: bool = False,
             client_plugins: list[Plugin] | None = None,
             homologacao: Literal[0, 1] = 0,
             encoding: str = 'UTF-8',
@@ -46,6 +47,7 @@ class SOCWebService:
         self.WSDL = f'configs/soc/wsdl/{wsdl_filename}'
 
         self.client_raw_response = client_raw_response
+        self.xml_huge_tree = xml_huge_tree
         self.client_plugins = client_plugins
 
         self.__init_client()
@@ -62,7 +64,10 @@ class SOCWebService:
         return None
 
     def __init_client(self):
-        conf = Settings(raw_response=self.client_raw_response)
+        conf = Settings(
+            raw_response=self.client_raw_response,
+            xml_huge_tree=self.xml_huge_tree
+        )
 
         self.client = Client(wsdl=self.WSDL, settings=conf)
 

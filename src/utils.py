@@ -4,6 +4,7 @@ import os
 from calendar import monthcalendar, setfirstweekday
 from datetime import date, datetime, timedelta
 from functools import wraps
+from sys import getsizeof
 from urllib.parse import urljoin, urlparse
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -259,4 +260,13 @@ def validate_email_fields(
         return False
     else:
         return True
+
+def validate_upload_file_size(file_data):
+    max_size_mb = app.config['MAX_UPLOAD_SIZE_MB']
+    max_bytes = max_size_mb * 1024 * 1024
+
+    if getsizeof(file_data) <= max_bytes:
+        return True
+    else:
+        return False
 

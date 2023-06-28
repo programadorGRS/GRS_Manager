@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% from 'macros.html' import render_page_header %}
+
+{% block body %}
+
+<div class="container">
+    {{ render_page_header(page_title=page_title, socnet=form.socnet) }}
+
+    <form method="POST" id="formUpload" enctype="multipart/form-data" {% if form.form_action %} action="{{ form.form_action }}" {% endif %}>
+        {{ form.csrf_token }}
+        <div class="border p-4 w-100">
+            <div class="w-100">
+                {% if form.title %}<legend>{{ form.title }}</legend>{% endif %} <br>
+                {% if form.sub_title %}<h5>{{ form.sub_title }}</h5>{% endif %}
+            </div>
+
+            <fieldset>
+                {% block fieldset %}
+                {% endblock %}
+            </fieldset>
+
+            <div class="d-flex mt-3 justify-content-between">
+                <button type="button" id="btn_upload" class="btn btn-success text-nowrap"
+                name="btn_upload" style="width: fit-content;" data-bs-toggle="modal" data-bs-target="#modal">
+                <span class="material-icons align-middle">upload</span> Upload</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+{% block modal %}
+{% endblock %}
+
+{% block scripts %}
+{% endblock %}
+
+{% endblock %}
