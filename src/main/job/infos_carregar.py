@@ -17,3 +17,9 @@ class InfosCarregar:
     erro: str | None = None
     data_hora: datetime = datetime.now(TIMEZONE_SAO_PAULO)
 
+    def add_error(self, error: str):
+        if self.erro:
+            self.erro += f'; {error}'
+        else:
+            self.erro = error
+

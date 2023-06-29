@@ -22,7 +22,7 @@ class SOCWebService:
             self,
             wsdl_filename: str,
             client_raw_response: bool = False,
-            xml_huge_tree: bool = False,
+            xml_huge_tree: bool = True,
             client_plugins: list[Plugin] | None = None,
             homologacao: Literal[0, 1] = 0,
             encoding: str = 'UTF-8',

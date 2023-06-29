@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% from 'macros.html' import render_page_header, render_form_field %}
+
+{% block body %}
+
+<div class="container">
+    {{ render_page_header(page_title=page_title, socnet=form.socnet) }}
+
+    <form method="POST" id="formCarregar" enctype="multipart/form-data" {% if form.form_action %}
+        action="{{ form.form_action }}" {% endif %}>
+        {{ form.csrf_token }}
+        <div class="border p-4 w-100">
+            <fieldset id="campos">
+                {{ render_form_field(form.cod_emp_princ, kwargs={'onchange': "carregarOpcoesEmpresa('cod_emp_princ',
+                'id_empresa')"}) }}
+                {{ render_form_field(form.id_empresa) }}
+                {{ render_form_field(form.tabela, kwargs={'onchange': 'toggleObs()'}) }}
+                <div class="d-flex justify-content-between" id="datas">
+                    <div class="w-49">
+                        {{ render_form_field(form.data_inicio) }}
+                    </div>
+                    <div class="w-49">
+                        {{ render_form_field(form.data_fim) }}
+                    </div>
+                </div>
+                <span>Limite de 30 dias</span> <br>
+                <span id="obsDatas" class="my-2"></span>
+            </fieldset>
+
+            <div class="d-flex mt-3 justify-content-between">
+                <button type="submit" id="btn-carregar" class="btn btn-primary text-nowrap" style="width: fit-content;">
+                    <span class="material-icons align-middle">sync</span> Carregar</button>
+
+                <button type="button" class="btn btn-secondary text-nowrap" style="width: fit-content;"
+                    onclick="resetForm()">
+                    <span class="material-icons align-middle">close</span> Limpar</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div id="spinner" class="spinner-overlay">
+    <div class="text-center">
+        <span class="spinner-border text-dark" role="status" style="width: 3rem; height: 3rem;"></span>
+    </div>
+</div>
+
+<script>
+    function disableForm() {
+        document.getElementById('btn-carregar').setAttribute('disabled', true);
+        document.getElementById('spinner').style.display = 'flex';
+    }
+
+    function toggleObs() {
+        const tabela = document.getElementById('tabela');
+        const obs = document.getElementById('obsDatas');
+
+        let obsText = 'Obs: Data Inicio e Datafim se referem à '
+        switch (parseInt(tabela.value)) {
+            case 1:
+                obsText += 'Data da Ficha'
+                break;
+            case 2:
+                obsText += 'Data de Admissão/Demissão dos Funcionários'
+                break;
+            default:
+                obsText = ''
+                break;
+        }
+
+        obs.innerText = obsText;
+    }
+
+    function resetIdEmpresa() {
+        const idEmpresa = document.getElementById('id_empresa');
+        idEmpresa.innerHTML = '<option value="">Selecione uma Empresa Principal</option>';
+    }
+
+    function resetForm() {
+        document.getElementById("formCarregar").reset();
+        resetIdEmpresa();
+        toggleObs();
+    }
+
+    window.onload = resetIdEmpresa();
+    window.onload = document.getElementById('formCarregar').addEventListener('submit', disableForm);
+</script>
+
+{% endblock %}

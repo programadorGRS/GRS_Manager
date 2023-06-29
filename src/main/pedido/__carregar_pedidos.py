@@ -1,14 +1,14 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 import numpy as np
 import pandas as pd
 from sqlalchemy import update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.inspection import inspect
 from workalendar.america import Brazil
 
 from src import TIMEZONE_SAO_PAULO, database
-from src.exporta_dados import ExportaDadosWS
-from src.utils import get_json_configs
+from src.soc_web_service.exporta_dados import ExportaDados
 
 from ..empresa.empresa import Empresa
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
@@ -30,8 +30,8 @@ class CarregarPedidos:
     def carregar_pedidos(
         self,
         id_empresa: int,
-        dataInicio: str,
-        dataFim: str
+        dataInicio: date,
+        dataFim: date
     ) -> InfosCarregar:
         """Coleta Pedidos da Empresa no período selecionado, insere Pedidos novos \
             e Atualiza os já existentes.
@@ -43,19 +43,23 @@ class CarregarPedidos:
         Returns:
             InfosCarregar: Dataclass com informações sobre o carregamento
         """
-        EMPRESA: Empresa = Empresa.query.get(id_empresa)
-        EMPRESA_PRINCIPAL: EmpresaPrincipal = EmpresaPrincipal.query.get(EMPRESA.cod_empresa_principal)
-        CREDENCIAIS = get_json_configs(EMPRESA_PRINCIPAL.configs_exporta_dados)
+        ex = ExportaDados(
+            wsdl_filename='prod/ExportaDadosWs.xml',
+            exporta_dados_keys_filename='grs.json'
+        )
 
-        PARAMETRO = ExportaDadosWS.pedido_exame(
+        EMPRESA: Empresa = Empresa.query.get(id_empresa)
+        EMPRESA_PRINCIPAL: EmpresaPrincipal = (
+            EmpresaPrincipal.query.get(EMPRESA.cod_empresa_principal)
+        )
+
+        PARAMETRO = ex.pedido_exame(
             empresa=EMPRESA.cod_empresa,
-            cod_exporta_dados=CREDENCIAIS.get('PEDIDO_EXAMES_COD'),
-            chave=CREDENCIAIS.get('PEDIDO_EXAMES_KEY'),
+            codigo=ex.EXPORTA_DADOS_KEYS.get('PEDIDO_EXAMES_COD'),
+            chave=ex.EXPORTA_DADOS_KEYS.get('PEDIDO_EXAMES_KEY'),
             dataInicio=dataInicio,
             dataFim=dataFim
         )
-
-        resp = ExportaDadosWS.request_exporta_dados_ws(parametro=PARAMETRO)
 
         infos = InfosCarregar(
             tabela=self.__tablename__,
@@ -63,23 +67,29 @@ class CarregarPedidos:
             id_empresa=EMPRESA.id_empresa,
         )
 
-        if resp.get('response').status_code != 200:
+        body = ex.build_request_body(param=PARAMETRO)
+
+        try:
+            resp = ex.call_service(request_body=body)
+        except:
             infos.ok = False
-            infos.erro = f'Erro no request'
+            infos.erro = 'Erro no request'
             return infos
-        
-        if resp.get('erro_soc'):
+
+        erro = getattr(resp, 'erro', None)
+        if erro:
             infos.ok = False
-            infos.erro = f'Erro SOC {resp.get("msg_erro")}'
+            msg_erro = getattr(resp, 'mensagemErro', None)
+            infos.add_error(error=f'Erro SOC: {msg_erro}')
             return infos
-        
-        df = ExportaDadosWS.xml_to_dataframe(xml_string=resp.get('response').text)
+
+        retorno = getattr(resp, 'retorno', None)
+        df = ex.dataframe_from_zeep(retorno=retorno)
 
         if df.empty:
-            infos.ok = False
-            infos.erro = 'df vazio'
+            infos.add_error(error='df vazio')
             return infos
-        
+
         df = self.__tratar_df_exporta_dados(
             df=df,
             cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
@@ -87,9 +97,8 @@ class CarregarPedidos:
         )
 
         # NOTE: passar cópia para que o df original não seja modificado
-        infos.qtd_inseridos = self.__inserir_pedidos(df=df.copy())
-
-        infos.qtd_atualizados = self.__atualizar_pedidos(df=df.copy())
+        infos = self.__inserir_pedidos(df=df.copy(), infos=infos)
+        infos = self.__atualizar_pedidos(df=df.copy(), infos=infos)
 
         return infos
 
@@ -337,34 +346,43 @@ class CarregarPedidos:
         return df
 
     @classmethod
-    def __inserir_pedidos(self, df: pd.DataFrame):
+    def __inserir_pedidos(self, df: pd.DataFrame, infos: InfosCarregar):
         # manter apenas pedidos sem id (novos)
         df = df[df['id_ficha'].isna()].copy()
 
         if df.empty:
-            return 0
+            infos.qtd_inseridos = 0
+            infos.add_error(error='df vazio ao inserir')
+            return infos
 
         df['id_status'] = 1 # Vazio
         df['data_inclusao'] = datetime.now(tz=TIMEZONE_SAO_PAULO)
         df['incluido_por'] = 'Servidor'
 
-        qtd = df.to_sql(
-            name=self.__tablename__,
-            con=database.session.bind,
-            index=False,
-            if_exists='append'
-        )
-        database.session.commit()
+        try:
+            qtd = df.to_sql(
+                name=self.__tablename__,
+                con=database.session.bind,
+                if_exists='append',
+                index=False
+            )
+            database.session.commit()
+            infos.qtd_inseridos = qtd
+        except IntegrityError:
+            infos.ok = False
+            infos.add_error(error='IntegrityError ao inserir')
 
-        return qtd
+        return infos
 
     @classmethod
-    def __atualizar_pedidos(self, df: pd.DataFrame):
+    def __atualizar_pedidos(self, df: pd.DataFrame, infos: InfosCarregar):
         # manter apenas pedidos com id validos (ja existem)
         df = df[df['id_ficha'].notna()].copy()
 
         if df.empty:
-            return 0
+            infos.qtd_atualizados = 0
+            infos.add_error(error='df vazio ao atualizar')
+            return infos
 
         df['last_server_update'] = datetime.now(TIMEZONE_SAO_PAULO)
 
@@ -381,10 +399,15 @@ class CarregarPedidos:
 
         df_mappings = df.to_dict(orient='records')
 
-        database.session.bulk_update_mappings(self, df_mappings)
-        database.session.commit()
+        try:
+            database.session.bulk_update_mappings(self, df_mappings)
+            database.session.commit()
+            infos.qtd_atualizados = len(df_mappings)
+        except IntegrityError:
+            infos.ok = False
+            infos.add_error(error='IntegrityError ao atualizar')
 
-        return len(df_mappings)
+        return infos
 
     @classmethod
     def __resetar_nao_compareceu(self, df: pd.DataFrame):

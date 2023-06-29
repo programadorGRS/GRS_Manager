@@ -11,14 +11,17 @@ from src.main.exame.exame import Exame
 from src.main.unidade.unidade import Unidade
 from src.utils import admin_required, tratar_emails
 
-from .forms import FormImportarDados
+from ..funcionario.funcionario import Funcionario
+from ..pedido.pedido import Pedido
+from ..processamento.processamento import Processamento
+from .forms import FormAtualizarTabela, FormImportarDados
 
 
-@app.route('/importar_dados/atualizar', methods=['GET', 'POST'])
+@app.route('/importacao/atualizar-tabelas', methods=['GET', 'POST'])
 @login_required
 @admin_required
-def importar_dados_atualizar():
-    form = FormImportarDados()
+def atualizar_tabelas():
+    form = FormAtualizarTabela()
 
     if form.validate_on_submit():
         # ler arquivo
@@ -90,4 +93,65 @@ def importar_dados_atualizar():
                         flash('Erro ao validar as Colunas do Arquivo', 'alert-danger')
                         return redirect(url_for('importar_dados_atualizar'))
 
-    return render_template('/importar_dados.html', title='GRS+Connect', form=form)
+    return render_template('importacao/upload.html', title='GRS+Connect', form=form)
+
+@app.route('/importacao/sincronizar-soc', methods=['GET', 'POST'])
+@login_required
+def importar_dados():
+    form: FormImportarDados = FormImportarDados()
+    form.load_choices()
+
+    if form.validate_on_submit():
+        tabela = int(form.tabela.data)
+
+        # validar tarefa
+        task = Processamento.buscar_tarefas_ativas(tipo=tabela)
+        if task:
+            flash(
+                'Já existe um processo deste tipo \
+                em andamento. Tente novamente em alguns \
+                minutos.',
+                'alert-info'
+            )
+            return redirect(url_for('importar_dados'))
+
+        match tabela:
+            case 1:
+                new_task_id = Processamento.nova_tarefa(tipo=1)
+                infos = Pedido.carregar_pedidos(
+                    id_empresa=int(form.id_empresa.data),
+                    dataInicio=form.data_inicio.data,
+                    dataFim=form.data_fim.data
+                )
+            case 2:
+                new_task_id = Processamento.nova_tarefa(tipo=2)
+                infos = Funcionario.carregar_funcionarios(
+                    id_empresa=int(form.id_empresa.data),
+                    data_inicio=form.data_inicio.data,
+                    data_fim=form.data_fim.data
+                )
+
+        if infos.ok:
+            flash(
+                f'Dados importados com sucesso! \
+                Tabela: {infos.tabela} | \
+                Inseridos: {infos.qtd_inseridos} | \
+                Atualizados: {infos.qtd_atualizados}',
+                'alert-success'
+            )
+            Processamento.concluir_tarefa(id=new_task_id)
+        else:
+            flash(f'Erro: {infos.erro}','alert-danger')
+            Processamento.concluir_tarefa(
+                id=new_task_id,
+                status=4,
+                erro=infos.erro
+            )
+
+        return redirect(url_for('importar_dados'))
+    return render_template(
+        'importacao/carregar.html',
+        page_title='Importar Dados SOC',
+        form=form
+    )
+

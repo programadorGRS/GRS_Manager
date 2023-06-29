@@ -149,7 +149,7 @@
 
 {% macro render_page_header(page_title, total_busca = None, socnet = False, return_endpoint = None) %}
     {% if return_endpoint %}
-        <div class="my-2">
+        <div class="my-1">
             <a href="{{ url_for(return_endpoint) }}">
                 <button type="button" id="botao_voltar" class="btn btn-info text-nowrap text-light"
                 name="botao_voltar" style="width: fit-content;">
@@ -157,14 +157,14 @@
             </a>
         </div>
     {% else %}
-        <div class="my-2">
+        <div class="my-1">
             <button type="button" id="botao_voltar" class="btn btn-info text-nowrap text-light"
             name="botao_voltar" style="width: fit-content;" onclick="window.history.back()">
             <span class="material-icons align-middle">arrow_back</span> Voltar</button>
         </div>
     {% endif %}
 
-    <div class="d-flex justify-content-between align-items-center p-2 my-2" style="background-color: #f2f2f2;">
+    <div class="d-flex justify-content-between align-items-center p-2 my-1" style="background-color: #f2f2f2;">
         <span class="fs-3">{{ page_title }}</span>
 
         {% if total_busca %}<span class="fs-5">Total da Busca: {{ total }}</span>{% endif %}

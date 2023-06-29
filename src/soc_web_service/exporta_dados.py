@@ -17,7 +17,19 @@ class ExportaDados(SOCWebService):
         exporta_dados_keys_filename: str,
         **kwargs
     ) -> None:
-        '''Classe para integração com o Exporta Dados do SOC'''
+        '''
+            Classe para integração com o Exporta Dados do SOC
+
+            Arguments:
+                wsdl_filename (str): apenas nome do arquivo WSDL. \
+                Pasta: configs/soc/wsdl
+
+                exporta_dados_keys_filename (str): nome do arquivo json de \
+                chaves do Exporta Dados. Pasta: keys/soc/exporta_dados
+
+            Attributes:
+                EXPORTA_DADOS_KEYS (dict[str | any]): chaves dos Exporta Dados
+        '''
         super().__init__(wsdl_filename=wsdl_filename, **kwargs)
         self.date_format = '%d/%m/%Y'
         self.set_exporta_dados_keys(filename=exporta_dados_keys_filename)
@@ -297,14 +309,15 @@ class ExportaDados(SOCWebService):
         return par
 
     def cadastro_funcionarios(
-        cod_empresa_principal: int,
-        cod_exporta_dados: int,
+        self,
+        empresa: int,
+        codigo: int,
         chave: str,
         empresaTrabalho: int,
-        parametroData: int = 0,
-        dataInicio: str = '',
-        dataFim: str = '',
-        cpf: str = '',
+        parametroData: bool = False,
+        dataInicio: date | None = None,
+        dataFim: date | None = None,
+        cpf: str | None = None,
         tipoSaida: str = 'json'
     ):
         '''
@@ -313,20 +326,42 @@ class ExportaDados(SOCWebService):
         Dependendo da Empresa que estiver sendo acessado, este Exporta Dados \
         irá listar todos os Funcionários que estão cadastrados na Empresa Logada. \
         Será trazido todos os Funcionários, não importando sua situação.
+
+        Parâmetros de entrada:
+            - empresaTrabalho: Tipo: Numérico (8); Obs.: Este campo serve \
+            como filtro para selecionar a Empresa, e trazer todos os \
+            Funcionários, não importando sua situação.
+            - cpf: Tipo: Alfanumérico; Obs.: Deverá ser preenchido somente com números.
+            - parametroData: Tipo: Booleano; Obs.: Habilite este campo caso \
+            seja necessário realizar a pesquisa dentro de um período \
+            específico. Quando este campo estiver selecionado, será \
+            obrigatório informar as datas Início e Fim.
+            - dataInicio: Tipo: Data
+            - dataFim: Tipo: Data
+
+            OBS: os campos dataInicio e dataFim se referem às datas de \
+            Admissão ou Demissão dos Funcionários.
+
+        Campos de saída:
+            CODIGOEMPRESA, NOMEEMPRESA, CODIGO, NOME, CODIGOUNIDADE, NOMEUNIDADE, \
+            CODIGOSETOR, NOMESETOR, CODIGOCARGO, NOMECARGO, CBOCARGO, \
+            MATRICULAFUNCIONARIO, CPFFUNCIONARIO, SITUACAO, DATA_NASCIMENTO, \
+            DATA_ADMISSAO, DATA_DEMISSAO, ENDERECO, NUMERO_ENDERECO, BAIRRO, UF, \
+            EMAILCORPORATIVO, EMAILPESSOAL, TELEFONECELULAR, DATACADASTRO
         '''
         par = {
-            'empresa':cod_empresa_principal,
-            'codigo':cod_exporta_dados,
-            'chave':chave,
-            'tipoSaida':tipoSaida,
-            'empresaTrabalho':empresaTrabalho,
-            'cpf':cpf,
-            'parametroData':parametroData,
-            'dataInicio':dataInicio,
-            'dataFim':dataFim
+            'empresa': empresa,
+            'codigo': codigo,
+            'chave': chave,
+            'tipoSaida': tipoSaida,
+            'empresaTrabalho': empresaTrabalho,
+            'cpf': cpf,
+            'parametroData': parametroData,
+            'dataInicio': dataInicio,
+            'dataFim': dataFim
             }
         
-        return par
+        return self.__processar_parametro(param=par)
 
     def licenca_socind(
         cod_empresa_principal: int,

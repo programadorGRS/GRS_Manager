@@ -12,6 +12,9 @@ from src.main.mandato_cipa.historico_mandatos import HistoricoMandatos
 from src.main.pedido.pedido import Pedido
 from src.main.pedido_socnet.pedido_socnet import PedidoSOCNET
 from src.main.prestador.prestador import Prestador
+from src.main.processamento.processamento import Processamento
+from src.main.processamento.status_processamento import StatusProcessamento
+from src.main.processamento.tipo_processamento import TipoProcessamento
 from src.main.status.status import Status
 from src.main.status.status_lib import StatusLiberacao
 from src.main.status.status_rac import StatusRAC

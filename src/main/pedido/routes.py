@@ -1,11 +1,10 @@
 import datetime as dt
-import os
 from io import StringIO
 from sys import getsizeof
 
 import numpy as np
 import pandas as pd
-from flask import (current_app, flash, redirect, render_template, request,
+from flask import (flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import current_user, login_required
 from flask_mail import Attachment, Message
@@ -26,8 +25,8 @@ from src.main.tipo_exame.tipo_exame import TipoExame
 from src.main.unidade.unidade import Unidade
 from src.utils import admin_required, get_data_from_form
 
-from .forms import (FormAtualizarStatus, FormBuscarASO, FormCarregarPedidos,
-                    FormEditarPedido, FormEnviarEmails, FormPedidoBulkUpdate)
+from .forms import (FormAtualizarStatus, FormBuscarASO, FormEditarPedido,
+                    FormEnviarEmails, FormPedidoBulkUpdate)
 
 
 @app.route('/busca', methods=['GET', 'POST'])
@@ -503,46 +502,6 @@ def pedido_excluir():
 
     flash(f'Pedido excluído! Seq. Ficha: {pedido.seq_ficha}', 'alert-danger')
     return redirect(url_for('busca'))
-
-
-@app.route('/pedidos/carregar', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def carregar_pedidos():
-    form = FormCarregarPedidos(cod_empresa_principal=423)
-
-    form.cod_empresa_principal.choices = (
-        [   (i.cod, i.nome)
-            for i in 
-            EmpresaPrincipal.query.filter_by(cod=423)
-        ]
-    )
-    
-    # if form.validate_on_submit():
-    #     try:
-    #         qtd_pedidos = Pedido.inserir_pedidos(
-    #             cod_empresa_principal=form.cod_empresa_principal.data,
-    #             dataInicio=form.data_inicio.data.strftime('%d/%m/%Y'),
-    #             dataFim=form.data_fim.data.strftime('%d/%m/%Y')
-    #         )
-
-    #         LogAcoes.registrar_acao(
-    #             nome_tabela='Pedido',
-    #             tipo_acao='Importação',
-    #             id_registro=1,
-    #             nome_registro=1,
-    #             observacao=f'Pedidos importdados: {qtd_pedidos}'
-    #         )
-        
-    #         flash(f'Pedidos importados com sucesso! Qtd: {qtd_pedidos}', 'alert-success')
-            
-    #         return redirect(url_for('carregar_pedidos'))
-    #     except ExpatError:
-    #         flash('Erro de comunicação com o SOC. Tente novamente mais tarde', 'alert-danger')
-    flash('Função temporariamente desativada', 'alert-danger')
-
-    return render_template('pedido/pedidos_carregar.html', title='GRS+Connect', form=form)
-
 
 @app.route('/pedidos/bulk_update', methods=['GET', 'POST'])
 @login_required

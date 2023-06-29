@@ -3,40 +3,22 @@ from datetime import datetime, timedelta
 import click
 
 from src import app
+from src.commands.options import opt_data_fim, opt_data_inicio, opt_id_empresa
+from src.commands.utils import validate_datas
 from src.extensions import database
 
 from ..empresa.empresa import Empresa
 from ..job.job import Job
 from .pedido import Pedido
 
+opt_data_inicio.help = 'Data Inicio (Data da Ficha). \
+    Format: "dd-mm-yyyy". Defaults to current date - 10 days'
+opt_data_fim.help = 'Data Fim (Data da Ficha). \
+    Format: "dd-mm-yyyy". Defaults to current date + 10 days'
+opt_id_empresa.help ='Id da Empresa para carregar os Pedidos. Defaults to all.'
 
-opt_dataInicio = click.Option(
-    default=(datetime.now() - timedelta(days=10)).strftime('%d/%m/%Y'),
-    param_decls=['-dti', '--data-inicio'],
-    type=str,
-    show_default=True,
-    help='Data Inicio (Data da Ficha). Format: "dd/mm/yyyy". Defaults to current date - 10 days'
-)
-
-opt_dataFim = click.Option(
-    param_decls=['-dtf', '--data-fim'],
-    default=(datetime.now() + timedelta(days=10)).strftime('%d/%m/%Y'),
-    type=str,
-    show_default=True,
-    help='Data Fim (Data da Ficha). Format: "dd/mm/yyyy". Defaults to current date + 10 days'
-)
-
-opt_id_empresa = click.Option(
-    param_decls=['-id', '--id-empresa'],
-    default=None,
-    type=int,
-    show_default=False,
-    help='Id da Empresa para carregar os Pedidos. Defaults to all.'
-)
-
-par = [opt_id_empresa, opt_dataInicio, opt_dataFim]
+par = [opt_data_inicio, opt_data_fim, opt_id_empresa]
 srt_help = 'Carrega Pedidos de Exames'
-
 @app.cli.command('carregar-pedidos', params=par, short_help=srt_help)
 def carregar_pedidos(id_empresa, data_inicio, data_fim):
     '''
@@ -47,6 +29,14 @@ def carregar_pedidos(id_empresa, data_inicio, data_fim):
     '''
     # NOTE: sempre carregar apenas pedidos da base da GRS
     COD_GRS = 423
+
+    if not data_inicio and not data_fim:
+        data_inicio = (datetime.now() - timedelta(days=10)).date()
+        data_fim = (datetime.now() + timedelta(days=10)).date()
+
+    validated = validate_datas(data_inicio=data_inicio, data_fim=data_fim)
+    if not validated:
+        return None
 
     total_inseridos = 0
     total_atualizados = 0

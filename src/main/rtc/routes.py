@@ -108,9 +108,9 @@ def gerar_rtcs():
     )
 
 
-@app.route('/rtc/importar_dados', methods=['GET', 'POST'])
+@app.route('/rtc/importar-dados', methods=['GET', 'POST'])
 @login_required
-def importar_dados():
+def importar_dados_rtc():
     form: FormUploadCSV = FormUploadCSV()
 
     form.cod_emp_princ.choices = (

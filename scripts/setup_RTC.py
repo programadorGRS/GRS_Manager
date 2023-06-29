@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     from src import app, database
 
-    from .models import RTC, RTCCargos, RTCExames
+    from ..src.main.rtc.models import RTC, RTCCargos, RTCExames
 
     with app.app_context():
         # RTC
