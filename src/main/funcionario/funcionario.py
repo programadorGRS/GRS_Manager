@@ -48,14 +48,26 @@ class Funcionario(database.Model):
                 Caso contrário, o parametro parametroData será marcado como \
                 False
         '''
-        ex = ExportaDados(
-            wsdl_filename='prod/ExportaDadosWs.xml',
-            exporta_dados_keys_filename='grs.json'
-        )
-
         EMPRESA: Empresa = Empresa.query.get(id_empresa)
         EMPRESA_PRINCIPAL: EmpresaPrincipal = (
             EmpresaPrincipal.query.get(EMPRESA.cod_empresa_principal)
+        )
+        KEYS = getattr(EMPRESA_PRINCIPAL, 'chaves_exporta_dados', None)
+
+        infos = InfosCarregar(
+            tabela=self.__tablename__,
+            cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
+            id_empresa=EMPRESA.id_empresa
+        )
+
+        if not KEYS:
+            infos.ok = False
+            infos.add_error('Chaves Exporta Dados não encontradas')
+            return infos
+
+        ex = ExportaDados(
+            wsdl_filename='prod/ExportaDadosWs.xml',
+            exporta_dados_keys_filename=KEYS
         )
 
         PARAMETRO = ex.cadastro_funcionarios(
