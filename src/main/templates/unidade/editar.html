@@ -1,0 +1,129 @@
+{% extends 'form_base.html' %}
+
+{% from 'macros.html' import render_form_field, render_edit_buttons, render_checkbox_field %}
+
+{% block fieldset %}
+    <span>
+        <b>Empresa Principal:</b> 
+        {{ unidade.empresa_principal.nome }} #{{ unidade.empresa_principal.cod }}
+    </span><br>
+
+    <span>
+        <b>Empresa:</b> 
+        {{ unidade.empresa.razao_social }} #{{ unidade.empresa.cod_empresa }}
+    </span><br> <br>
+
+    <span><b>Nome:</b> {{ unidade.nome_unidade }}</span><br>
+
+    <div class="d-flex justify-content-between">
+        <span><b>ID:</b> {{ unidade.id_unidade }}</span>
+        <span><b>Cód SOC:</b> {{ unidade.cod_unidade }}</span>
+        <span><b>UF:</b> {{ unidade.uf }}</span>
+    </div>
+
+    <span><b>Status:</b>
+        {% if unidade.ativo %}
+        <span class="badge bg-success align-middle">Ativa</span>
+        {% else %}
+            <span class="badge bg-secondary align-middle">Inativa</span>
+        {% endif %}
+    </span>
+
+    <hr>
+
+    <b>Relatórios E-mail</b> <br>
+    <span>Configure os relatórios que esta 
+        Unidade irá receber por E-mail</span>
+        <br> <br>
+
+    <b>Convocação de Exames</b>
+    <div class="input-group mb-3">
+        <div class="input-group-text">
+            {{ render_checkbox_field(form.conv_exames, render_label=False) }}
+        </div>
+        {{ render_form_field(form.conv_exames_emails, render_label=False) }}
+    </div>
+
+    <b>Exames Realizados</b>
+    <div class="input-group mb-3">
+        <div class="input-group-text">
+            {{ render_checkbox_field(form.exames_realizados, render_label=False) }}
+        </div>
+        {{ render_form_field(form.exames_realizados_emails, render_label=False) }}
+    </div>
+
+    <b>Absenteísmo</b>
+    <div class="input-group mb-3">
+        <div class="input-group-text">
+            {{ render_checkbox_field(form.absenteismo, render_label=False) }}
+        </div>
+        {{ render_form_field(form.absenteismo_emails, render_label=False) }}
+    </div>
+
+    <b>Mandatos CIPA</b>
+    <div class="input-group mb-3">
+        <div class="input-group-text">
+            {{ render_checkbox_field(form.mandatos_cipa, render_label=False) }}
+        </div>
+        {{ render_form_field(form.mandatos_cipa_emails, render_label=False) }}
+    </div>
+
+    <hr>
+
+    <div class="d-flex justify-content-between">
+        <span>
+            <b>Data Inclusão:</b> 
+            {{ unidade.data_inclusao.strftime('%d/%m/%Y') }}
+        </span>
+        <span>
+            <b>Last Server Update:</b> 
+            {% if unidade.last_server_update %}
+                {{ unidade.last_server_update.strftime('%d/%m/%Y') }}
+            {% endif %}
+        </span>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <span>
+            <b>Data Alteração:</b> 
+            {% if unidade.data_alteracao %}
+                {{ unidade.data_alteracao.strftime('%d/%m/%Y') }}
+            {% endif %}
+        </span>
+        <span>
+            <b>Alterado por:</b> 
+            {% if unidade.alterado_por %}
+                {{ unidade.alterado_por }}
+            {% endif %}
+        </span>
+    </div>
+{% endblock %}
+
+{% block buttons %}
+    {{ render_edit_buttons() }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    window.onload =  function disableFields(){
+        const campos = document.getElementsByTagName("input");
+        for(let i = 0; i < campos.length; i++){
+            campos[i].disabled = true;
+        };
+    };
+
+    function enableFields(){
+        const campos = document.getElementsByTagName("input");
+        for(let i = 0; i < campos.length; i++){
+            campos[i].disabled = false;
+        };
+
+        document.getElementById("botao_editar").hidden = true;
+        document.getElementById("botao_voltar").hidden = true;
+
+        document.getElementById("botao_cancelar").hidden = false;
+        document.getElementById("botao_salvar").hidden = false;
+    };
+</script>
+{% endblock %}
+

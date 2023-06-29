@@ -1,0 +1,25 @@
+{% extends 'form_base.html' %}
+
+{% from 'macros.html' import render_form_field, render_search_buttons %}
+
+{% block fieldset %}
+    {{ render_form_field(form.cod_emp_princ) }}
+    {{ render_form_field(form.id_empresa) }}
+    {{ render_form_field(form.id_unidade) }}
+    {{ render_form_field(form.cod_unidade) }}
+    {{ render_form_field(form.nome_unidade) }}
+    {{ render_form_field(form.unidade_ativa) }}
+{% endblock %}
+
+{% block buttons %}
+    {{ render_search_buttons() }}
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        function limpar() {
+            document.getElementById("formBusca").reset();
+        }
+    </script>
+{% endblock %}
+

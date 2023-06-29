@@ -1,31 +1,33 @@
 from datetime import datetime
 
 import pandas as pd
-from pytz import timezone
+from flask_sqlalchemy import BaseQuery
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
-from src import database
+from src import TIMEZONE_SAO_PAULO, database
+from src.soc_web_service.exporta_dados import ExportaDados
 
 from ..empresa.empresa import Empresa
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
+from ..job.infos_carregar import InfosCarregar
 
 
 class Unidade(database.Model):
     __tablename__ = 'Unidade'
+
     id_unidade = database.Column(database.Integer, primary_key=True)
     cod_empresa_principal = database.Column(database.Integer, database.ForeignKey('EmpresaPrincipal.cod'), nullable=False)
     id_empresa = database.Column(database.Integer, database.ForeignKey('Empresa.id_empresa'), nullable=False)
     cod_unidade = database.Column(database.String(255), nullable=False)
     nome_unidade = database.Column(database.String(255), nullable=False)
     emails = database.Column(database.String(500))
-    ativo = database.Column(database.Boolean, nullable=False, default=True)
-    
-    pedidos = database.relationship('Pedido', backref='Unidade', lazy=True) # one to many
-
+    ativo = database.Column(database.Boolean, nullable=False)
     cod_rh = database.Column(database.String(255))
-    cnpj = database.Column(database.String(255))
     uf = database.Column(database.String(10))
-    razao_social = database.Column(database.String(255))
+
+    # relationships
+    pedidos = database.relationship('Pedido', backref='unidade', lazy=True) # one to many
 
     # convocacao de exames
     conv_exames = database.Column(database.Boolean, default=False)
@@ -49,9 +51,11 @@ class Unidade(database.Model):
     data_alteracao = database.Column(database.DateTime)
     alterado_por = database.Column(database.String(50))
 
+    last_server_update = database.Column(database.DateTime)
+
     def __repr__(self) -> str:
         return f'<{self.id_unidade}> {self.nome_unidade}'
-    
+
     COLUNAS_PLANILHA = [
         'cod_empresa_principal',
         'id_empresa',
@@ -81,275 +85,241 @@ class Unidade(database.Model):
     @classmethod
     def buscar_unidades(
         self,
-        cod_empresa_principal: int | None = None,
+        cod_emp_princ: int | None = None,
         id_empresa: int = None,
         id_unidade: int = None,
         cod_unidade: int = None,
-        nome: str = None,
-        ativo: int = None
-    ):
-        models = [
-            (self.id_unidade), (self.cod_empresa_principal), (self.id_empresa),
-            (self.cod_unidade), (self.nome_unidade), (self.emails),
-            (self.ativo), (self.conv_exames), (self.cod_rh),
-            (self.cnpj), (self.uf), (self.data_inclusao), (self.data_alteracao),
-            (self.incluido_por), (self.alterado_por), (self.conv_exames_emails),
-            (self.conv_exames_corpo_email), (self.exames_realizados), (self.exames_realizados_emails),
-            (self.absenteismo), (self.absenteismo_emails),
-            (Empresa.id_empresa), (Empresa.cod_empresa), (Empresa.razao_social)
-        ]
-
+        nome_unidade: str = None,
+        unidade_ativa: int = None
+    ) -> BaseQuery:
         params = []
 
-        if cod_empresa_principal:
-            params.append((self.cod_empresa_principal == cod_empresa_principal))
+        if cod_emp_princ:
+            params.append(self.cod_empresa_principal == cod_emp_princ)
         if id_empresa:
             params.append(self.id_empresa == id_empresa)
         if id_unidade:
             params.append(self.id_unidade == id_unidade)
         if cod_unidade:
             params.append(self.cod_unidade.like(f'%{cod_unidade}%'))
-        if nome:
-            params.append(self.nome_unidade.like(f'%{nome}%'))
-        if ativo == 0 or ativo == 1:
-            params.append(self.ativo == ativo)
+        if nome_unidade:
+            params.append(self.nome_unidade.like(f'%{nome_unidade}%'))
+        if unidade_ativa in (0, 1):
+            params.append(self.ativo == unidade_ativa)
 
         query = (
-            database.session.query(*models)
+            database.session.query(self)
             .filter(*params)
-            .join(Empresa, Empresa.id_empresa == self.id_empresa)
-            .order_by(self.id_empresa)
             .order_by(self.nome_unidade)
         )
         return query
 
     @classmethod
-    def inserir_unidades(
+    def carregar_unidades(
         self,
-        cod_empresa_principal: int
-    ) -> int | None:
-        '''
-        Carrega todas as Unidades no exporta dados da EmpresaPrincipal selecionada
+        cod_emp_princ: int,
+        ativo: bool | None = None
+    ):
+        EMPRESA_PRINCIPAL: EmpresaPrincipal = (EmpresaPrincipal.query.get(cod_emp_princ))
+        KEYS = getattr(EMPRESA_PRINCIPAL, 'chaves_exporta_dados', None)
 
-        Insere apenas Unidades que cuja chave (cod_empresa + cod_unidade) não existe na db
-        '''
-        
-
-        from modules.exporta_dados import (exporta_dados, get_json_configs,
-                                           unidades)
-
-
-        empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
-        credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
-
-        par = unidades(
-            empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['UNIDADES_COD'],
-            chave=credenciais['UNIDADES_KEY']
+        infos = InfosCarregar(
+            tabela=self.__tablename__,
+            cod_empresa_principal=EMPRESA_PRINCIPAL.cod
         )
-        df_exporta_dados = exporta_dados(parametro=par)
-        
-        if not df_exporta_dados.empty:
-            df_exporta_dados = df_exporta_dados[[
-                'CODIGOEMPRESA',
-                'CODIGOUNIDADE',
-                'NOMEUNIDADE',
-                'UNIDADEATIVA',
-                'CODIGORHUNIDADE',
-                'CNPJUNIDADE',
-                'UF',
-                'RAZAOSOCIAL'
-            ]]
-            df_exporta_dados['CODIGOEMPRESA'] = df_exporta_dados['CODIGOEMPRESA'].astype(int)
-            df_exporta_dados['UNIDADEATIVA'] = df_exporta_dados['UNIDADEATIVA'].astype(int)
 
-            # carregar empresas da db
-            empresas_db = pd.read_sql(
-                sql=(
-                    database.session.query(
-                        Empresa.id_empresa,
-                        Empresa.cod_empresa
-                    )
-                    .filter(Empresa.cod_empresa_principal == cod_empresa_principal)
-                ).statement,
-                con=database.session.bind
-            )
+        if not KEYS:
+            infos.ok = False
+            infos.add_error('Chaves Exporta Dados não encontradas')
+            return infos
 
-            if not empresas_db.empty:
-                # pegar ids empresas
-                df_final = pd.merge(
-                    df_exporta_dados,
-                    empresas_db,
-                    how='left',
-                    left_on='CODIGOEMPRESA',
-                    right_on='cod_empresa'
-                )
-                df_final.drop(columns='cod_empresa', inplace=True)
+        ex = ExportaDados(
+            wsdl_filename='prod/ExportaDadosWs.xml',
+            exporta_dados_keys_filename=KEYS
+        )
 
-                # pegar ids unidades
-                unidades_db = pd.read_sql(
-                    sql=(
-                        database.session.query(
-                            Unidade.id_unidade,
-                            Unidade.cod_unidade,
-                            Empresa.cod_empresa
-                        )
-                        .join(Empresa, Unidade.id_empresa == Empresa.id_empresa)
-                        .filter(Unidade.cod_empresa_principal == cod_empresa_principal)
-                    ).statement,
-                    con=database.session.bind
-                )
-                df_final = pd.merge(
-                    df_final,
-                    unidades_db,
-                    how='left',
-                    left_on=['CODIGOEMPRESA', 'CODIGOUNIDADE'],
-                    right_on=['cod_empresa', 'cod_unidade']
-                )
-                df_final.drop(columns=['cod_empresa', 'cod_unidade'], inplace=True)
+        PARAMETRO = ex.unidades(
+            empresa=EMPRESA_PRINCIPAL.cod,
+            codigo=ex.EXPORTA_DADOS_KEYS.get('UNIDADES_COD'),
+            chave=ex.EXPORTA_DADOS_KEYS.get('UNIDADES_KEY'),
+            ativo=ativo
+        )
 
-                # manter apenas unidades novas
-                df_final = df_final[df_final['id_unidade'].isna()]
+        body = ex.build_request_body(param=PARAMETRO)
 
-                # remover unidades sem empresa na db ou sem cod de unidade
-                df_final.dropna(
-                    axis=0,
-                    subset=['id_empresa', 'CODIGOEMPRESA', 'CODIGOUNIDADE'],
-                    inplace=True
-                )
+        try:
+            resp = ex.call_service(request_body=body)
+        except:
+            infos.ok = False
+            infos.erro = 'Erro no request'
+            return infos
 
-                # tratar df
-                df_final = df_final[[
-                    'id_empresa',
-                    'CODIGOUNIDADE',
-                    'NOMEUNIDADE',
-                    'UNIDADEATIVA',
-                    'CODIGORHUNIDADE',
-                    'CNPJUNIDADE',
-                    'UF',
-                    'RAZAOSOCIAL'
-                ]]
-                df_final = df_final.replace(to_replace={'': None})
-                df_final = df_final.rename(columns={
-                    'CODIGOUNIDADE': 'cod_unidade',
-                    'NOMEUNIDADE': 'nome_unidade',
-                    'UNIDADEATIVA': 'ativo',
-                    'CODIGORHUNIDADE': 'cod_rh',
-                    'CNPJUNIDADE': 'cnpj',
-                    'UF': 'uf',
-                    'RAZAOSOCIAL': 'razao_social'
-                })
-                df_final['cod_empresa_principal'] = cod_empresa_principal
-                df_final['data_inclusao'] = datetime.now(tz=timezone('America/Sao_Paulo'))
-                df_final['incluido_por'] = 'Servidor'
+        erro = getattr(resp, 'erro', None)
+        if erro:
+            infos.ok = False
+            msg_erro = getattr(resp, 'mensagemErro', None)
+            infos.add_error(error=f'Erro SOC: {msg_erro}')
+            return infos
 
-                # inserir
-                linhas_inseridas = df_final.to_sql(
-                    name=self.__tablename__,
-                    con=database.session.bind,
-                    if_exists='append',
-                    index=False
-                )
-                database.session.commit()
-                
-                return linhas_inseridas
-            else:
-                return None
-        else:
-            return None
+        retorno = getattr(resp, 'retorno', None)
+        df = ex.dataframe_from_zeep(retorno=retorno)
+
+        if df.empty:
+            infos.add_error(error='df vazio')
+            return infos
+
+        df = self.__tratar_df_exporta_dados(
+            df=df,
+            cod_emp_princ=EMPRESA_PRINCIPAL.cod
+        )
+
+        # NOTE: remover Unidades sem Empresa na db
+        df = df[df['id_empresa'].notna()]
+
+        # NOTE: passar cópia para que o df original não seja modificado
+        infos = self.__inserir_unidades(df=df.copy(), infos=infos)
+        infos = self.__atualizar_unidades(df=df.copy(), infos=infos)
+
+        return infos
 
     @classmethod
-    def atualizar_unidades(
+    def __tratar_df_exporta_dados(
         self,
-        cod_empresa_principal: int
+        df: pd.DataFrame,
+        cod_emp_princ: int
     ):
-        '''
-        Carrega todas as Unidades no exporta dados da EmpresaPrincipal selecionada
+        COLS = {
+            'CODIGOEMPRESA': 'cod_empresa',
+            'CODIGOUNIDADE': 'cod_unidade',
+            'NOMEUNIDADE': 'nome_unidade',
+            'UNIDADEATIVA': 'ativo',
+            'CODIGORHUNIDADE': 'cod_rh',
+            'UF': 'uf'
+        }
 
-        Atualiza infos das Unidades que ja existem na db
+        df = df.copy()
 
-        '''
-        
+        df = df[list(COLS.keys())]
+        df = df.replace({'': None})
+        df.rename(columns=COLS, inplace=True)
 
-        from modules.exporta_dados import (exporta_dados, get_json_configs,
-                                           unidades)
+        for col in ['cod_empresa', 'ativo']:
+            df[col] = df[col].astype(int)
 
+        df = self.__buscar_infos_unidades(df=df, cod_emp_princ=cod_emp_princ)
+        df = self.__buscar_infos_empresas(df=df, cod_emp_princ=cod_emp_princ)
 
-        empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
-        credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
+        df = df.drop(columns='cod_empresa')
 
-        par = unidades(
-            empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['UNIDADES_COD'],
-            chave=credenciais['UNIDADES_KEY'],
-        )
-        df_exporta_dados = exporta_dados(parametro=par)
-        
-        if not df_exporta_dados.empty:
-            df_exporta_dados = df_exporta_dados[[
-                'CODIGOEMPRESA',
-                'CODIGOUNIDADE',
-                'NOMEUNIDADE',
-                'UNIDADEATIVA',
-                'CODIGORHUNIDADE',
-                'CNPJUNIDADE',
-                'UF',
-                'RAZAOSOCIAL'
-            ]]
-            df_exporta_dados['CODIGOEMPRESA'] = df_exporta_dados['CODIGOEMPRESA'].astype(int)
-            df_exporta_dados['UNIDADEATIVA'] = df_exporta_dados['UNIDADEATIVA'].astype(int)
+        df['cod_empresa_principal'] = cod_emp_princ
 
-            # pegar ids das unidades
-            df_database = pd.read_sql(
-                sql=(
-                    database.session.query(
-                        Unidade.id_unidade,
-                        Unidade.cod_unidade,
-                        Empresa.cod_empresa
-                    )
-                    .join(Empresa, Empresa.id_empresa == Unidade.id_empresa)
-                    .filter(Unidade.cod_empresa_principal == cod_empresa_principal)
-                ).statement,
-                con=database.session.bind
+        return df
+
+    @classmethod
+    def __buscar_infos_unidades(
+        self,
+        df: pd.DataFrame,
+        cod_emp_princ: int
+    ):
+        query = (
+            database.session.query(
+                self.id_unidade,
+                self.cod_unidade,
+                Empresa.cod_empresa
             )
+            .join(Empresa, Empresa.id_empresa == self.id_empresa)
+            .filter(self.cod_empresa_principal == cod_emp_princ)
+        )
 
-            if not df_database.empty:
-                df_final = pd.merge(
-                    df_exporta_dados,
-                    df_database,
-                    how='right',
-                    left_on=['CODIGOEMPRESA', 'CODIGOUNIDADE'],
-                    right_on=['cod_empresa', 'cod_unidade']
-                )
+        df_db = pd.read_sql(query.statement, database.session.bind)
 
-                df_final.dropna(axis=0, subset=['UNIDADEATIVA', 'CODIGOUNIDADE', 'CODIGOEMPRESA'], inplace=True)
-                
-                df_final = df_final[[
-                    'id_unidade',
-                    'NOMEUNIDADE',
-                    'UNIDADEATIVA',
-                    'CODIGORHUNIDADE',
-                    'CNPJUNIDADE',
-                    'UF',
-                    'RAZAOSOCIAL'
-                ]]
+        df = df.merge(
+            df_db,
+            how='left',
+            on=['cod_empresa', 'cod_unidade']
+        )
 
-                # tratar df
-                df_final = df_final.replace(to_replace={'': None})
-                df_final = df_final.rename(columns={
-                    'NOMEUNIDADE': 'nome_unidade',
-                    'UNIDADEATIVA': 'ativo',
-                    'CODIGORHUNIDADE': 'cod_rh',
-                    'CNPJUNIDADE': 'cnpj',
-                    'UF': 'uf',
-                    'RAZAOSOCIAL': 'razao_social'
-                })
-                df_final['data_alteracao'] = datetime.now(tz=timezone('America/Sao_Paulo'))
-                df_final['alterado_por'] = 'Servidor'
+        return df
 
-                df_final = df_final.to_dict(orient='records')
+    @classmethod
+    def __buscar_infos_empresas(
+        self,
+        df: pd.DataFrame,
+        cod_emp_princ: int
+    ):
+        query = (
+            database.session.query(
+                Empresa.id_empresa,
+                Empresa.cod_empresa
+            )
+            .filter(Empresa.cod_empresa_principal == cod_emp_princ)
+        )
 
-                database.session.bulk_update_mappings(Unidade, df_final)
-                database.session.commit()
-        
-            return len(df_final)
+        df_db = pd.read_sql(query.statement, database.session.bind)
+
+        df = df.merge(
+            df_db,
+            how='left',
+            on='cod_empresa'
+        )
+
+        return df
+
+    @classmethod
+    def __inserir_unidades(
+        self,
+        df: pd.DataFrame,
+        infos: InfosCarregar
+    ) -> InfosCarregar:
+        df = df[df['id_unidade'].isna()].copy()
+
+        if df.empty:
+            infos.qtd_inseridos = 0
+            infos.add_error(error='df vazio ao inserir')
+            return infos
+
+        df = df.drop(columns='id_unidade')
+        df['data_inclusao'] = datetime.now(tz=TIMEZONE_SAO_PAULO)
+
+        try:
+            qtd = df.to_sql(
+                name=self.__tablename__,
+                con=database.session.bind,
+                if_exists='append',
+                index=False
+            )
+            database.session.commit()
+            infos.qtd_inseridos = qtd
+        except IntegrityError:
+            infos.ok = False
+            infos.add_error(error='IntegrityError ao inserir')
+
+        return infos
+
+    @classmethod
+    def __atualizar_unidades(
+        self,
+        df: pd.DataFrame,
+        infos: InfosCarregar
+    ) -> InfosCarregar:
+        df = df[df['id_unidade'].notna()].copy()
+
+        if df.empty:
+            infos.qtd_atualizados = 0
+            infos.add_error(error='df vazio ao atualizar')
+            return infos
+
+        df['last_server_update'] = datetime.now(TIMEZONE_SAO_PAULO)
+
+        df_mappings = df.to_dict(orient='records')
+
+        try:
+            database.session.bulk_update_mappings(self, df_mappings)
+            database.session.commit()
+            infos.qtd_atualizados = len(df_mappings)
+        except IntegrityError:
+            infos.ok = False
+            infos.add_error(error='IntegrityError ao atualizar')
+
+        return infos
+

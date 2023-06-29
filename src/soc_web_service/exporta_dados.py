@@ -185,10 +185,11 @@ class ExportaDados(SOCWebService):
         return parametro
 
     def unidades(
-        empresa_principal: int,
-        cod_exporta_dados: int,
+        self,
+        empresa: int,
+        codigo: int,
         chave: str,
-        ativo: int = '',
+        ativo: int | None = None,
         tipoSaida: str = 'json'
     ) -> dict:
         '''
@@ -196,7 +197,7 @@ class ExportaDados(SOCWebService):
 
         Será listado Todas Unidades e suas Respectivas Empresas/Clientes \
         com informações básicas de cada uma das Unidades.
-        
+
         Campos: CODIGOEMPRESA, NOMEEMPRESA, CODIGOUNIDADE, NOMEUNIDADE, \
         CODIGORHUNIDADE, GRAUDERISCOUNIDADE, UNIDADEATIVA,
         CNPJUNIDADE, INSCRICAOESTADUALUNIDADE, CODIGOCLIENTEINTEGRACAO, \
@@ -205,14 +206,14 @@ class ExportaDados(SOCWebService):
 
         ativo: situacao da empresa (puxa todos se vazio)
         '''
-        parametro = {
-            'empresa':empresa_principal,
-            'codigo':cod_exporta_dados,
+        param = {
+            'empresa':empresa,
+            'codigo':codigo,
             'chave':chave,
             'tipoSaida':tipoSaida,
             'ativo':ativo
         }
-        return parametro
+        return self.__processar_parametro(param=param)
 
     def prestadores(
         cod_empresa_principal: int,

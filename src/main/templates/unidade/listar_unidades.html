@@ -1,0 +1,45 @@
+{% extends 'base/base_listagem_paginada.html' %}
+
+{% block table_content %}
+<tbody>
+    {% for unidade in query.items %}
+        <tr>
+            <td style="white-space: nowrap;">
+                ID: <b>{{ unidade.id_unidade }}</b> <br>
+                Cód: <b>{{ unidade.cod_unidade }}</b> <br>
+                Status: 
+                    {% if unidade.ativo %}
+                    <span class="badge bg-success align-middle">Ativa</span>
+                    {% else %}
+                        <span class="badge bg-secondary align-middle">Inativa</span>
+                    {% endif %}
+            </td>
+
+            <td>
+                Nome Unidade: <b>{{ unidade.nome_unidade }}</b> <br>
+                Empresa: {{ unidade.empresa.razao_social }} #{{ unidade.empresa.cod_empresa }} <br>
+                Empresa Principal: {{ unidade.empresa_principal.nome }} #{{ unidade.empresa_principal.cod }}
+            </td>
+
+            <td style="white-space: nowrap;">
+                Inclusão: <b>{{ unidade.data_inclusao.strftime('%d/%m/%Y') }}</b> <br>
+                Alteração: <b>{% if unidade.data_alteracao %}{{ unidade.data_alteracao.strftime('%d/%m/%Y') }}{% endif %}</b> <br>
+                Last Server Update: <b>{% if unidade.last_server_update %}{{ unidade.last_server_update.strftime('%d/%m/%Y') }}{% endif %}</b>
+            </td>
+
+            <td style="white-space: nowrap;">
+                Incluído por: <b>{{ unidade.incluido_por }}</b> <br>
+                Alterado por: <b>{% if unidade.alterado_por %}{{ unidade.alterado_por }}{% endif %}</b>
+            </td>
+
+            <td class="align-middle">
+                <a href="{{ url_for('editar_unidade', id_unidade=unidade.id_unidade) }}">
+                    <button class="btn btn-sm btn-primary">
+                        <span class="material-icons align-middle">edit_note</span> Editar
+                    </button>
+                </a>
+            </td>
+        </tr>
+    {% endfor %}
+</tbody>
+{% endblock %}

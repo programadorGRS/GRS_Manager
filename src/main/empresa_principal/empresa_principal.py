@@ -9,13 +9,12 @@ class EmpresaPrincipal(database.Model):
     ativo = database.Column(database.Boolean, nullable=False, default=True)
     socnet = database.Column(database.Boolean, nullable=False, default=True)
     configs_exporta_dados = database.Column(database.String(255))
+    chaves_exporta_dados = database.Column(database.String(255))
 
+    # relationships
     empresas = database.relationship('Empresa', backref='empresa_principal', lazy=True) # one to many
-
     unidades = database.relationship('Unidade', backref='empresa_principal', lazy=True) # one to many
-
     exames = database.relationship('Exame', backref='empresa_principal', lazy=True) # one to many
-
     jobs = database.relationship('Job', backref='empresa_principal', lazy=True) # one to many
 
     data_inclusao = database.Column(database.DateTime)

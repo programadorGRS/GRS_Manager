@@ -20,3 +20,15 @@ opt_id_empresa = click.Option(
     type=int
 )
 
+opt_ativo = click.Option(
+    param_decls=['-atv', '--ativo'],
+    default=None,
+    type=int
+)
+
+opt_cod_emp_princ = click.Option(
+    param_decls=['-cod', '--cod-emp-princ'],
+    default=None,
+    type=int
+)
+
