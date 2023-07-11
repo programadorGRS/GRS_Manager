@@ -63,6 +63,8 @@
         {{ render_form_field(form.mandatos_cipa_emails, render_label=False) }}
     </div>
 
+    <span>Obs: para mais de um e-mail, separe-os por ";" (ponto e vírgula)</span>
+
     <hr>
 
     <b>Importação de Dados</b> <br>
@@ -71,6 +73,55 @@
         <br> <br>
 
     {{ render_checkbox_field(form.carregar_mandatos_cipa) }}
+
+    <hr>
+
+    <b>Central de Avisos</b> <br>
+    <span>Use essa seção para configurações
+        relacionadas à <b>Central de Avisos</b>
+    </span>
+    <br> <br>
+
+    <b>Domínios de E-mail da Empresa</b> <br>
+    <span>
+        Inclua aqui os dominios que devem ser permitidos ao 
+        cadastrar e-mails para esta Empresa e suas Unidades
+    </span>
+    {{ render_form_field(form.dominios_email, render_label=False) }}
+
+    <br>
+
+    <span>Obs:</span> <br>
+    <ul>
+        <li>Para mais de um domínio, separe-os por ";" (ponto e vírgula)</li>
+        <li>Não inclua <b>@</b> (arroba) nos dominios, apenas a parte após o <b>@</b></li>
+    </ul>
+
+    <span><b>Cadastro E-mail de Unidades</b></span> <br>
+
+    <span>
+        O <b>link</b> abaixo serve para que os colaboradores das <b>Unidades</b> desta Empresa possam 
+        cadastrar seus E-mails e receber os relatórios gerados pelo Connect. 
+        Cada <b>Empresa</b> tem um link único que permite cadastrar e-mails em todas as suas <b>Unidades</b>.
+    </span>
+
+    <br> <br>
+
+    <span>
+        Compartilhe este <b>link</b> com a Empresa caso precisem atualizar os 
+        destinatários dos relatórios.
+    </span>
+
+    <br> <br>
+
+    <span>
+        <b>Link:</b> 
+        {% if empresa.central_avisos_token %} 
+            <span>
+                <u>{{ request.root_url[:-1] }}{{ url_for('central_avisos.unidades', token=empresa.central_avisos_token) }}</u>
+            </span>
+        {% endif %}
+    </span>
 
     <hr>
 

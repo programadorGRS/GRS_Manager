@@ -1,6 +1,8 @@
 from datetime import datetime
 
+import jwt
 import pandas as pd
+from flask import current_app
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy import text
 
@@ -26,7 +28,7 @@ class Empresa(database.Model):
     cnpj = database.Column(database.String(100))
     uf = database.Column(database.String(5))
     subgrupo = database.Column(database.String(50))
-    
+
     pedidos = database.relationship('Pedido', backref='empresa', lazy=True) # one to many
     pedidos_proc = database.relationship('PedidoProcessamento', backref='empresa', lazy=True) # one to many
     grupo = database.relationship('Grupo', secondary=grupo_empresa, backref='empresas', lazy=True) # many to many
@@ -57,6 +59,10 @@ class Empresa(database.Model):
     hist_mandt_cipa = database.Column(database.Boolean, server_default=text('0'), nullable=False)
     erros_mandt_cipa = database.Column(database.Boolean, server_default=text('0'), nullable=False)
     mandatos_cipa_emails = database.Column(database.String(500))
+
+    # central de avisos
+    dominios_email = database.Column(database.String(100))
+    central_avisos_token = database.Column(database.String(255))
 
     data_inclusao = database.Column(database.DateTime)
     data_alteracao = database.Column(database.DateTime)
@@ -236,3 +242,11 @@ class Empresa(database.Model):
 
         return len(df_mappings)
 
+    @staticmethod
+    def generate_token_central_avisos(id_empresas: list[int]):
+        token = jwt.encode(
+            payload={"empresas": id_empresas},
+            key=current_app.config["SECRET_KEY"],
+            algorithm="HS256",
+        )
+        return token

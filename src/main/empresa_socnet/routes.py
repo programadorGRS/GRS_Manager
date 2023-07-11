@@ -1,12 +1,12 @@
 from datetime import datetime
 
 import pandas as pd
-from flask import (flash, redirect, render_template, request,
+from flask import (Blueprint, flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import current_user, login_required
 from sqlalchemy.exc import IntegrityError
 
-from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app, database
+from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, database
 from src.main.empresa_socnet.empresa_socnet import EmpresaSOCNET
 from src.utils import (get_data_from_args, get_data_from_form,
                        get_pagination_url_args)
@@ -15,49 +15,60 @@ from .forms import FormBuscarEmpresaSOCNET, FormEmpresaSOCNET
 
 RESULTS_PER_PAGE = 200
 
-@app.route('/buscar-empresas-socnet', methods=['GET', 'POST'])
+
+empresa_socnet = Blueprint(
+    name="empresa_socnet",
+    import_name=__name__,
+    url_prefix="/empresa-socnet",
+    template_folder="templates",
+)
+
+
+@empresa_socnet.route("/buscar", methods=["GET", "POST"])
 @login_required
 def buscar_empresas_socnet():
     form: FormBuscarEmpresaSOCNET = FormBuscarEmpresaSOCNET()
-    form.socnet = True
-    form.title = 'Buscar Empresas SOCNET'
+    form.socnet = True  # type: ignore
+    form.title = "Buscar Empresas SOCNET"  # type: ignore
 
     form.load_choices()
 
     if form.validate_on_submit():
         data = get_data_from_form(data=form.data)
 
-        if 'botao_buscar' in request.form:
-            return redirect(url_for('empresas_socnet', **data))
-        elif 'botao_csv' in request.form:
-            return redirect(url_for('empresas_socnet_csv', **data))
+        if "botao_buscar" in request.form:
+            return redirect(url_for("empresa_socnet.empresas_socnet", **data))
+        elif "botao_csv" in request.form:
+            return redirect(url_for("empresa_socnet.empresas_socnet_csv", **data))
 
-    return render_template('empresa/buscar_socnet.html', form=form)
+    return render_template("empresa_socnet/buscar_socnet.html", form=form)
 
-@app.route('/empresas-socnet')
+
+@empresa_socnet.route("/buscar/resultados")
 @login_required
 def empresas_socnet():
     data = get_data_from_args(prev_form=FormBuscarEmpresaSOCNET(), data=request.args)
     query = EmpresaSOCNET.buscar_empresas(**data)
 
-    page_num = request.args.get(key='page', type=int, default=1)
+    page_num = request.args.get(key="page", type=int, default=1)
     query_pagination = query.paginate(page=page_num, per_page=RESULTS_PER_PAGE)
 
     pagination_url_args = get_pagination_url_args(data=request.args)
 
     return render_template(
-        'empresa/listar_empresas_socnet.html',
-        page_title='Empresas SOCNET',
+        "empresa_socnet/listar_empresas_socnet.html",
+        page_title="Empresas SOCNET",
         query=query_pagination,
         total=query.count(),
         results_per_page=RESULTS_PER_PAGE,
         pagination_url_args=pagination_url_args,
-        pagination_endpoint='empresas_socnet',
-        return_endpoint='buscar_empresas_socnet',
+        pagination_endpoint="empresa_socnet.empresas_socnet",
+        return_endpoint="empresa_socnet.buscar_empresas_socnet",
         socnet=True
     )
 
-@app.route('/empresas-socnet/csv')
+
+@empresa_socnet.route("/csv")
 @login_required
 def empresas_socnet_csv():
     data = get_data_from_args(prev_form=FormBuscarEmpresaSOCNET(), data=request.args)
@@ -66,23 +77,19 @@ def empresas_socnet_csv():
     df = pd.read_sql(sql=query.statement, con=database.session.bind)
 
     timestamp = int(datetime.now().timestamp())
-    nome_arqv = f'Empresas_SOCNET_{timestamp}.csv'
-    camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
-    df.to_csv(
-        camihno_arqv,
-        sep=';',
-        index=False,
-        encoding='iso-8859-1'
-    )
+    nome_arqv = f"Empresas_SOCNET_{timestamp}.csv"
+    camihno_arqv = f"{UPLOAD_FOLDER}/{nome_arqv}"
+    df.to_csv(camihno_arqv, sep=";", index=False, encoding="iso-8859-1")
 
-    return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=nome_arqv)
+    return send_from_directory(directory=UPLOAD_FOLDER, path="/", filename=nome_arqv)
 
-@app.route('/empresas-socnet/criar', methods=['GET', 'POST'])
+
+@empresa_socnet.route("/criar", methods=["GET", "POST"])
 @login_required
 def criar_empresa_socnet():
     form: FormEmpresaSOCNET = FormEmpresaSOCNET()
-    form.title = 'Criar Empresa SOCNET'
-    form.socnet = True
+    form.title = "Criar Empresa SOCNET"  # type: ignore
+    form.socnet = True  # type: ignore
 
     form.load_choices()
 
@@ -94,19 +101,23 @@ def criar_empresa_socnet():
             nome_empresa=form.nome_empresa.data,
             ativo=form.ativo.data,
             data_inclusao=datetime.now(tz=TIMEZONE_SAO_PAULO),
-            incluido_por=current_user.username
+            incluido_por=current_user.username,  # type: ignore
         )
 
         database.session.add(empresa)
         database.session.commit()
 
-        flash(f'Empresa criada com sucesso! {empresa.id_empresa} - {empresa.nome_empresa}', 'alert-success')
+        flash(
+            f"Empresa criada com sucesso! {empresa.id_empresa} - {empresa.nome_empresa}",
+            "alert-success",
+        )
 
-        return redirect(url_for('buscar_empresas_socnet'))
+        return redirect(url_for("empresa_socnet.buscar_empresas_socnet"))
 
-    return render_template('empresa/editar_socnet.html', form=form)
+    return render_template("empresa_socnet/editar_socnet.html", form=form)
 
-@app.route('/empresas-socnet/editar/<int:id_empresa>', methods=['GET', 'POST'])
+
+@empresa_socnet.route("/<int:id_empresa>", methods=["GET", "POST"])
 @login_required
 def editar_empresa_socnet(id_empresa):
     empresa: EmpresaSOCNET = EmpresaSOCNET.query.get(id_empresa)
@@ -118,10 +129,10 @@ def editar_empresa_socnet(id_empresa):
         cod_empresa_referencia=empresa.cod_empresa_referencia,
         cod_empresa=empresa.cod_empresa,
         nome_empresa=empresa.nome_empresa,
-        ativo=empresa.ativo
+        ativo=empresa.ativo,
     )
-    form.title = 'Editar Empresa SOCNET'
-    form.socnet = True
+    form.title = "Editar Empresa SOCNET"  # type: ignore
+    form.socnet = True  # type: ignore
 
     form.load_choices()
 
@@ -135,17 +146,18 @@ def editar_empresa_socnet(id_empresa):
         empresa.ativo = form.ativo.data
 
         empresa.data_alteracao = datetime.now(tz=TIMEZONE_SAO_PAULO)
-        empresa.alterado_por = current_user.username
+        empresa.alterado_por = current_user.username  # type: ignore
 
         database.session.commit()
 
-        flash(f'Empresa atualizada com sucesso!', 'alert-success')
+        flash("Empresa atualizada com sucesso!", "alert-success")
 
-        return redirect(url_for('editar_empresa_socnet', id_empresa=empresa.id_empresa))
+        return redirect(url_for("empresa_socnet.editar_empresa_socnet", id_empresa=empresa.id_empresa))
 
-    return render_template('empresa/editar_socnet.html', empresa=empresa, form=form)
+    return render_template("empresa_socnet/editar_socnet.html", empresa=empresa, form=form)
 
-@app.route('/empresas_socnet/excluir/<int:id_empresa>', methods=['GET', 'POST'])
+
+@empresa_socnet.route("/excluir/<int:id_empresa>", methods=["GET", "POST"])
 @login_required
 def excluir_empresa_socnet(id_empresa):
     empresa = EmpresaSOCNET.query.get(id_empresa)
@@ -154,14 +166,19 @@ def excluir_empresa_socnet(id_empresa):
         database.session.delete(empresa)
         database.session.commit()
 
-        flash(f'Empresa excluída! {empresa.id_empresa} - {empresa.nome_empresa}', 'alert-danger')
+        flash(
+            f"Empresa excluída! {empresa.id_empresa} - {empresa.nome_empresa}",
+            "alert-danger",
+        )
 
-        return redirect(url_for('buscar_empresas_socnet'))
+        return redirect(url_for("empresa_socnet.buscar_empresas_socnet"))
 
     except IntegrityError:
         database.session.rollback()
 
-        flash(f'A empresa {empresa.id_empresa} - {empresa.nome_empresa} não pode ser excluída, pois há outros registros associados a ela', 'alert-info')
+        flash(
+            f"A empresa {empresa.id_empresa} - {empresa.nome_empresa} não pode ser excluída, pois há outros registros associados a ela",
+            "alert-info",
+        )
 
-        return redirect(url_for('editar_empresa_socnet', id_empresa=id_empresa))
-
+        return redirect(url_for("empresa_socnet.editar_empresa_socnet", id_empresa=id_empresa))

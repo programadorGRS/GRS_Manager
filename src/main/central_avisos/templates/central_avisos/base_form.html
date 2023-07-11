@@ -1,0 +1,39 @@
+{% extends 'central_avisos/base.html' %}
+
+{% block body %}
+
+<div class="container justify-content-center d-flex my-2">
+    <div class="card p-4">
+        {% block card_top %}
+        {% endblock %}
+        <form method="POST" id="formAvisos" {% if form.form_action %} action="{{ form_action }}" {% endif %}>
+            {{ form.csrf_token }}
+            <div class="d-flex">
+                <div class="w-100">
+                    {% if form_title %}<legend>{{ form_title }}</legend>{% endif %}
+                    {% if form_sub_title %}<h5>{{ form_sub_title }}</h5>{% endif %}
+                </div>
+                <div class="">
+                    <img src="{{ url_for('static', filename='logos/logo_grs.png') }}" alt="Icone GRS" height="30px"
+                    width="70px">
+                </div>
+            </div>
+            <hr>
+
+            <fieldset>
+                {% block fieldset %}
+                {% endblock %}
+            </fieldset>
+
+            <div class="d-flex mt-3 justify-content-between">
+                {% block buttons %}
+                {% endblock %}
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block scripts %}
+{% endblock %}
+
+{% endblock %}

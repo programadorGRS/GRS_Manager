@@ -5,7 +5,8 @@ from flask_sqlalchemy import BaseQuery
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
-from src import TIMEZONE_SAO_PAULO, database
+from src import TIMEZONE_SAO_PAULO
+from src.extensions import database
 from src.soc_web_service.exporta_dados import ExportaDados
 
 from ..empresa.empresa import Empresa

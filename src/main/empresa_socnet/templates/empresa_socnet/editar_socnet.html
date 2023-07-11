@@ -63,7 +63,7 @@
             modal_message='Esta Empresa SOCNET será excluída. \
                 Essa ação não pode ser desfeita.',
             modal_img='are_you_sure_about_that.jpg',
-            form_action=url_for('excluir_empresa_socnet', id_empresa=empresa.id_empresa),
+            form_action=url_for('empresa_socnet.excluir_empresa_socnet', id_empresa=empresa.id_empresa),
         ) }}
     {% endif %}
 {% endblock %}

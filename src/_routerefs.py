@@ -1,8 +1,12 @@
+from flask import Flask
+
 from src import error_handlers
-from src.api import routes, routes_internas
+from src.api import routes
+from src.api.routes_internas import internal_api
+from src.main.central_avisos.routes import central_avisos
 from src.main.conv_exames import routes
-from src.main.empresa import routes
-from src.main.empresa_socnet import routes
+from src.main.empresa.routes import empresa
+from src.main.empresa_socnet.routes import empresa_socnet
 from src.main.exame import routes
 from src.main.exames_realizados import routes
 from src.main.grupo import routes
@@ -20,3 +24,11 @@ from src.main.rtc import routes
 from src.main.status import routes
 from src.main.unidade import routes
 from src.main.usuario import routes
+
+
+def register_all_blueprints(app: Flask):
+    app.register_blueprint(central_avisos)
+    app.register_blueprint(empresa)
+    app.register_blueprint(empresa_socnet)
+    app.register_blueprint(internal_api)
+    return app
