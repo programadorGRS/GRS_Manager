@@ -1,0 +1,98 @@
+{% extends 'central_avisos/base_form.html' %}
+
+{% from 'macros.html' import render_form_field, render_checkbox_field %}
+
+{% block fieldset %}
+    <b>Relatórios por E-mail</b> <br>
+    <span>
+        Use essa tela para configurar os relatórios de Unidade que 
+        deseja receber por E-mail
+    </span>
+        <br> <br>
+
+        {{ render_form_field(form.id_unidades) }}
+
+        <br><br>
+
+        <b>Convocação de Exames</b>
+        <div class="input-group mb-3">
+            <div class="input-group-text">
+                <span class="material-icons">
+                    list_alt
+                    </span>
+            </div>
+            {{ render_form_field(form.conv_exames_emails, render_label=False) }}
+        </div>
+
+        <b>Exames Realizados</b>
+        <div class="input-group mb-3">
+            <div class="input-group-text">
+                <span class="material-icons">
+                    local_hospital
+                    </span>
+            </div>
+            {{ render_form_field(form.exames_realizados_emails, render_label=False) }}
+        </div>
+
+        <b>Absenteísmo</b>
+        <div class="input-group mb-3">
+            <div class="input-group-text">
+                <span class="material-icons">
+                    sick
+                    </span>
+            </div>
+            {{ render_form_field(form.absenteismo_emails, render_label=False) }}
+        </div>
+
+        <b>Mandatos CIPA</b>
+        <div class="input-group mb-3">
+            <div class="input-group-text">
+                <span class="material-icons">
+                    health_and_safety
+                    </span>
+            </div>
+            {{ render_form_field(form.mandatos_cipa_emails, render_label=False) }}
+        </div>
+
+        <span>Obs: se forem vários emails, separe-os usando ";" (ponto e vírgula)</span>
+{% endblock %}
+
+{% block buttons %}
+    <button type="submit" id="botao_salvar" class="btn btn-primary text-nowrap"
+    name="botao_salvar" style="width: fit-content;">
+    <span class="material-icons align-middle">send</span> Enviar</button>
+
+    <button type="button" id="botao_cancelar"  class="btn btn-secondary text-nowrap"
+    style="width: fit-content;" onclick="window.location.reload()">
+    <span class="material-icons align-middle">close</span> Cancelar</button>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+        window.onload = function addSelectPicker(){
+            const unidades = document.getElementById('id_unidades');
+            console.log(unidades)
+
+            const atts = {
+                'data-live-search': true,
+                'data-actions-box': true,
+                'data-selected-text-format': "count",
+                'data-select-all-text': "Selecionar Todas",
+                'data-deselect-all-text': "Limpar",
+                'data-dropup-auto': false,
+                'data-size': 10,
+                'title': 'Selecione as suas Unidades'
+            }
+
+            for (let [key, val] of Object.entries(atts)){
+                unidades.setAttribute(key, val);
+            }
+
+            $('#id_unidades').selectpicker();
+            $('#id_unidades').selectpicker('deselectAll');
+
+            console.log(unidades.classList)
+            console.log(unidades.attributes)
+        }
+    </script>
+{% endblock %}

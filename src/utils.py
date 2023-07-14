@@ -116,20 +116,27 @@ def semana_do_mes(timestamp: pd.Timestamp) -> int:
             return num_semana + 1
 
 
-def tratar_emails(emails_str: str):
-    try:
-        emails_str = emails_str.replace(',', ';')
-        emails_str = emails_str.replace(' ', '')
-        emails_str = emails_str.lower()
-        emails_str = emails_str.split(';')
+def tratar_emails(email_str: str) -> str:
+    '''
+        Itera sobre os Emails e remove os vazios.
 
-        for indice, email in enumerate(emails_str):
-            if not email:
-                emails_str.pop(indice)
-        emails_str = ';'.join(emails_str)
-        return emails_str
-    except:
-        return emails_str
+        Substitui separadores de vírgula por ponto e vírgula.
+
+        Raises:
+            ValueError: se email_str não for um string.
+    '''
+    # TODO: isso é necessário?
+    if not isinstance(email_str, str):
+        raise ValueError(f'email_str must be of type str, not {email_str.__class__.__name__}')
+
+    email_str = email_str.replace(',', ';')
+    email_str = email_str.replace(' ', '')
+    email_str = email_str.lower()
+
+    email_list = email_str.split(';')
+    email_list = [email for email in email_list if email]
+
+    return ';'.join(email_list)
 
 
 def get_json_configs(json_path: str, encoding: str = 'iso-8859-1') -> dict:
@@ -237,13 +244,14 @@ def gerar_datas(
 
     return list(zip(datas_inicio, datas_fim))
 
+
 def validate_email_fields(
-        form: FlaskForm,
-        field_name_pattern: str = '_emails',
-        field_type = 'StringField',
-        *args,
-        **kwargs
-    ):
+    form: FlaskForm,
+    field_name_pattern: str = '_emails',
+    field_type: str = 'StringField',
+    *args,
+    **kwargs
+):
     validated = FlaskForm.validate(form, *args, **kwargs)
 
     if not validated:
@@ -253,13 +261,14 @@ def validate_email_fields(
         if field_name_pattern in field_name and field.type == field_type:
             try:
                 field.data = tratar_emails(field.data)
-            except:
+            except Exception:
                 field.errors.append('Erro ao validar Emails')
 
     if form.errors:
         return False
     else:
         return True
+
 
 def validate_upload_file_size(file_data):
     max_size_mb = app.config['MAX_UPLOAD_SIZE_MB']
@@ -269,4 +278,3 @@ def validate_upload_file_size(file_data):
         return True
     else:
         return False
-
