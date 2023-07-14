@@ -463,60 +463,34 @@ class MonitoraMandato(Mandato):
         return df
 
     @staticmethod
-    def __erros_funcao(df: pd.DataFrame):
+    def __erros_funcao(df: pd.DataFrame, msg_erro: str = 'Candidato sem Função definida'):
         '''gera coluna erros_funcionario_funcao'''
         df = df.copy()
 
-        condicoes = (
-            (df['membro_ativo'] == False),
-            (df['membro_ativo'] == True) & (df['funcao'].isna())
-        )
-
-        valores = (None, 'Funcionário eleito sem Função definida')
-
-        df['erros_funcionario_funcao'] = np.select(
-            condlist=condicoes,
-            choicelist=valores,
-            default=None
-        )
+        df['erros_funcionario_funcao'] = np.where(df['funcao'].isna(), msg_erro, None)  # type: ignore
 
         return df
 
     @staticmethod
-    def __erros_situacao(df: pd.DataFrame):
+    def __erros_situacao(df: pd.DataFrame, msg_erro: str = 'Candidato sem definição de Titular/Suplente'):
         '''gera coluna erros_funcionario_situacao'''
         df = df.copy()
 
-        condicoes = (
-            (df['membro_ativo'] == False),
-            (df['membro_ativo'] == True) & (df['tipo_situacao'].isna())
-        )
-
-        valores = (None, 'Funcionário eleito sem definição de Titular/Suplente')
-
-        df['erros_funcionario_situacao'] = np.select(
-            condlist=condicoes,
-            choicelist=valores,
-            default=None
-        )
+        df['erros_funcionario_situacao'] = np.where(df['tipo_situacao'].isna(), msg_erro, None)  # type: ignore
 
         return df
 
     @staticmethod
-    def __erros_eleicao(df: pd.DataFrame):
+    def __erros_eleicao(df: pd.DataFrame, msg_erro: str = 'Eleição em sem Data Final'):
         '''gera coluna erros_mandato_eleicao'''
         df = df.copy()
 
-        df['erros_mandato_eleicao'] = np.where(
-            df['data_eleicao'].isna(),
-            'Eleição em sem Data Final',
-            None
-        )
+        df['erros_mandato_eleicao'] = np.where(df['data_eleicao'].isna(), msg_erro, None)  # type: ignore
 
         return df
 
     @staticmethod
-    def __erros_membros(df: pd.DataFrame):
+    def __erros_membros(df: pd.DataFrame, msg_erro: str = 'Mandato sem eleitos'):
         '''gera coluna possui_membros'''
         df = df.copy()
 
@@ -538,11 +512,7 @@ class MonitoraMandato(Mandato):
 
         df['possui_membros'].fillna(value=False, inplace=True)
 
-        df['erros_mandato_membros'] = np.where(
-            df['possui_membros'] == False,
-            'Mandato sem membros eleitos',
-            None
-        )
+        df['erros_mandato_membros'] = np.where(df['possui_membros'] == False, msg_erro, None)  # type: ignore
 
         return df
 
