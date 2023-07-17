@@ -1,0 +1,152 @@
+<li class="dropdown-submenu">
+    <a class="drop dropdown-item" href="#">
+        <span class="material-icons align-middle">domain</span>
+        GRS
+        <span class="material-icons align-middle">arrow_right</span>
+    </a>
+    <ul class="dropdown-menu">
+        <li class="dropdown-submenu">
+            <a class="drop dropdown-item" href="#">
+                <span class="material-icons align-middle">task</span>
+                ASO
+                <span class="material-icons align-middle">arrow_right</span>
+            </a>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('busca') }}">
+                        <span class="material-icons align-middle">manage_search</span> Buscar ASO
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('pedidos_bulk_update') }}">
+                        <span class="material-icons align-middle">done_all</span> Atualizar em Massa (CSV)
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <li class="dropdown-submenu">
+            <a class="drop dropdown-item" href="#">
+                <span class="material-icons align-middle">summarize</span>
+                RTC
+                <span class="material-icons align-middle">arrow_right</span>
+            </a>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('busca_rtc') }}">
+                        <span class="material-icons align-middle">manage_search</span>
+                        Buscar RTC
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('importar_dados_rtc') }}">
+                        <span class="material-icons align-middle">cloud_upload</span>
+                        Importar Dados
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <li class="dropdown-submenu">
+            <a class="drop dropdown-item" href="#">
+                <span class="material-icons align-middle">poll</span>
+                Relatórios
+                <span class="material-icons align-middle">arrow_right</span>
+            </a>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('buscar_pedidos_proc') }}">
+                        <span class="material-icons align-middle">event</span>
+                        Convocação Exames
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('exames_realizados_busca') }}">
+                        <span class="material-icons align-middle">list_alt</span> Exames Realizados
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('absenteismo_busca') }}">
+                        <span class="material-icons align-middle">sim_card_alert</span> Absenteísmo
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('config_relatorios_agendados') }}">
+                        <span class="material-icons align-middle">tune</span> Config. Rel. Agendados
+                    </a>
+                </li>
+            </ul>
+        </li>
+
+        <li class="dropdown-submenu">
+            <a class="drop dropdown-item" href="#">
+                <span class="material-icons align-middle">storage</span>
+                Cadastros
+                <span class="material-icons align-middle">arrow_right</span>
+            </a>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('empresa.buscar_empresas') }}">
+                        <span class="material-icons align-middle">apartment</span> Empresas
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('buscar_unidades') }}">
+                        <span class="material-icons align-middle">home_work</span> Unidades
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('busca_exames') }}">
+                        <span class="material-icons align-middle">science</span> Exames
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('buscar_prestadores') }}">
+                        <span class="material-icons align-middle">local_hospital</span> Prestadores
+                    </a>
+                </li>
+                <li class="dropdown-submenu">
+                    <a class="drop dropdown-item" href="#">
+                        <span class="material-icons align-middle">task</span>
+                        Status
+                        <span class="material-icons align-middle">arrow_right</span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('status') }}">
+                                <span class="material-icons align-middle">description</span> Status ASO
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('status_rac') }}">
+                                <span class="material-icons align-middle">description</span> Status RAC
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('grupos') }}">
+                        <span class="material-icons align-middle">groups</span> Grupos
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('usuarios') }}">
+                        <span class="material-icons align-middle">person</span> Usuarios
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('importar_dados') }}">
+                        <span class="material-icons align-middle">sync</span>
+                        Carregar Dados SOC
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('atualizar_tabelas') }}">
+                        <span class="material-icons align-middle">upload</span>
+                        Atualizar Tabelas
+                    </a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</li>

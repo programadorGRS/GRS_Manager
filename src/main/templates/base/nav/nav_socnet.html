@@ -1,0 +1,38 @@
+<li class="dropdown-submenu">
+    <a class="drop dropdown-item" href="#">
+        <span class="material-icons align-middle">domain</span> SOCNET
+        <span class="material-icons align-middle">arrow_right</span>
+    </a>
+    <ul class="dropdown-menu">
+        <li>
+            <a class="dropdown-item" href="{{ url_for('busca_socnet') }}">
+                <span class="material-icons align-middle">manage_search</span> Buscar ASO
+            </a>
+        </li>
+
+        <li class="dropdown-submenu">
+            <a class="drop dropdown-item" href="#">
+                <span class="material-icons align-middle">storage</span> 
+                Cadastros 
+                <span class="material-icons align-middle">arrow_right</span>
+            </a>
+            <ul class="dropdown-menu">
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('empresa_socnet.buscar_empresas_socnet') }}">
+                        <span class="material-icons align-middle">apartment</span> Empresas
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('upload_pedidos_socnet') }}">
+                        <span class="material-icons align-middle">upload</span> Upload CSV
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="{{ url_for('carregar_pedidos_socnet') }}">
+                        <span class="material-icons align-middle">refresh</span> Carregar ASOs
+                    </a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+</li>

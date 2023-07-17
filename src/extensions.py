@@ -1,14 +1,14 @@
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
 from flask_mail import Mail
-from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 
 
 login_manager = LoginManager()
 
-login_manager.login_view = 'login'
-login_manager.refresh_view = 'refresh_login'
+login_manager.login_view = 'user_auth.login'  # type: ignore
+login_manager.refresh_view = 'user_auth.refresh_login'  # type: ignore
 login_manager.login_message = 'Faça login para acessar'
 login_manager.needs_refresh_message = 'Confirme suas credenciais para acessar'
 login_manager.needs_refresh_message_category = 'alert-info'
@@ -25,4 +25,3 @@ mail = Mail()
 def load_usuario(id_cookie):
     from .main.usuario.usuario import Usuario
     return Usuario.query.filter_by(id_cookie=id_cookie).first()
-
