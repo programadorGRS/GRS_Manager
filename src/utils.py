@@ -153,9 +153,8 @@ def get_json_configs(json_path: str, encoding: str = 'iso-8859-1') -> dict:
         return dict(json.loads(f.read()))
 
 
-def get_image_file_as_base64_data(img_path: str) -> str:
-    with open(img_path, 'rb') as image_file:
-        return base64.b64encode(image_file.read()).decode()
+def get_image_file_as_base64_data(img_data: bytes) -> bytes:
+    return base64.b64encode(img_data)
 
 
 def get_data_from_form(

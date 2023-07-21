@@ -1,7 +1,6 @@
 from src import database
 
 from .carregar_rtc import CarregarRTC
-from .gerar_rtc import GerarRTC
 
 RTCExames = database.Table(
     "RTCExames",
@@ -22,7 +21,7 @@ RTCCargos = database.Table(
 )
 
 
-class RTC(database.Model, CarregarRTC, GerarRTC):
+class RTC(database.Model, CarregarRTC):
     __tablename__ = "RTC"
     id_rtc = database.Column(database.Integer, primary_key=True, autoincrement=False)
     nome_rtc = database.Column(database.String(255), nullable=False)

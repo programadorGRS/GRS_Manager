@@ -23,7 +23,7 @@ from src.main.pedido import routes
 from src.main.pedido_socnet import routes
 from src.main.prestador import routes
 from src.main.relatorios_agendados import routes
-from src.main.rtc import routes
+from src.main.rtc.routes import rtc
 from src.main.status import routes
 from src.main.unidade import routes
 from src.main.usuario import routes
@@ -37,6 +37,7 @@ def register_all_blueprints(app: Flask):
     app.register_blueprint(empresa_socnet)
     app.register_blueprint(internal_api)
     app.register_blueprint(user_auth)
+    app.register_blueprint(rtc)
     return app
 
 
