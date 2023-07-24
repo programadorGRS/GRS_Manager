@@ -69,8 +69,8 @@
             white-space: nowrap;
         }
 
-        .tipoSang{
-            margin: 20px;
+        #tipoSang span {
+            margin-left: 20px;
         }
 
         #obs{
@@ -207,16 +207,18 @@
 
             {% if render_tipo_sang %}
                 <tr>
-                    <td colspan="2" class="tiposSang">
-                        <b>Tipo Sanguíneo:</b>
-                        <span class="tipoSang"><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  A +</b> </span>
-                        <span class="tipoSang"><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  A -</b> </span>
-                        <span class="tipoSang"><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  B +</b> </span>
-                        <span class="tipoSang"><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  B -</b> </span>
-                        <span class="tipoSang"><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  AB +</b> </span>
-                        <span class="tipoSang"><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  AB -</b> </span>
-                        <span class="tipoSang"><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  O +</b> </span>
-                        <span class="tipoSang"><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  O -</b> </span>
+                    <td colspan="2">
+                        <div id="tipoSang">
+                            <b>Tipo Sanguíneo:</b>
+                            <span><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  A +</b> </span>
+                            <span><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  A -</b> </span>
+                            <span><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  B +</b> </span>
+                            <span><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  B -</b> </span>
+                            <span><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  AB +</b> </span>
+                            <span><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  AB -</b> </span>
+                            <span><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  O +</b> </span>
+                            <span><b>(&nbsp;&nbsp;&nbsp;&nbsp;)  O -</b> </span>
+                        </div>
                     </td>
                 </tr>
             {% endif %}

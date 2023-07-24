@@ -12,5 +12,5 @@ class InfosRtc:
     empresa: Empresa
     pedido: Pedido
     funcionario: Funcionario
-    exames: list[Exame]
+    exames: list[tuple[Exame.cod_exame, Exame.nome_exame]]
     rtcs: list[RTC]

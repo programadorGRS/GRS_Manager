@@ -91,7 +91,7 @@ class GerarRTC:
         ids_rtcs: list[int],
         cod_tipo_exame: int,
         cod_emp_princ: int
-    ) -> list[Exame]:
+    ) -> list[tuple[Exame.cod_exame, Exame.nome_exame]]:
         rtc_exames = (
             database.session.query(RTCExames.c.cod_exame)
             .filter(RTCExames.c.id_rtc.in_(ids_rtcs))
@@ -99,10 +99,10 @@ class GerarRTC:
         )
 
         exames = (
-            database.session.query(Exame)
+            database.session.query(Exame.cod_exame, Exame.nome_exame)
             .filter(Exame.cod_empresa_principal == cod_emp_princ)
             .filter(Exame.cod_exame.in_(rtc_exames))
-            .group_by(Exame.cod_exame)  # avoid duplicates
+            .group_by(Exame.cod_exame, Exame.nome_exame)  # avoid duplicates
             .order_by(Exame.nome_exame)
             .all()
         )
