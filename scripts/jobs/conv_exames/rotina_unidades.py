@@ -16,7 +16,7 @@ if __name__ == '__main__':
 
     with app.app_context():
         TESTANDO = False
-        GERAR_PPT = False
+        GERAR_PPT = True
 
         TENTATIVAS_EMAIL = 3
         INTERVALO_EMAIL = 60 # segundos
