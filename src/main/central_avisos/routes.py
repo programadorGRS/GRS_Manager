@@ -32,19 +32,19 @@ def unidades(token: str, token_data: dict, *args, **kwargs):
     empresa: Empresa = Empresa.query.get(ids_empresas[0])
 
     if not empresa:
-        abort(404)
+        return abort(404)
 
     domains = get_allowed_domains(id_empresas=ids_empresas)
 
     if not domains:
         flash(
-            "Ainda não temos nenhum domínio registrado para sua Empresa. \
+            "Ainda não temos nenhum domínio de E-mail registrado para sua Empresa. \
             Por favor entre em contato com o Suporte SOC da GRS Núcleo \
-            e solicite a autorização do domínio de Email de sua Empresa para poder \
+            e solicite a autorização do domínio de sua Empresa para poder \
             configurar seus avisos aqui.",
             "alert-info",
         )
-        return redirect(url_for("central_avisos.unidades"))
+        return abort(404)
 
     form: FormCentralUnidades = FormCentralUnidades()
     form.load_choices(id_empresas=ids_empresas)
