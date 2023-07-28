@@ -1,83 +1,64 @@
 import os
 from datetime import datetime
+from typing import Any
 
-import jinja2
 import pandas as pd
 import pdfkit
+from jinja2 import Template
 from werkzeug.utils import secure_filename
 
 from src import UPLOAD_FOLDER, app, database
 from src.main.exame.exame import Exame
 from src.main.funcionario.funcionario import Funcionario
 from src.main.pedido.pedido import Pedido
-from src.utils import get_image_file_as_base64_data, zipar_arquivos
+from src.utils import zipar_arquivos
 
 from .exceptions import RTCGeneratioError
+from .infos_rtc import InfosRtc
+from .models import RTC, RTCCargos, RTCExames
 
 
 class GerarRTC:
     def __init__(self) -> None:
-        pass
-
-    MAIN_TEMPLATE = "src/main/rtc/templates/base_rtc.html"
-
-    # NOTE: em Windows, o tamanho de EMPTY_SQUR é diferente \
-    # do tamaho de MARKED_SQUR. Em Linux os dois tem o \
-    # mesmo tamanho. Portando, sempre manter os tamanhos iguais
-    EMPTY_SQUR = "&#9633;"
-    EMPTY_SQUR_SIZE = "15pt"
-    MARKED_SQUR = "&#9746;"
-    MARKED_SQUR_SIZE = "15pt"
-
-    LOGO_GRS = os.path.join(app.static_folder, "logos" "logo_grs.png")
-    LOGO_GRS_WIDTH = "70px"
-    LOGO_GRS_HEIGHT = "30px"
-
-    LOGO_MANSERV = os.path.join(app.static_folder, "logos", "logo_manserv.png")
-    LOGO_MANSERV_WIDTH = "150px"
-    LOGO_MANSERV_HEIGHT = "30px"
-
-    pdfkit_options: dict[str, str] = {
-        "margin-top": "5mm",
-        "margin-right": "5mm",
-        "margin-bottom": "5mm",
-        "margin-left": "5mm",
-    }
+        self.pdfkit_options: dict[str, str] = {
+            "margin-top": "5mm",
+            "margin-right": "5mm",
+            "margin-bottom": "5mm",
+            "margin-left": "5mm",
+        }
 
     @staticmethod
     def get_pdfkit_configs():
         return pdfkit.configuration(wkhtmltopdf=app.config["WKHTMLTOPDF_PATH"])
 
-    @classmethod
-    def buscar_infos_rtc(cls, id_ficha: int) -> dict:
+    def get_infos_rtc(self, id_ficha: int) -> InfosRtc:
         pedido: Pedido = Pedido.query.get(id_ficha)
 
-        funcionario = cls.__get_funcionario(
+        funcionario = self.__get_funcionario(
             cod_funcionario=pedido.cod_funcionario, id_empresa=pedido.id_empresa
         )
         if not funcionario:
             raise RTCGeneratioError("Funcionário não encontrado.")
 
-        rtcs = cls.__get_rtcs_cargo(cod_cargo=funcionario.cod_cargo)
+        rtcs = self.__get_rtcs_cargo(cod_cargo=funcionario.cod_cargo)
         if not rtcs:
             raise RTCGeneratioError("Nenhuma RTC encontrada para o Cargo")
 
-        exames = cls.__get_exames_rtc(
-            ids_rtcs=rtcs, cod_tipo_exame=pedido.cod_tipo_exame
+        exames = self.__get_exames_rtc(
+            ids_rtcs=[rtc.id_rtc for rtc in rtcs],
+            cod_tipo_exame=pedido.cod_tipo_exame,
+            cod_emp_princ=pedido.cod_empresa_principal
         )
         if not exames:
             raise RTCGeneratioError("Nenhum Exame encontrado para as RTCs dessa Ficha")
 
-        infos = {
-            "id_ficha": pedido.id_ficha,
-            "nome_funcionario": pedido.nome_funcionario,
-            "cpf_funcionario": pedido.cpf,
-            "data_adm": funcionario.data_adm,
-            "cargo_funcionario": funcionario.nome_cargo,
-            "setor_funcionario": funcionario.nome_setor,
-            "ids_rtcs": rtcs,
-            "cod_exames": exames,
-        }
+        infos = InfosRtc(
+            empresa=pedido.empresa,
+            pedido=pedido,
+            funcionario=funcionario,
+            exames=exames,
+            rtcs=rtcs
+        )
 
         return infos
 
@@ -92,97 +73,86 @@ class GerarRTC:
         return funcionario
 
     @staticmethod
-    def __get_rtcs_cargo(cod_cargo: str) -> list[int]:
-        from .models import RTCCargos
-
-        ids = database.session.query(RTCCargos).filter(
-            RTCCargos.c.cod_cargo == cod_cargo
+    def __get_rtcs_cargo(cod_cargo: str) -> list[RTC]:
+        rtc_cargos = (
+            database.session.query(RTCCargos.c.id_rtc)
+            .filter(RTCCargos.c.cod_cargo == cod_cargo)
         )
-        ids = [rtc.id_rtc for rtc in ids]
-        return ids
+
+        rtcs = (
+            database.session.query(RTC)
+            .filter(RTC.id_rtc.in_(rtc_cargos))
+            .all()
+        )
+        return rtcs
 
     @staticmethod
-    def __get_exames_rtc(ids_rtcs: list[int], cod_tipo_exame: int) -> list[str]:
-        from .models import RTCExames
-
-        exames = (
-            database.session.query(RTCExames)
+    def __get_exames_rtc(
+        ids_rtcs: list[int],
+        cod_tipo_exame: int,
+        cod_emp_princ: int
+    ) -> list[tuple[Exame.cod_exame, Exame.nome_exame]]:
+        rtc_exames = (
+            database.session.query(RTCExames.c.cod_exame)
             .filter(RTCExames.c.id_rtc.in_(ids_rtcs))
             .filter(RTCExames.c.cod_tipo_exame == cod_tipo_exame)
         )
-        exames = [exam.cod_exame for exam in exames]
-        exames = list(dict.fromkeys(exames))  # remove duplicates
+
+        exames = (
+            database.session.query(Exame.cod_exame, Exame.nome_exame)
+            .filter(Exame.cod_empresa_principal == cod_emp_princ)
+            .filter(Exame.cod_exame.in_(rtc_exames))
+            .group_by(Exame.cod_exame, Exame.nome_exame)  # avoid duplicates
+            .order_by(Exame.nome_exame)
+            .all()
+        )
         return exames
 
-    @classmethod
     def render_rtc_html(
         self,
-        infos: dict[str, any],
-        template: str = MAIN_TEMPLATE,
-        logo_empresa: str = LOGO_GRS,
-        logo_width: str = LOGO_GRS_WIDTH,
-        logo_height: str = LOGO_GRS_HEIGHT,
-        render_tipo_sang: bool = True,
+        infos: InfosRtc,
+        template_body: str,
+        logo_empresa: str | None = None,
+        qr_code: str | None = None,
+        render_tipo_sang: bool = True
     ) -> str:
-        """
-            Recebe informacoes sobre a Ficha e Funcionario e cria \
-                modelo HTML da RTC
+        template_data: dict[str, Any] = {}
 
-            Usar com o dicionario de RTC.buscar_infos_rtc
+        template_data['funcionario'] = infos.funcionario
 
-            Returns:
-                str: output text
-        """
-        pedido: Pedido = Pedido.query.get(infos["id_ficha"])
+        if infos.funcionario.cpf_funcionario:
+            template_data['cpf_formatado'] = self.__format_cpf(cpf=infos.funcionario.cpf_funcionario)
 
-        infos["render_tipo_sang"] = render_tipo_sang
-
-        # format cpf
-        if len(infos["cpf_funcionario"]) == 11:
-            infos["cpf_funcionario"] = (
-                f"{infos['cpf_funcionario'][:3]}."
-                f"{infos['cpf_funcionario'][3:6]}."
-                f"{infos['cpf_funcionario'][6:9]}-"
-                f"{infos['cpf_funcionario'][9:]}"
-            )
+        template_data["render_tipo_sang"] = render_tipo_sang
 
         # RTCs
-        infos = self.__get_lista_rtcs(infos=infos)
-
+        template_data["rtc_checkboxes"] = self.__get_rtc_checkboxes(ids_rtc=[rtc.id_rtc for rtc in infos.rtcs])
         # criar duas colunas de RTC
-        colunas_ab = self._criar_colunas_ab(infos["lista_rtcs"])
-        infos["col_rtc_a"] = colunas_ab[0]
-        infos["col_rtc_b"] = colunas_ab[1]
+        cols = self.list_to_columns(item_list=template_data["rtc_checkboxes"])
+        template_data["rtc_col_a"] = cols[0]
+        template_data["rtc_col_b"] = cols[1]
 
         # EXAMES
-        infos = self.__get_lista_exames(
-            infos=infos, cod_emp_princ=pedido.cod_empresa_principal
-        )
-
         # criar duas colunas de exames
-        colunas_ab = self._criar_colunas_ab(infos["lista_exames"])
-        infos["col_exames_a"] = colunas_ab[0]
-        infos["col_exames_b"] = colunas_ab[1]
+        cols = self.list_to_columns(item_list=infos.exames)
+        template_data["exames_col_a"] = cols[0]
+        template_data["exames_col_b"] = cols[1]
 
-        # LOGO
-        infos["logo_empresa"] = get_image_file_as_base64_data(img_path=logo_empresa)
-        infos["logo_width"] = logo_width
-        infos["logo_height"] = logo_height
+        # images
+        template_data["logo_empresa"] = logo_empresa
+        template_data["qr_code"] = qr_code
 
         # render template as string
-        template_loader = jinja2.FileSystemLoader("./")
-        template_env = jinja2.Environment(loader=template_loader)  # nosec B701
-        template = template_env.get_template(template)
-        output_text = template.render(infos)
+        template = Template(source=template_body)
+        output_text = template.render(template_data)
 
         return output_text
 
-    @classmethod
-    def gerar_pdf(self, infos: dict[str, any], html: str):
-        nome = secure_filename(infos["nome_funcionario"]).upper()
+    def gerar_pdf(self, html: str, nome_funcionario: str, qtd_exames: int):
+        nome = secure_filename(nome_funcionario).upper()
         timestamp = int(datetime.now().timestamp())
         filename = f"RTC_{nome}_{timestamp}.pdf"
-        if len(infos["cod_exames"]) == 0:
+        if qtd_exames == 0:
             filename = f"__VAZIO__RTC_{nome}_{timestamp}.pdf"
 
         file_path = os.path.join(UPLOAD_FOLDER, filename)
@@ -196,8 +166,41 @@ class GerarRTC:
 
         return file_path
 
-    @classmethod
-    def gerar_zip(self, arquivos: list[str]):
+    @staticmethod
+    def __format_cpf(cpf: str) -> str:
+        if len(cpf) == 11:
+            return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+        else:
+            return cpf
+
+    def __get_rtc_checkboxes(self, ids_rtc: list[int]) -> list[tuple[bool, str]]:
+        query: list[RTC] = RTC.query.all()
+        res = []
+
+        for rtc in query:
+            if rtc.id_rtc in ids_rtc:
+                res.append((True, rtc.nome_rtc))
+            else:
+                res.append((False, rtc.nome_rtc))
+
+        return res
+
+    @staticmethod
+    def list_to_columns(item_list: list[Any]) -> tuple[list[Any], list[Any]]:
+        if len(item_list) <= 1:
+            return (item_list, [])
+
+        if len(item_list) % 2 == 0:  # se for par, divisao igual
+            sep = int(len(item_list) / 2)
+        else:  # se for impar, fazer a coluna A maior do que a B
+            sep = int(len(item_list) / 2) + 1
+
+        col_a = item_list[:sep]
+        col_b = item_list[sep:]
+        return (col_a, col_b)
+
+    @staticmethod
+    def gerar_zip(arquivos: list[str]):
         timestamp = int(datetime.now().timestamp())
         nome_zip = f"RTCS_{timestamp}.zip"
         zip_path = os.path.join(UPLOAD_FOLDER, nome_zip)
@@ -206,8 +209,8 @@ class GerarRTC:
 
     @staticmethod
     def gerar_df_erros(erros: list[tuple[Pedido, str]]):
-        erros = [(p.seq_ficha, p.nome_funcionario, err) for p, err in erros]
-        df = pd.DataFrame(erros, columns=["seq_ficha", "funcionario", "erro"])
+        erros2: list[tuple[int, str, str]] = [(p.seq_ficha, p.nome_funcionario, err) for p, err in erros]
+        df = pd.DataFrame(erros2, columns=["seq_ficha", "funcionario", "erro"])
         return df
 
     @staticmethod
@@ -217,44 +220,3 @@ class GerarRTC:
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         df_erros.to_csv(file_path, sep=";", index=False, encoding="iso-8859-1")
         return file_path
-
-    @staticmethod
-    def __get_lista_exames(infos: dict[str, any], cod_emp_princ: int):
-        # NOTE: sempre usar filtro de cod_empresa_principal, pois algumas Empresas principais
-        # podem ter Exames iguais, causando duplicidade de Exames no RTC
-        nomes_exames = (
-            database.session.query(Exame)
-            .filter(Exame.cod_exame.in_(infos["cod_exames"]))
-            .filter(Exame.cod_empresa_principal == cod_emp_princ)
-        )
-        infos["lista_exames"] = [exame.nome_exame for exame in nomes_exames]
-        return infos
-
-    @classmethod
-    def __get_lista_rtcs(self, infos: dict[str, any]):
-        rtcs_geral = self.query.all()
-        infos["lista_rtcs"] = []
-        # pegar todas rtc e marcar as usadas
-        for i in rtcs_geral:
-            if i.id_rtc in infos["ids_rtcs"]:
-                infos["lista_rtcs"].append(
-                    (self.MARKED_SQUR_SIZE, self.MARKED_SQUR, i.nome_rtc)
-                )
-            else:
-                infos["lista_rtcs"].append(
-                    (self.EMPTY_SQUR_SIZE, self.EMPTY_SQUR, i.nome_rtc)
-                )
-        return infos
-
-    @staticmethod
-    def _criar_colunas_ab(lista_itens: list) -> tuple[list, list]:
-        if len(lista_itens) <= 1:
-            return (lista_itens, [])
-
-        if len(lista_itens) % 2 == 0:  # se for par, divisao igual
-            separador = int(len(lista_itens) / 2)
-        else:  # se for impar, fazer a coluna A maior do que a B
-            separador = int(len(lista_itens) / 2) + 1
-        col_a = lista_itens[:separador]
-        col_b = lista_itens[separador:]
-        return (col_a, col_b)

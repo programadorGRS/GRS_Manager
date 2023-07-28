@@ -28,6 +28,10 @@ class Empresa(database.Model):
     cnpj = database.Column(database.String(100))
     uf = database.Column(database.String(5))
     subgrupo = database.Column(database.String(50))
+    logo = database.Column(database.String(100), server_default='grs.png')  # filename only (with extension)
+
+    # RTC
+    modelo_rtc = database.Column(database.String(100), server_default="rtc_default.html")  # filename only (with extension)
 
     pedidos = database.relationship('Pedido', backref='empresa', lazy=True) # one to many
     pedidos_proc = database.relationship('PedidoProcessamento', backref='empresa', lazy=True) # one to many

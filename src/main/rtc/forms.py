@@ -6,6 +6,7 @@ from wtforms.validators import DataRequired, Optional
 
 class FormGerarRTC(FlaskForm):
     tipo_sang = BooleanField("Incluir Tipo Sanguíneo", validators=[Optional()])
+    gerar_qrcode = BooleanField("Incluir QR Code", validators=[Optional()])
 
 
 class FormUploadCSV(FlaskForm):
