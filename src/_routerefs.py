@@ -3,11 +3,10 @@ from werkzeug.exceptions import HTTPException
 
 from src.api import routes
 from src.api.routes_internas import internal_api
-from src.main.central_avisos.routes import central_avisos
+from src.main.central_avisos import central_avisos
 from src.main.conv_exames.routes import conv_exames
 from src.main.empresa.routes import empresa
 from src.main.empresa_socnet.routes import empresa_socnet
-from src.main.error_handlers import error_handlers
 from src.main.error_handlers.error_handlers import (error_404, http_exeptions,
                                                     internal_exceptions)
 from src.main.exame import routes
@@ -29,9 +28,8 @@ from src.main.unidade import routes
 from src.main.usuario import routes
 
 
-def register_all_blueprints(app: Flask):
-    app = __register_error_handlers(app=app)
-
+def register_blueprints(app: Flask):
+    """Registers all Blueprints"""
     app.register_blueprint(central_avisos)
     app.register_blueprint(empresa)
     app.register_blueprint(empresa_socnet)
@@ -42,7 +40,8 @@ def register_all_blueprints(app: Flask):
     return app
 
 
-def __register_error_handlers(app: Flask):
+def register_error_handlers(app: Flask):
+    """Registers main error handlers"""
     app.register_error_handler(404, error_404)
     app.register_error_handler(Exception, internal_exceptions)
     app.register_error_handler(HTTPException, http_exeptions)

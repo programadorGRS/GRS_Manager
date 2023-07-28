@@ -1,21 +1,19 @@
 import click
+from flask.cli import with_appcontext
 
 from src.commands.options import opt_id_empresa
 from src.extensions import database
 
 from ..empresa.empresa import Empresa
-from .routes import central_avisos
-
 
 opt_id_empresa.help = "ID da Empresa para gerar o token. Defaults to all."
-
-central_avisos.cli.short_help = 'Comandos para a Central de Avisos'
 
 shrt_h = "Gera tokens filtro para a Empresa na Central de Avisos. \
     Registra o token gerado automaticamente na database. Obs: gerar um token novo não invalida o antigo."
 
 
-@central_avisos.cli.command("gerar-tokens", params=[opt_id_empresa], short_help=shrt_h)
+@click.command("gerar-tokens", params=[opt_id_empresa], short_help=shrt_h)
+@with_appcontext
 def gerar_tokens(id_empresa: int):
     EMPRESAS: list[Empresa]
 

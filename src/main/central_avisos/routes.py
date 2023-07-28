@@ -8,12 +8,10 @@ from .forms import FormCentralUnidades
 from .utils import (EMAIL_FIELDS, get_allowed_domains,
                     tratar_emails_from_form_data, update_emails_unidades)
 
-
 # TODO: adicionar botao para gerar link de acesso (url + token) nos forms de Empresa
 # TODO: criar testes para as funcoes desse modulo
 
-
-central_avisos = Blueprint(
+_central_avisos = Blueprint(
     name="central_avisos",
     import_name=__name__,
     url_prefix="/central-avisos",
@@ -22,7 +20,7 @@ central_avisos = Blueprint(
 )
 
 
-@central_avisos.route("/unidades", methods=["GET", "POST"])
+@_central_avisos.route("/unidades", methods=["GET", "POST"])
 @filter_token_required
 def unidades(token: str, token_data: dict, *args, **kwargs):
     # NOTE: token data comes from @filter_token_required

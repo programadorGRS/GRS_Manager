@@ -37,6 +37,7 @@ DOWNLOAD_FOLDER = os.path.join(app.root_path, app.config['DOWNLOAD_FOLDER'])
 TIMEZONE_SAO_PAULO = timezone('America/Sao_Paulo')
 
 from src import _commandrefs, _modelrefs, _routerefs  # noqa
-from src._routerefs import register_all_blueprints  # noqa
+from src._routerefs import register_blueprints, register_error_handlers  # noqa
 
-app = register_all_blueprints(app=app)
+app = register_blueprints(app=app)
+app = register_error_handlers(app=app)
