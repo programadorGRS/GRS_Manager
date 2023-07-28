@@ -680,6 +680,8 @@ class ConvExames(database.Model):
             'cpf_funcionario': 'CPF Funcionario',
             'nome_funcionario': 'Nome Funcionario',
             'nome_exame': 'Exame',
+            'ult_pedido': 'Data Último Exame',
+            'periodicidade': 'Periodicidade',
             'refazer': 'Data Vencimento',
             'status': 'Status Exame',
             'cat_vencer': 'Vencera em ate'
@@ -688,6 +690,11 @@ class ConvExames(database.Model):
         df = df.copy()
 
         df['cat_vencer'] = df['a_vencer'].apply(lambda x: f'{x} dias' if x is not pd.NA else None)
+
+        # format dates
+        for col in ['ult_pedido', 'refazer']:
+            df[col] = pd.to_datetime(df[col], dayfirst=True)
+            df[col] = df[col].dt.strftime('%d/%m/%Y')
 
         df_excel: pd.DataFrame = df[COLS_EXCEL.keys()]
         df_excel = df_excel.rename(columns=COLS_EXCEL)

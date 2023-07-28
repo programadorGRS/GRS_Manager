@@ -4,7 +4,7 @@ from werkzeug.exceptions import HTTPException
 from src.api import routes
 from src.api.routes_internas import internal_api
 from src.main.central_avisos.routes import central_avisos
-from src.main.conv_exames import routes
+from src.main.conv_exames.routes import conv_exames
 from src.main.empresa.routes import empresa
 from src.main.empresa_socnet.routes import empresa_socnet
 from src.main.error_handlers import error_handlers
@@ -37,6 +37,7 @@ def register_all_blueprints(app: Flask):
     app.register_blueprint(empresa_socnet)
     app.register_blueprint(internal_api)
     app.register_blueprint(user_auth)
+    app.register_blueprint(conv_exames)
     return app
 
 
