@@ -11,13 +11,12 @@ if __name__ == '__main__':
 
     with app.app_context():
         HOJE = datetime.now(TIMEZONE_SAO_PAULO).date()
-        DIAS = 4
+        DIAS = 7
         DATA_LIMITE = HOJE - timedelta(days=DIAS)
-
 
         query_pedidos_proc = (
             database.session.query(PedidoProcessamento)
-            .filter(PedidoProcessamento.data_criacao <= DATA_LIMITE)
+            .filter(PedidoProcessamento.data_criacao < DATA_LIMITE)
             .all()
         )
 
