@@ -6,6 +6,7 @@ from flask.cli import with_appcontext
 
 from src.commands.options import opt_id_empresa
 from src.commands.utils import handle_id_empresa
+from src.main.job.job import Job
 
 from ..ped_proc import PedidoProcessamento
 
@@ -43,6 +44,8 @@ def criar_ped_proc(id_empresa: list[int] | int | None):
         infos = PedidoProcessamento.criar_ped_proc(
             id_empresa=emp.id_empresa, wsdl=WSDL, ws_keys=WS_KEYS
         )
+
+        Job.log_job(infos)
 
         if infos.ok:
             criados += 1
