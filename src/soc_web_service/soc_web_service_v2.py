@@ -41,7 +41,7 @@ class SOCWebServiceV2:
         return None
 
     def set_factory(self, namespace: str = "ns0"):
-        self.__attribute_required("client")
+        self.attribute_required("client")
         self.factory = self.client.type_factory(namespace=namespace)  # type: ignore
         return None
 
@@ -53,8 +53,8 @@ class SOCWebServiceV2:
 
         Cria Nonce e PasswordDigest automaticamente por padrão.
         """
-        self.__attribute_required("WS_KEYS")
-        self.__attribute_required("client")
+        self.attribute_required("WS_KEYS")
+        self.attribute_required("client")
 
         # NOTE: use_digest=True, cria nonce e digest sozinho, \
         # vide metodos da classe UsernameToken
@@ -102,8 +102,8 @@ class SOCWebServiceV2:
 
             Essas propriedades são definidas na tela 337 - Empresa/Cliente do SOC no link Configuração de Integração.
         """
-        self.__attribute_required("WS_KEYS")
-        self.__attribute_required("factory")
+        self.attribute_required("WS_KEYS")
+        self.attribute_required("factory")
 
         identificacao = self.factory.identificacaoUsuarioWsVo(  # type: ignore
             chaveAcesso=self.WS_KEYS.get("PASSWORD"),
@@ -114,7 +114,7 @@ class SOCWebServiceV2:
         )
         return identificacao
 
-    def __attribute_required(self, attr_name: str):
+    def attribute_required(self, attr_name: str):
         if not getattr(self, attr_name, None):
             raise AttributeError(
                 f"The attribute {attr_name} is required for this method"

@@ -1,4 +1,7 @@
 from src.main.cargo.cargo import Cargo
+from src.main.conv_exames.conv_exames import ConvExames
+from src.main.conv_exames.ped_proc import PedidoProcessamento
+from src.main.conv_exames.ped_proc_config import PedProcConfig
 from src.main.empresa.empresa import Empresa
 from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
 from src.main.empresa_socnet.empresa_socnet import EmpresaSOCNET

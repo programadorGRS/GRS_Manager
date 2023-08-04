@@ -2,7 +2,8 @@ import json
 from typing import Any
 
 from requests import Response
-from soc_web_service_v2 import SOCWebServiceV2
+
+from .soc_web_service_v2 import SOCWebServiceV2
 
 
 class ProcessamentoAssincrono(SOCWebServiceV2):
@@ -10,9 +11,8 @@ class ProcessamentoAssincrono(SOCWebServiceV2):
         super().__init__()
 
     def call_service(self, request_body: dict) -> object | Response:
-        self.__attribute_required("client")
+        self.attribute_required("client")
         resp = self.client.service.incluirSolicitacao(request_body)  # type: ignore
-
         return resp
 
     def build_request_body(
@@ -22,7 +22,7 @@ class ProcessamentoAssincrono(SOCWebServiceV2):
         tipoProcessamento: int,
         parametros: str,
     ):
-        self.__attribute_required("factory")
+        self.attribute_required("factory")
         arg = self.factory.processamentoAssincronoWsVo(  # type: ignore
             identificacaoWsVo=identificacaoWsVo,
             codigoEmpresa=str(codigoEmpresa),
@@ -30,6 +30,17 @@ class ProcessamentoAssincrono(SOCWebServiceV2):
             parametros=parametros,
         )
         return arg
+
+    def generate_identificacaoUsuarioWsVo(self):
+        self.attribute_required("WS_KEYS")
+        self.attribute_required("factory")
+
+        identificacao = self.factory.identificacaoUsuarioWsVo(  # type: ignore
+            codigoEmpresaPrincipal=self.WS_KEYS.get("COD_EMP_PRINCIPAL"),
+            codigoResponsavel=self.WS_KEYS.get("COD_RESP"),
+            codigoUsuario=self.WS_KEYS.get("USER")
+        )
+        return identificacao
 
     def conv_exames_assinc(
         self,
@@ -92,9 +103,10 @@ class ProcessamentoAssincrono(SOCWebServiceV2):
             "examesPendentes": examesPendentes,
             "convocaPendentesPCMSO": convocaPendentesPCMSO,
         }
-        return self.__processar_parametro(par)
+        return self.processar_parametro(par)
 
-    def __processar_parametro(self, param: dict) -> str:
+    @staticmethod
+    def processar_parametro(param: dict[str, Any]) -> str:
         param_tratado = param.copy()
 
         for key, value in param.items():

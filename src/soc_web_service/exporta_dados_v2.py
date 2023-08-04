@@ -15,7 +15,7 @@ class ExportaDados(SOCWebServiceV2, ExportaDadosParams):
         super().__init__()
 
     def call_service(self, request_body: dict) -> object | Response:
-        self.__attribute_required("client")
+        self.attribute_required("client")
         resp = self.client.service.exportaDadosWs(request_body)  # type: ignore
         return resp
 
@@ -24,7 +24,7 @@ class ExportaDados(SOCWebServiceV2, ExportaDadosParams):
         return None
 
     def build_request_body(self, param: str):
-        self.__attribute_required("factory")
+        self.attribute_required("factory")
         # NOTE: zeep entende que a tag erro é obrigatória no request\
         # porém ela só é valida na response, portanto não faz diferença aqui
         arg0 = self.factory.exportaDadosWsVo(  # type: ignore
