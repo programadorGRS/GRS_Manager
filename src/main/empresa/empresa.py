@@ -12,7 +12,7 @@ from src.utils import get_json_configs
 
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
 from ..grupo.grupo import grupo_empresa
-from ..job.infos_carregar import InfosCarregar
+from ..job.job_infos import JobInfos
 
 
 class Empresa(database.Model):
@@ -108,7 +108,7 @@ class Empresa(database.Model):
         return query
 
     @classmethod
-    def carregar_empresas(self, cod_empresa_principal: int) -> InfosCarregar:
+    def carregar_empresas(self, cod_empresa_principal: int) -> JobInfos:
         EMPRESA_PRINCIPAL: EmpresaPrincipal = EmpresaPrincipal.query.get(cod_empresa_principal)
         CREDENCIAIS = get_json_configs(EMPRESA_PRINCIPAL.configs_exporta_dados)
 
@@ -120,7 +120,7 @@ class Empresa(database.Model):
 
         resp = ExportaDadosWS.request_exporta_dados_ws(parametro=PARAMETRO)
 
-        infos = InfosCarregar(
+        infos = JobInfos(
             tabela=self.__tablename__,
             cod_empresa_principal=cod_empresa_principal
         )

@@ -7,7 +7,7 @@ from src import database
 from src.soc_web_service.exporta_dados import ExportaDados
 
 from ..empresa.empresa import Empresa
-from ..job.infos_carregar import InfosCarregar
+from ..job.job_infos import JobInfos
 from .mandato import Mandato
 
 
@@ -63,7 +63,7 @@ class HistoricoMandatos(database.Model, Mandato):
         data_inicio: date,
         data_fim: date,
         mandato_ativo: bool
-    ) -> InfosCarregar:
+    ) -> JobInfos:
         """
             Carrega Mandatos CIPA da Empresa selecionada.
 
@@ -75,7 +75,7 @@ class HistoricoMandatos(database.Model, Mandato):
         """
         EMPRESA: Empresa = Empresa.query.get(id_empresa)
 
-        infos = InfosCarregar(
+        infos = JobInfos(
             tabela=self.__tablename__,
             cod_empresa_principal=EMPRESA.cod_empresa_principal,
             id_empresa=EMPRESA.id_empresa,

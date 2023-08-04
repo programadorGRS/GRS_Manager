@@ -13,7 +13,7 @@ from src.soc_web_service.exporta_dados import ExportaDados
 from ..empresa.empresa import Empresa
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
 from ..exame.exame import Exame
-from ..job.infos_carregar import InfosCarregar
+from ..job.job_infos import JobInfos
 from ..prestador.prestador import Prestador
 from ..status.status import Status
 from ..status.status_lib import StatusLiberacao
@@ -32,7 +32,7 @@ class CarregarPedidos:
         id_empresa: int,
         dataInicio: date,
         dataFim: date
-    ) -> InfosCarregar:
+    ) -> JobInfos:
         """Coleta Pedidos da Empresa no período selecionado, insere Pedidos novos \
             e Atualiza os já existentes.
 
@@ -61,7 +61,7 @@ class CarregarPedidos:
             dataFim=dataFim
         )
 
-        infos = InfosCarregar(
+        infos = JobInfos(
             tabela=self.__tablename__,
             cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
             id_empresa=EMPRESA.id_empresa,
@@ -346,7 +346,7 @@ class CarregarPedidos:
         return df
 
     @classmethod
-    def __inserir_pedidos(self, df: pd.DataFrame, infos: InfosCarregar):
+    def __inserir_pedidos(self, df: pd.DataFrame, infos: JobInfos):
         # manter apenas pedidos sem id (novos)
         df = df[df['id_ficha'].isna()].copy()
 
@@ -375,7 +375,7 @@ class CarregarPedidos:
         return infos
 
     @classmethod
-    def __atualizar_pedidos(self, df: pd.DataFrame, infos: InfosCarregar):
+    def __atualizar_pedidos(self, df: pd.DataFrame, infos: JobInfos):
         # manter apenas pedidos com id validos (ja existem)
         df = df[df['id_ficha'].notna()].copy()
 
