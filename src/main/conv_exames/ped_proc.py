@@ -2,6 +2,8 @@ from datetime import datetime
 
 from src import database
 
+from ..empresa.empresa import Empresa
+
 
 class PedidoProcessamento(database.Model):
     __tablename__ = "PedidoProcessamento"

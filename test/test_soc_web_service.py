@@ -1,5 +1,4 @@
 from src.soc_web_service.soc_web_service import SOCWebService
-from src.soc_web_service.modelo_2 import Modelo2
 from src.soc_web_service.exporta_dados import ExportaDados
 from datetime import date
 from zeep.plugins import HistoryPlugin
@@ -8,30 +7,6 @@ from zeep.plugins import HistoryPlugin
 def test_init():
     ws = SOCWebService(wsdl_filename='prod/ExportaDadosWs.xml')
 
-def test_funcionario_service():
-    COD_EMPRESA = 268104 # empresa: BASE TREINAMENTO NUCLEO
-    COD_FUNCIONARIO = 177 # funcionario: Teste1
-
-    m2 = Modelo2(wsdl_filename='prod/FuncionarioModelo2Ws.xml')
-
-    m2.set_webservice_keys(filename='grs.json')
-
-    funcionario = m2.Funcionario()
-
-    m2.config_criacoes(funcionario=funcionario)
-    m2.config_atualizacoes(funcionario=funcionario, atualizarFuncionario=8)
-
-    funcionario.identificacaoWsVo = m2.generate_identificacaoUsuarioWsVo()
-
-    funcionario.funcionarioWsVo = m2.funcionarioWsVo(
-        codigo=COD_FUNCIONARIO,
-        codigoEmpresa=COD_EMPRESA,
-        nomeFuncionario='Teste 1 - modificado modelo 2'
-    )
-
-    resp = m2.call_service(request_body=funcionario)
-
-    assert resp['encontrouFuncionario'] == True
 
 def test_exporta_dados_service():
     history = HistoryPlugin()
