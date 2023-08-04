@@ -10,7 +10,8 @@ if __name__ == '__main__':
 
     from src import TIMEZONE_SAO_PAULO, app, database
     from src.email_connect import EmailConnect
-    from src.main.conv_exames.models import ConvExames, PedidoProcessamento
+    from src.main.conv_exames.conv_exames import ConvExames
+    from src.main.conv_exames.ped_proc import PedidoProcessamento
 
     with app.app_context():
         pedidos_proc: list[PedidoProcessamento] = (

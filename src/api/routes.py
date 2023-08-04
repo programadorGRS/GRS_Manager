@@ -9,7 +9,8 @@ from pytz import timezone
 from sqlalchemy import and_, func, or_
 
 from src import app, bcrypt, database
-from src.main.conv_exames.models import ConvExames, PedidoProcessamento
+from src.main.conv_exames.conv_exames import ConvExames
+from src.main.conv_exames.ped_proc import PedidoProcessamento
 from src.main.empresa.empresa import Empresa
 from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
 from src.main.exame.exame import Exame

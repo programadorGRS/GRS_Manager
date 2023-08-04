@@ -17,7 +17,8 @@ from src.main.unidade.unidade import Unidade
 from src.utils import get_data_from_form, zipar_arquivos
 
 from .forms import FormBuscarPedidoProcessamento, FormGerarRelatorios
-from .models import ConvExames, PedidoProcessamento
+from .conv_exames import ConvExames
+from .ped_proc import PedidoProcessamento
 
 
 conv_exames = Blueprint(
