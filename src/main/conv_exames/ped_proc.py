@@ -97,13 +97,18 @@ class PedidoProcessamento(db.Model):
     ) -> JobInfos:
         empresa: Empresa = Empresa.query.get(id_empresa)
 
-        proc_assinc = cls.__setup_proc_assinc(wsdl=wsdl, ws_keys=ws_keys)
-
         infos = JobInfos(
             tabela=cls.__tablename__,
             cod_empresa_principal=empresa.cod_empresa_principal,
             id_empresa=empresa.id_empresa,
         )
+
+        try:
+            proc_assinc = cls.__setup_proc_assinc(wsdl=wsdl, ws_keys=ws_keys)
+        except Exception as e:
+            infos.ok = False
+            infos.add_error(f"Erro {str(e)}")
+            return infos
 
         par = cls._setup_param(id_empresa=empresa.id_empresa, proc_assinc=proc_assinc)
         body = cls.__setup_request_body(

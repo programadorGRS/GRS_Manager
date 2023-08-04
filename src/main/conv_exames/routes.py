@@ -21,15 +21,16 @@ from .conv_exames import ConvExames
 from .ped_proc import PedidoProcessamento
 
 
-conv_exames = Blueprint(
+_conv_exames = Blueprint(
     name="conv_exames",
     import_name=__name__,
     url_prefix="/conv-exames",
     template_folder="templates",
+    cli_group="conv-exames"
 )
 
 
-@conv_exames.route("/pedido-proc/buscar", methods=["GET", "POST"])
+@_conv_exames.route("/pedido-proc/buscar", methods=["GET", "POST"])
 @login_required
 def buscar_pedidos_proc():
     form = FormBuscarPedidoProcessamento()
@@ -48,7 +49,7 @@ def buscar_pedidos_proc():
     return render_template("conv_exames/busca_ped_proc.html", form=form)
 
 
-@conv_exames.route("/pedido-proc/busca/resultados", methods=["GET", "POST"])
+@_conv_exames.route("/pedido-proc/busca/resultados", methods=["GET", "POST"])
 @login_required
 def listar_pedidos_proc():
     prev_form = FormBuscarPedidoProcessamento()
@@ -61,7 +62,7 @@ def listar_pedidos_proc():
     return render_template("conv_exames/pedidos_proc.html", query=query, total=total)
 
 
-@conv_exames.route("/pedido-proc/busca/csv")
+@_conv_exames.route("/pedido-proc/busca/csv")
 @login_required
 def csv_pedidos_proc():
     prev_form = FormBuscarPedidoProcessamento()
@@ -85,7 +86,7 @@ def csv_pedidos_proc():
     return send_from_directory(directory=UPLOAD_FOLDER, path="/", filename=nome_arqv)
 
 
-@conv_exames.route("/pedido-proc/<int:id_proc>", methods=["GET", "POST"])
+@_conv_exames.route("/pedido-proc/<int:id_proc>", methods=["GET", "POST"])
 @login_required
 def pag_pedido_proc(id_proc):
     ped_proc = PedidoProcessamento.query.get(id_proc)
@@ -108,7 +109,7 @@ def pag_pedido_proc(id_proc):
     )
 
 
-@conv_exames.route(
+@_conv_exames.route(
     "/pedido-proc/<int:id_proc>/gerar_relatorios", methods=["GET", "POST"]
 )
 @login_required

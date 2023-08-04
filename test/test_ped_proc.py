@@ -4,11 +4,14 @@ from io import BytesIO
 import json
 import responses
 from src.main.job.job_infos import JobInfos
+from click.testing import CliRunner
+from src.main.conv_exames.commands.ped_proc import criar_ped_proc
+
 
 URL = "https://ws1.soc.com.br/WSSoc/ProcessamentoAssincronoWs"
 
 
-RESP_OK = f"""<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+RESP_OK = """<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
 <SOAP-ENV:Header xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/"/>
 <soap:Body>
 <ns2:incluirSolicitacaoResponse xmlns:ns2="http://services.soc.age.com/">
@@ -89,3 +92,14 @@ def get_proc_assinc_configs():
         ws_keys = json.load(f)
 
     return (wsdl, ws_keys)
+
+
+@responses.activate
+def test_criar_ped_proc_command(runner: CliRunner):
+    responses.add(url=URL, method="POST", body=RESP_OK, status=200)
+
+    arg_ls = ["-id", 1, "-id", 2, "-id", 3]
+    result = runner.invoke(criar_ped_proc, args=arg_ls)
+
+    assert result.exit_code == 0
+    assert result.exception is None

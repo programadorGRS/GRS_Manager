@@ -4,7 +4,7 @@ from werkzeug.exceptions import HTTPException
 from src.api import routes
 from src.api.routes_internas import internal_api
 from src.main.central_avisos import central_avisos
-from src.main.conv_exames.routes import conv_exames
+from src.main.conv_exames import conv_exames
 from src.main.empresa.routes import empresa
 from src.main.empresa_socnet.routes import empresa_socnet
 from src.main.error_handlers.error_handlers import (error_404, http_exeptions,
