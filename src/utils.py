@@ -125,7 +125,6 @@ def tratar_emails(email_str: str) -> str:
         Raises:
             ValueError: se email_str não for um string.
     '''
-    # TODO: isso é necessário?
     if not isinstance(email_str, str):
         raise ValueError(f'email_str must be of type str, not {email_str.__class__.__name__}')
 

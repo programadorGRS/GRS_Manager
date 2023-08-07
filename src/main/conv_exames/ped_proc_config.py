@@ -28,16 +28,22 @@ class PedProcConfig(db.Model):
     pendentes_pcmso = db.Column(db.Boolean, server_default=text("0"))
 
     @classmethod
-    def get_periodo(cls, id_empresa: int):
-        conf: cls = db.session.query(cls).filter(cls.id_empresa == id_empresa).first()
+    def get_periodo(cls, id_empresa: int) -> str | None:
+        conf: cls = db.session.query(cls).filter(cls.id_empresa == id_empresa).first()  # type: ignore
+
+        if not conf:
+            return None
 
         date_format = "%m/%Y"
         data = date.today() + timedelta(days=conf.periodo_timedelta_dias)
         return data.strftime(date_format)
 
     @classmethod
-    def get_configs(cls, id_empresa: int) -> dict[str, Any]:
-        conf: cls = db.session.query(cls).filter(cls.id_empresa == id_empresa).first()
+    def get_configs(cls, id_empresa: int) -> dict[str, Any] | None:
+        conf: cls = db.session.query(cls).filter(cls.id_empresa == id_empresa).first()  # type: ignore
+
+        if not conf:
+            return None
 
         param = {
             "empresa": conf.empresa.cod_empresa,

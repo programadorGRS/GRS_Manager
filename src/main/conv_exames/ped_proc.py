@@ -84,7 +84,7 @@ class PedidoProcessamento(db.Model):
                 filtros.append(param)
 
         query = (
-            db.session.query(cls)
+            db.session.query(cls)  # type: ignore
             .join(Empresa, cls.id_empresa == Empresa.id_empresa)
             .filter(*filtros)
             .order_by(cls.id_proc.desc(), cls.id_empresa)
@@ -107,10 +107,17 @@ class PedidoProcessamento(db.Model):
             proc_assinc = cls.__setup_proc_assinc(wsdl=wsdl, ws_keys=ws_keys)
         except Exception as e:
             infos.ok = False
-            infos.add_error(f"Erro {str(e)}")
+            infos.add_error(str(e))
             return infos
 
-        par = cls._setup_param(id_empresa=empresa.id_empresa, proc_assinc=proc_assinc)
+        par = cls._setup_param(
+            id_empresa=empresa.id_empresa, proc_assinc=proc_assinc
+        )
+        if not par:
+            infos.ok = False
+            infos.add_error("Empresa não tem PedProcConfig")
+            return infos
+
         body = cls.__setup_request_body(
             cod_empresa=empresa.cod_empresa, proc_assinc=proc_assinc, param=par
         )
@@ -147,11 +154,11 @@ class PedidoProcessamento(db.Model):
         )
 
         try:
-            db.session.add(new_proc)
-            db.session.commit()
+            db.session.add(new_proc)  # type: ignore
+            db.session.commit()  # type: ignore
             infos.qtd_inseridos = 1
         except (SQLAlchemyError, DatabaseError) as e:
-            db.session.rollback()
+            db.session.rollback()  # type: ignore
             infos.ok = False
             infos.add_error(str(e))
             return infos
@@ -171,6 +178,10 @@ class PedidoProcessamento(db.Model):
     @classmethod
     def _setup_param(cls, id_empresa: int, proc_assinc: ProcessamentoAssincrono):
         par_data = PedProcConfig.get_configs(id_empresa=id_empresa)
+
+        if not par_data:
+            return None
+
         par_str = proc_assinc.processar_parametro(param=par_data)
         return par_str
 
@@ -203,10 +214,16 @@ class PedidoProcessamento(db.Model):
         if msg_geral:
             erro += msg_geral + " - "
 
+        op_dtl_ls = []
         op_dtl = getattr(info_geral, "mensagemOperacaoDetalheList", [])
         for err in op_dtl:
             msg_dtl = getattr(err, "mensagem", "")
-            if msg_dtl:
-                erro += msg_dtl + ";"
+
+            if not msg_dtl:
+                continue
+
+            op_dtl_ls.append(msg_dtl)
+
+        erro += "; ".join(op_dtl_ls)
 
         return erro
