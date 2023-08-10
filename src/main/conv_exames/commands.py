@@ -69,7 +69,7 @@ def inserir_conv_exames():
     for ped_proc in pedidos_proc:
         click.echo(
             f"ID: {ped_proc.id_proc} | Cod Sol: {ped_proc.cod_solicitacao} "
-            f"| Empresa: {ped_proc.empresa.razao_social[:20]} | ",
+            f"| Empresa: {ped_proc.empresa.razao_social[:20]} #{ped_proc.empresa.cod_empresa} | ",
             nl=False,
         )
 
