@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime, timedelta
+from typing import Any
 
 import pandas as pd
 from flask_sqlalchemy import BaseQuery
@@ -8,6 +9,7 @@ from pptx import Presentation
 from pptx.chart.data import ChartData
 from pptx.util import Pt
 from pytz import timezone
+from sqlalchemy.exc import DatabaseError, SQLAlchemyError
 from werkzeug.utils import secure_filename
 
 from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, database
@@ -90,7 +92,7 @@ class PedidoProcessamento(database.Model):
         return query
 
     @classmethod
-    def criar_pedido_processamento(self, id_empresa: int, dias: int = 730) -> dict:
+    def criar_pedido_processamento(cls, id_empresa: int, dias: int = 730) -> dict:
         """Envia request SOAP para criar Pedido de Processamento Assincrono \
         de  Convocação de Exames no SOC. Registra o Pedido de Processamento na database, \
         se a response for positiva.
@@ -116,70 +118,70 @@ class PedidoProcessamento(database.Model):
 
         empresa: Empresa = Empresa.query.get(id_empresa)
         empresa_principal: EmpresaPrincipal = EmpresaPrincipal.query.get(empresa.cod_empresa_principal)
-        credenciais: dict = get_json_configs(empresa_principal.configs_exporta_dados)
+        credenciais: dict[str, Any] = get_json_configs(empresa_principal.configs_exporta_dados)
 
-        parametro: dict[str, any] = ExportaDadosWS.sol_conv_exames_assync(
-            cod_empresa = empresa.cod_empresa,
-            periodo = periodo,
-            convocar_clinico = empresa.conv_exames_convocar_clinico,
-            nunca_realizados = empresa.conv_exames_nunca_realizados,
-            periodicos_nunca_realizados = empresa.conv_exames_per_nunca_realizados,
-            exames_pendentes = empresa.conv_exames_pendentes,
-            conv_pendentes_pcmso = empresa.conv_exames_pendentes_pcmso,
-            selecao = empresa.conv_exames_selecao,
+        infos = {
+            'cod_empresa_principal': empresa_principal.cod,
+            'nome_empresa_principal': empresa_principal.nome,
+            'id_empresa': empresa.id_empresa,
+            'nome_empresa': empresa.razao_social,
+            'status': "OK",
+            'cod_solicitacao': None
+        }
+
+        parametro: dict[str, Any] = ExportaDadosWS.sol_conv_exames_assync(
+            cod_empresa=empresa.cod_empresa,
+            periodo=periodo,
+            convocar_clinico=empresa.conv_exames_convocar_clinico,
+            nunca_realizados=empresa.conv_exames_nunca_realizados,
+            periodicos_nunca_realizados=empresa.conv_exames_per_nunca_realizados,
+            exames_pendentes=empresa.conv_exames_pendentes,
+            conv_pendentes_pcmso=empresa.conv_exames_pendentes_pcmso,
+            selecao=empresa.conv_exames_selecao,
         )
 
-        response: dict[str, any] = ExportaDadosWS.request_ped_proc_assync(
+        response: dict[str, Any] = ExportaDadosWS.request_ped_proc_assync(
             username=str(empresa.cod_empresa_principal),
-            password=credenciais.get('PROC_ASSYNC_PASSWORD'),
+            password=credenciais.get('PROC_ASSYNC_PASSWORD', ""),
             codigoEmpresaPrincipal=str(empresa.cod_empresa_principal),
-            codigoResponsavel=credenciais.get('COD_RESP'),
-            codigoUsuario=credenciais.get('PROC_ASSYNC_USERNAME'),
+            codigoResponsavel=credenciais.get('COD_RESP', ""),
+            codigoUsuario=credenciais.get('PROC_ASSYNC_USERNAME', ""),
             codigoEmpresa=str(empresa.cod_empresa),
             parametros=parametro
         )
 
-        if response['response'].status_code == 200:
-            if not response['erro_soc']:
-                cod_sol = int(response['cod_solicitacao'])
-                p = PedidoProcessamento(
-                    cod_solicitacao = cod_sol,
-                    cod_empresa_principal = empresa.cod_empresa_principal,
-                    id_empresa = empresa.id_empresa,
-                    cod_empresa = empresa.cod_empresa,
-                    data_criacao = datetime.now(tz=TIMEZONE_SAO_PAULO).date(),
-                    resultado_importado = False,
-                    relatorio_enviado = False,
-                    parametro = str(parametro)
-                )
-                database.session.add(p)
-                database.session.commit()
-                return {
-                    'cod_empresa_principal': empresa_principal.cod,
-                    'nome_empresa_principal': empresa_principal.nome,
-                    'id_empresa': empresa.id_empresa,
-                    'nome_empresa': empresa.razao_social,
-                    'status': 'ok',
-                    'cod_solicitacao': response['cod_solicitacao']
-                }
-            else:
-                return {
-                    'cod_empresa_principal': empresa_principal.cod,
-                    'nome_empresa_principal': empresa_principal.nome,
-                    'id_empresa': empresa.id_empresa,
-                    'nome_empresa': empresa.razao_social,
-                    'status': f"erro soc: {response['msg_erro']}",
-                    'cod_solicitacao': response['cod_solicitacao']
-                }
-        else:
-            return {
-                'cod_empresa_principal': empresa_principal.cod,
-                'nome_empresa_principal': empresa_principal.nome,
-                'id_empresa': empresa.id_empresa,
-                'nome_empresa': empresa.razao_social,
-                'status': "erro request",
-                'cod_solicitacao': response['cod_solicitacao']
-            }
+        stt = response['response'].status_code
+        if stt != 200:
+            infos['status'] = f"Erro request: status {stt}"
+            return infos
+
+        erro_soc = response['erro_soc']
+        if erro_soc:
+            infos['status'] = f"Erro soc: {response['msg_erro']}"
+            return infos
+
+        cod_sol = int(response['cod_solicitacao'])
+        infos['cod_solicitacao'] = cod_sol
+
+        try:
+            p = PedidoProcessamento(
+                cod_solicitacao=cod_sol,
+                cod_empresa_principal=empresa.cod_empresa_principal,
+                id_empresa=empresa.id_empresa,
+                cod_empresa=empresa.cod_empresa,
+                data_criacao=datetime.now(tz=TIMEZONE_SAO_PAULO).date(),
+                resultado_importado=False,
+                relatorio_enviado=False,
+                parametro=str(parametro)
+            )
+            database.session.add(p)  # type: ignore
+            database.session.commit()  # type: ignore
+        except (SQLAlchemyError, DatabaseError) as e:
+            database.session.rollback()  # type: ignore
+            infos['status'] = str(e)
+            return infos
+
+        return infos
 
 
 class ConvExames(database.Model):
@@ -237,7 +239,7 @@ class ConvExames(database.Model):
     PPT_TRIGGER = 50
 
     @classmethod
-    def inserir_conv_exames(self, id_proc: int) -> dict:
+    def inserir_conv_exames(cls, id_proc: int) -> dict:
         """
         Consulta pedido de processamento e insere na database \
         se houver retorno. Registra o retorno na tabela PedidoProcessamento.
@@ -262,11 +264,11 @@ class ConvExames(database.Model):
         CREEDENCIAIS: dict = get_json_configs(EMPRESA_PRINCIPAL.configs_exporta_dados)
 
         PARAMETRO: dict = ExportaDadosWS.consulta_conv_exames_assync(
-            cod_empresa_principal = PED_PROC.cod_empresa_principal,
-            cod_exporta_dados = CREEDENCIAIS['CONV_EXAMES_ASSYNC_COD'],
-            chave = CREEDENCIAIS['CONV_EXAMES_ASSYNC_KEY'],
-            cod_empresa_trab = PED_PROC.cod_empresa,
-            cod_sol = PED_PROC.cod_solicitacao
+            cod_empresa_principal=PED_PROC.cod_empresa_principal,
+            cod_exporta_dados=CREEDENCIAIS['CONV_EXAMES_ASSYNC_COD'],
+            chave=CREEDENCIAIS['CONV_EXAMES_ASSYNC_KEY'],
+            cod_empresa_trab=PED_PROC.cod_empresa,
+            cod_sol=PED_PROC.cod_solicitacao
         )
 
         infos = {
@@ -275,32 +277,32 @@ class ConvExames(database.Model):
             'id_empresa': EMPRESA.id_empresa,
             'nome_empresa': EMPRESA.razao_social,
             'cod_solicitacao': PED_PROC.cod_solicitacao,
-            'status': None,
+            'status': "OK",
             'qtd': 0
         }
 
         resp: dict = ExportaDadosWS.request_exporta_dados_ws(parametro=PARAMETRO)
 
-        if resp['response'].status_code != 200:
-            infos['status'] = 'Erro no request'
+        stt = resp['response'].status_code
+        if stt != 200:
+            infos['status'] = f"Erro request: status {stt}"
             PED_PROC.obs = 'Erro no request'
-            database.session.commit()
+            database.session.commit()  # type: ignore
             return infos
-        
-        if resp['erro_soc']:
-            infos['status'] = f"erro soc: {resp['msg_erro']}"
+
+        erro_soc = resp['erro_soc']
+        if erro_soc:
+            infos['status'] = f"Erro soc: {resp['msg_erro']}"
             PED_PROC.obs = f'Erro soc: {resp["msg_erro"]}'
-            database.session.commit()
+            database.session.commit()  # type: ignore
             return infos
 
         df = ExportaDadosWS.xml_to_dataframe(resp['response'].text)
         if df.empty:
             infos['status'] = 'Vazio'
             PED_PROC.obs = 'Vazio'
-            PED_PROC.resultado_importado = True
-            database.session.commit()
+            database.session.commit()  # type: ignore
             return infos
-
 
         df = ConvExames.tratar_df_conv_exames(
             df=df,
@@ -309,18 +311,24 @@ class ConvExames(database.Model):
             id_empresa=PED_PROC.id_empresa
         )
 
-        qtd = df.to_sql(
-            name=ConvExames.__tablename__,
-            con=database.session.bind,
-            index=False,
-            if_exists='append'
-        )
+        try:
+            infos['qtd'] = df.to_sql(
+                name=ConvExames.__tablename__,
+                con=database.session.bind,  # type: ignore
+                index=False,
+                if_exists='append'
+            )
+            database.session.commit()  # type: ignore
+        except (SQLAlchemyError, DatabaseError) as e:
+            database.session.rollback()  # type: ignore
+            infos['status'] = str(e)
+            PED_PROC.obs = str(e)
+            database.session.commit()  # type: ignore
+            return infos
 
-        infos['status'] = 'Ok'
-        infos['qtd'] = qtd
         PED_PROC.resultado_importado = True
         PED_PROC.obs = 'Consulta inserida'
-        database.session.commit()
+        database.session.commit()  # type: ignore
         return infos
 
     @classmethod
