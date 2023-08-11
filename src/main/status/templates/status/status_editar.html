@@ -7,8 +7,9 @@
     <div class="card p-4">
     <form method="POST">
         {{ form.csrf_token }}
-        <legend>Editar Status RAC</legend>
+        <legend>Editar Status ASO</legend>
         <fieldset>
+            <!-- NOME -->
             <div class="form-group">
                 {{ form.nome_status.label(class="form-control-label") }}
                 {% if form.nome_status.errors %}
@@ -22,18 +23,25 @@
                     {{ form.nome_status(class="form-control editavel") }}
                 {% endif %}
             </div>
-
+            <!-- finaliza processo -->
+            <div class="form-group my-3">
+                {{ form.finaliza_processo(class="form-check-input editavel") }}
+                {{ form.finaliza_processo.label(class="form-check-label") }}
+            </div>
+            <!-- datas incl alt-->
             <div class="d-flex justify-content-between">
+                <!-- data inclusao -->
                 <div class="form-group w-49">
                     {{ form.data_inclusao.label(class="form-control-label") }}
                     {{ form.data_inclusao(class="form-control", disabled="disabled") }}
                 </div>
+                <!-- data alteracao -->
                 <div class="form-group w-49">
                     {{ form.data_alteracao.label(class="form-control-label") }}
                     {{ form.data_alteracao(class="form-control", disabled="disabled") }}
                 </div>
             </div>
-
+            <!-- incl alt por -->
             <div class="d-flex justify-content-between">
                 <div class="form-group w-49">
                     {{ form.incluido_por.label(class="form-control-label") }}
@@ -47,7 +55,7 @@
             
         </fieldset>
         <div class="d-flex justify-content-between">
-            <a href="{{ url_for('status_rac') }}" id="botao_voltar">
+            <a href="{{ url_for('status.listar_status') }}" id="botao_voltar">
                 <button type="button" class="btn btn-info text-nowrap mt-2" style="width: fit-content;">
                     <span class="material-icons align-middle">arrow_back</span> Voltar
                 </button>
@@ -74,7 +82,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Excluir Status RAC</h5>
+                <h5 class="modal-title" id="exampleModalLabel">Excluir Status ASO</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
                 <div class="modal-body">
@@ -83,7 +91,7 @@
                 </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form action="{{ url_for('excluir_status_rac', id_status=status.id_status) }}" method="POST">
+                <form action="{{ url_for('status.excluir_status', id_status=status.id_status) }}" method="POST">
                     <button type="submit" class="btn btn-danger">Excluir</button>
                 </form>
             </div>

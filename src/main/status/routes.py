@@ -1,26 +1,33 @@
-import datetime as dt
+from datetime import datetime
 
-from flask import flash, redirect, render_template, request, url_for
+from flask import Blueprint, flash, redirect, render_template, url_for
 from flask_login import current_user, login_required
-from pytz import timezone
 from sqlalchemy.exc import IntegrityError
 
-from src import app, database
-from src.main.log_acoes.log_acoes import LogAcoes
+from src import TIMEZONE_SAO_PAULO
+from src.extensions import database as db
 from src.main.status.status import Status
 from src.main.status.status_rac import StatusRAC
 from src.utils import admin_required
 
 from .forms import FormCriarStatus
 
+_status_bp = Blueprint(
+    name="status",
+    import_name=__name__,
+    url_prefix="/status",
+    template_folder="templates",
+)
 
-@app.route('/status')
+
+@_status_bp.route("/buscar/resultados")
 @login_required
-def status():
+def listar_status():
     lista_status = Status.query.all()
-    return render_template('status/status.html', title='GRS+Connect', lista_status=lista_status)
+    return render_template("status/status.html", lista_status=lista_status)
 
-@app.route('/status/criar', methods=['GET', 'POST'])
+
+@_status_bp.route("/criar", methods=["GET", "POST"])
 @login_required
 def criar_status():
     form = FormCriarStatus()
@@ -29,104 +36,89 @@ def criar_status():
         status = Status(
             nome_status=form.nome_status.data,
             finaliza_processo=form.finaliza_processo.data,
-            data_inclusao=dt.datetime.now(tz=timezone('America/Sao_Paulo')),
-            incluido_por=current_user.username
+            data_inclusao=datetime.now(TIMEZONE_SAO_PAULO),
+            incluido_por=current_user.username,  # type: ignore
         )
 
-        database.session.add(status)
-        database.session.commit()
+        db.session.add(status)  # type: ignore
+        db.session.commit()  # type: ignore
 
-        LogAcoes.registrar_acao(
-            nome_tabela = 'Status',
-            tipo_acao = 'Inclusão',
-            id_registro = status.id_status,
-            nome_registro = status.nome_status,
-        )
+        flash("Status criado com sucesso!", "alert-success")
+        return redirect(url_for("status.listar_status"))
+    return render_template("status/status_criar.html", form=form)
 
-        flash('Status criado com sucesso!', 'alert-success')
-        return redirect(url_for('status'))
-    return render_template('status/status_criar.html', title='GRS+Connect', form=form)
 
-@app.route('/status/editar', methods=['GET', 'POST'])
+@_status_bp.route("/<int:id_status>", methods=["GET", "POST"])
 @login_required
-def editar_status():
-    status: Status = Status.query.get(request.args.get('id_status', type=int))
+def editar_status(id_status):
+    status: Status = Status.query.get(id_status)
 
-    # se nao for status padrao
-    if not status.status_padrao:
-        form = FormCriarStatus(
-            nome_status=status.nome_status,
-            finaliza_processo=status.finaliza_processo,
-            data_inclusao=status.data_inclusao,
-            data_alteracao=status.data_alteracao,
-            incluido_por=status.incluido_por,
-            alterado_por=status.alterado_por
-        )
+    form = FormCriarStatus(
+        nome_status=status.nome_status,
+        finaliza_processo=status.finaliza_processo,
+        data_inclusao=status.data_inclusao,
+        data_alteracao=status.data_alteracao,
+        incluido_por=status.incluido_por,
+        alterado_por=status.alterado_por,
+    )
 
-        if form.validate_on_submit():
-            status.nome_status = form.nome_status.data
-            status.finaliza_processo = form.finaliza_processo.data
-            status.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
-            status.alterado_por = current_user.username
-            database.session.commit()
-
-            # registar acao
-            LogAcoes.registrar_acao(
-                nome_tabela = 'Status',
-                tipo_acao = 'Alteração',
-                id_registro = status.id_status,
-                nome_registro = status.nome_status
+    if form.validate_on_submit():
+        if status.status_padrao:
+            flash(
+                f'O Status "{status.nome_status}" não pode ser editado', "alert-danger"
             )
+            return redirect(url_for("status.listar_status"))
 
-            flash('Status editado com sucesso!', 'alert-success')
-            return redirect(url_for('status'))
+        status.nome_status = form.nome_status.data
+        status.finaliza_processo = form.finaliza_processo.data
+        status.data_alteracao = datetime.now(TIMEZONE_SAO_PAULO)
+        status.alterado_por = current_user.username  # type: ignore
+        db.session.commit()  # type: ignore
 
-        return render_template(
-            'status/status_editar.html',
-            title='GRS+Connect',
-            form=form,
-            status=status
-        )
-    else:
-        flash(f'O Status "{status.nome_status}" não pode ser editado', 'alert-danger')
-        return redirect(url_for('status'))
+        flash("Status editado com sucesso!", "alert-success")
+        return redirect(url_for("status.listar_status"))
 
-@app.route('/status/excluir', methods=['GET', 'POST'])
+    return render_template("status/status_editar.html", form=form, status=status)
+
+
+@_status_bp.route("/excluir/<int:id_status>", methods=["GET", "POST"])
 @login_required
 @admin_required
-def excluir_status():
-    status: Status = Status.query.get(request.args.get('id_status', type=int))
+def excluir_status(id_status):
+    status: Status = Status.query.get(id_status)
 
-    # se nao for status padrao
-    if not status.status_padrao:
-        try:
-            database.session.delete(status)
-            database.session.commit()
+    if status.status_padrao:
+        flash(f'O Status "{status.nome_status}" não pode ser excluído', "alert-danger")
+        return redirect(url_for("status.listar_status"))
 
-            LogAcoes.registrar_acao(
-                nome_tabela = 'Status',
-                tipo_acao = 'Exclusão',
-                id_registro = status.id_status,
-                nome_registro = status.nome_status,
-            )
+    try:
+        db.session.delete(status)  # type: ignore
+        db.session.commit()  # type: ignore
+        flash(
+            f"Status excluído! Status: {status.id_status} - {status.nome_status}",
+            "alert-danger",
+        )
+        return redirect(url_for("status.listar_status"))
+    except IntegrityError:
+        db.session.rollback()  # type: ignore
+        flash(
+            (
+                f"O Status: {status.id_status} - {status.nome_status} não pode"
+                "ser excluído, pois há outros registros associados a ele"
+            ),
+            "alert-danger",
+        )
+        return redirect(url_for("status.listar_status"))
 
-            flash(f'Status excluído! Status: {status.id_status} - {status.nome_status}', 'alert-danger')
-            return redirect(url_for('status'))
-        except IntegrityError:
-            database.session.rollback()
-            flash(f'O Status: {status.id_status} - {status.nome_status} não pode ser excluído, pois há outros registros associados a ele', 'alert-danger')
-            return redirect(url_for('status'))
-    else:
-        flash(f'O Status "{status.nome_status}" não pode ser excluído', 'alert-danger')
-        return redirect(url_for('status'))
 
-@app.route('/status_rac')
+@_status_bp.route("/status-rac/buscar/resultados")
 @login_required
-def status_rac():
+def listar_status_rac():
     lista_status = StatusRAC.query.all()
-    return render_template('status/status_rac.html', title='GRS+Connect', lista_status=lista_status)
+    return render_template("status/status_rac.html", lista_status=lista_status)
 
-@app.route('/status_rac/criar', methods=['GET', 'POST'])
+
+@_status_bp.route("/status-rac/criar", methods=["GET", "POST"])
 @login_required
 def criar_status_rac():
     form = FormCriarStatus()
@@ -134,91 +126,79 @@ def criar_status_rac():
     if form.validate_on_submit():
         status = StatusRAC(
             nome_status=form.nome_status.data,
-            data_inclusao=dt.datetime.now(tz=timezone('America/Sao_Paulo')),
-            incluido_por=current_user.username
+            data_inclusao=datetime.now(TIMEZONE_SAO_PAULO),
+            incluido_por=current_user.username,  # type: ignore
         )
 
-        database.session.add(status)
-        database.session.commit()
+        db.session.add(status)  # type: ignore
+        db.session.commit()  # type: ignore
 
-        LogAcoes.registrar_acao(
-            nome_tabela = 'StatusRAC',
-            tipo_acao = 'Inclusão',
-            id_registro = status.id_status,
-            nome_registro = status.nome_status,
-        )
+        flash("Status RAC criado com sucesso!", "alert-success")
+        return redirect(url_for("status.listar_status_rac"))
+    return render_template("status/status_rac_criar.html", form=form)
 
-        flash('Status RAC criado com sucesso!', 'alert-success')
-        return redirect(url_for('status_rac'))
-    return render_template('status/status_rac_criar.html', title='GRS+Connect', form=form)
 
-@app.route('/status_rac/editar', methods=['GET', 'POST'])
+@_status_bp.route("/status-rac/<int:id_status>", methods=["GET", "POST"])
 @login_required
-def editar_status_rac():
-    status: StatusRAC = StatusRAC.query.get(request.args.get('id_status', type=int))
+def editar_status_rac(id_status):
+    status: StatusRAC = StatusRAC.query.get(id_status)
 
-    # se nao for status padrao
-    if not status.status_padrao:
-        form = FormCriarStatus(
-            nome_status=status.nome_status,
-            data_inclusao=status.data_inclusao,
-            data_alteracao=status.data_alteracao,
-            incluido_por=status.incluido_por,
-            alterado_por=status.alterado_por
-        )
+    form = FormCriarStatus(
+        nome_status=status.nome_status,
+        data_inclusao=status.data_inclusao,
+        data_alteracao=status.data_alteracao,
+        incluido_por=status.incluido_por,
+        alterado_por=status.alterado_por,
+    )
 
-        if form.validate_on_submit():
-            status.nome_status = form.nome_status.data
-            status.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
-            status.alterado_por = current_user.username
-            database.session.commit()
-
-            # registar acao
-            LogAcoes.registrar_acao(
-                nome_tabela = 'StatusRAC',
-                tipo_acao = 'Alteração',
-                id_registro = status.id_status,
-                nome_registro = status.nome_status
+    if form.validate_on_submit():
+        if status.status_padrao:
+            flash(
+                f'O Status RAC "{status.nome_status}" não pode ser editado',
+                "alert-danger",
             )
+            return redirect(url_for("status.listar_status_rac"))
 
-            flash('Status RAC editado com sucesso!', 'alert-success')
-            return redirect(url_for('status_rac'))
+        status.nome_status = form.nome_status.data
+        status.data_alteracao = datetime.now(TIMEZONE_SAO_PAULO)
+        status.alterado_por = current_user.username  # type: ignore
+        db.session.commit()  # type: ignore
 
-        return render_template(
-            'status/status_rac_editar.html',
-            title='GRS+Connect',
-            form=form,
-            status=status
-        )
-    else:
-        flash(f'O Status RAC "{status.nome_status}" não pode ser editado', 'alert-danger')
-        return redirect(url_for('status_rac'))
+        flash("Status RAC editado com sucesso!", "alert-success")
+        return redirect(url_for("status.listar_status_rac"))
 
-@app.route('/status_rac/excluir', methods=['GET', 'POST'])
+    return render_template(
+        "status/status_rac_editar.html",
+        form=form,
+        status=status,
+    )
+
+
+@_status_bp.route("/status-rac/excluir/<int:id_status>", methods=["GET", "POST"])
 @login_required
 @admin_required
-def excluir_status_rac():
-    status: StatusRAC = StatusRAC.query.get(request.args.get('id_status', type=int))
+def excluir_status_rac(id_status):
+    status: StatusRAC = StatusRAC.query.get(id_status)
 
-    # se nao for status padrao
-    if not status.status_padrao:
-        try:
-            database.session.delete(status)
-            database.session.commit()
+    if status.status_padrao:
+        flash(
+            f'O Status RAC"{status.nome_status}" não pode ser excluído', "alert-danger"
+        )
+        return redirect(url_for("status.listar_status_rac"))
 
-            LogAcoes.registrar_acao(
-                nome_tabela = 'StatusRAC',
-                tipo_acao = 'Exclusão',
-                id_registro = status.id_status,
-                nome_registro = status.nome_status,
-            )
+    try:
+        db.session.delete(status)  # type: ignore
+        db.session.commit()  # type: ignore
 
-            flash(f'Status RAC excluído! Status: {status.id_status} - {status.nome_status}', 'alert-danger')
-            return redirect(url_for('status_rac'))
-        except IntegrityError:
-            database.session.rollback()
-            flash(f'O Status RAC: {status.id_status} - {status.nome_status} não pode ser excluído, pois há outros registros associados a ele', 'alert-danger')
-            return redirect(url_for('status_rac'))
-    else:
-        flash(f'O Status RAC"{status.nome_status}" não pode ser excluído', 'alert-danger')
-        return redirect(url_for('status_rac'))
+        flash(
+            f"Status RAC excluído! Status: {status.id_status} - {status.nome_status}",
+            "alert-danger",
+        )
+        return redirect(url_for("status.listar_status_rac"))
+    except IntegrityError:
+        db.session.rollback()  # type: ignore
+        flash(
+            f"O Status RAC: {status.id_status} - {status.nome_status} não pode ser excluído, pois há outros registros associados a ele",
+            "alert-danger",
+        )
+        return redirect(url_for("status.listar_status_rac"))
