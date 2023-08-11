@@ -4,7 +4,7 @@
 
 <div class="container">
     <h1>Status RAC</h1>
-    <a href="{{ url_for('criar_status_rac') }}" class="btn btn-outline-success">
+    <a href="{{ url_for('status.criar_status_rac') }}" class="btn btn-outline-success">
         <span class="material-icons align-middle">add</span> Criar
     </a>
     <table class="table table-hover">
@@ -30,7 +30,7 @@
                     {% endif %}
                     <td>
                         {% if not status.status_padrao %}
-                            <a href="{{ url_for('editar_status_rac', id_status=status.id_status) }}">
+                            <a href="{{ url_for('status.editar_status_rac', id_status=status.id_status) }}">
                                 <button class="btn btn-sm btn-outline-primary">
                                     <span class="material-icons align-middle">edit_note</span> Editar
                                 </button>

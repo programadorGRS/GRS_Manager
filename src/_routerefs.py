@@ -23,7 +23,7 @@ from src.main.pedido_socnet import routes
 from src.main.prestador import routes
 from src.main.relatorios_agendados import routes
 from src.main.rtc.routes import rtc
-from src.main.status import routes
+from src.main.status import status_bp
 from src.main.unidade import unidade
 from src.main.usuario import routes
 
@@ -38,6 +38,7 @@ def register_blueprints(app: Flask):
     app.register_blueprint(conv_exames)
     app.register_blueprint(rtc)
     app.register_blueprint(unidade)
+    app.register_blueprint(status_bp)
     return app
 
 
