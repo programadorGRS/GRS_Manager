@@ -9,7 +9,7 @@ from src.main.empresa.routes import empresa
 from src.main.empresa_socnet.routes import empresa_socnet
 from src.main.error_handlers.error_handlers import (error_404, http_exeptions,
                                                     internal_exceptions)
-from src.main.exame import routes
+from src.main.exame import exame_bp
 from src.main.exames_realizados import routes
 from src.main.grupo import routes
 from src.main.home import routes
@@ -40,6 +40,7 @@ def register_blueprints(app: Flask):
     app.register_blueprint(unidade)
     app.register_blueprint(status_bp)
     app.register_blueprint(absenteismo_bp)
+    app.register_blueprint(exame_bp)
     return app
 
 

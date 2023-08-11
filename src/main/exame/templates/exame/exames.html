@@ -23,7 +23,7 @@
                     <td>{{ exame.prazo }}</td>
                     <td>{{ exame.data_inclusao.strftime('%d-%m-%Y') }}</td>
                     <td>
-                        <a href="{{ url_for('editar_exame', id_exame=exame.id_exame) }}">
+                        <a href="{{ url_for('exame.editar_exame', id_exame=exame.id_exame) }}">
                             <button class="btn btn-sm btn-outline-primary">
                                 <span class="material-icons align-middle">edit_note</span> Editar
                             </button>

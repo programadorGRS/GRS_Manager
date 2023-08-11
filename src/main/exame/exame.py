@@ -14,9 +14,9 @@ class Exame(database.Model):
     cod_empresa_principal = database.Column(database.Integer, database.ForeignKey('EmpresaPrincipal.cod'), nullable=False)
     cod_exame = database.Column(database.String(255), nullable=False)
     nome_exame = database.Column(database.String(255), nullable=False)
-    
+
     prazo = database.Column(database.Integer, default=0) # dias
-    
+
     data_inclusao = database.Column(database.DateTime)
     data_alteracao = database.Column(database.DateTime)
     incluido_por = database.Column(database.String(50))
@@ -27,34 +27,33 @@ class Exame(database.Model):
 
     @classmethod
     def buscar_exames(
-        self,
-        cod_empresa_principal: int = None,
-        id_exame: int = None,
-        cod_exame: str = None,
-        nome: str = None,
-        prazo: int = None
+        cls,
+        cod_emp_princ: int | None = None,
+        id_exame: int | None = None,
+        cod_exame: str | None = None,
+        nome_exame: str | None = None,
+        prazo_exame: int | None = None
     ):
         params = []
 
-        if cod_empresa_principal:
-            params.append(self.cod_empresa_principal == cod_empresa_principal)
+        if cod_emp_princ:
+            params.append(cls.cod_empresa_principal == cod_emp_princ)
         if id_exame:
-            params.append(self.id_exame == id_exame)
+            params.append(cls.id_exame == id_exame)
         if cod_exame:
-            params.append(self.cod_exame.like(f'%{cod_exame}%'))
-        if nome:
-            params.append(self.nome_exame.like(f'%{nome}%'))
-        if prazo is not None:
-            params.append(self.prazo == prazo)
+            params.append(cls.cod_exame.like(f'%{cod_exame}%'))
+        if nome_exame:
+            params.append(cls.nome_exame.like(f'%{nome_exame}%'))
+        if prazo_exame is not None:
+            params.append(cls.prazo == prazo_exame)
 
         query = (
-            database.session.query(self)
+            database.session.query(cls)  # type: ignore
             .filter(*params)
-            .order_by(self.nome_exame)
+            .order_by(cls.nome_exame)
         )
 
         return query
-
 
     @classmethod
     def inserir_exames(

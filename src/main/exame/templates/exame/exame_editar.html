@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% from "macros.html" import render_form_field, render_edit_buttons %}
+
+{% block body %}
+<div class="container justify-content-center d-flex mt-2">
+    <div class="card p-4">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <legend>Editar Exame</legend>
+            <hr>
+            <p><b>Exame:</b> {{ exame.nome_exame }}</p>
+            <p><b>ID:</b> {{ exame.id_exame }}</p>
+            <p><b>Cod: </b> {{ exame.cod_exame }}</p>
+            <p><b>Empresa Principal:</b> {{ exame.empresa_principal.nome }}</p>
+            <fieldset>
+                {{ render_form_field(form.prazo_exame) }}
+            </fieldset>
+            <div class="d-flex justify-content-between mt-2">
+                {{ render_edit_buttons() }}
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between mt-2">
+                <div>
+                    {% if exame.incluido_por %}
+                        <span><b>Incluido por:</b> {{ exame.incluido_por }}</span> <br>
+                    {% endif%}
+                    {% if exame.alterado_por %}
+                        <span><b>Alterado por:</b> {{ exame.alterado_por }}</span>
+                    {% endif%}
+                </div>
+                <div>
+                    {% if exame.data_inclusao %}
+                        <span><b>Data Incl:</b> {{ exame.data_inclusao.strftime("%d/%m/%Y") }}</span> <br>
+                    {% endif%}
+                    {% if exame.data_alteracao %}
+                        <span><b>Data Alt:</b> {{ exame.data_alteracao.strftime("%d/%m/%Y") }}</span>
+                    {% endif%}
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    window.onload =  function disableFields(){
+        const campos = document.getElementsByTagName("input");
+        for(let i = 0; i < campos.length; i++){
+            campos[i].disabled = true;
+        };
+    };
+
+    function enableFields(){
+        const campos = document.getElementsByTagName("input");
+        for(let i = 0; i < campos.length; i++){
+            campos[i].disabled = false;
+        };
+
+        document.getElementById("botao_editar").hidden = true;
+        document.getElementById("botao_voltar").hidden = true;
+
+        document.getElementById("botao_cancelar").hidden = false;
+        document.getElementById("botao_salvar").hidden = false;
+    };
+</script>
+{% endblock %}
