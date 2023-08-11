@@ -625,7 +625,7 @@ class Licenca(database.Model):
             emails_destinatario, len(df), status
         """
         query = self.buscar_licencas(
-            cod_empresa_principal=cod_empresa_principal,
+            cod_emp_princ=cod_empresa_principal,
             id_empresa=id_empresa,
             id_unidade=id_unidade,
             data_inicio=data_inicio,
