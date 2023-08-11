@@ -1,116 +1,142 @@
-import datetime as dt
+import os
+from datetime import datetime
 
 import pandas as pd
-from flask import (flash, redirect, render_template, request,
+from flask import (Blueprint, flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import login_required
 from werkzeug.utils import secure_filename
 
-from src import UPLOAD_FOLDER, app, database
+from src import UPLOAD_FOLDER
+from src.extensions import database as db
 from src.main.empresa.empresa import Empresa
 from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
 from src.main.funcionario.funcionario import Funcionario
 from src.main.unidade.unidade import Unidade
-from src.utils import zipar_arquivos
+from src.utils import get_data_from_args, get_data_from_form, zipar_arquivos
 
 from .forms import FormBuscarAbsenteismo
 from .models import Licenca
 
+_absenteismo_bp = Blueprint(
+    name="absenteismo",
+    import_name=__name__,
+    url_prefix="/absenteismo",
+    template_folder="templates",
+)
 
-# ABSENTEISMO BUSCA---------------------------------------------
-@app.route('/absenteismo/busca', methods=['GET', 'POST'])
+
+@_absenteismo_bp.route("/buscar", methods=["GET", "POST"])
 @login_required
 def absenteismo_busca():
     form = FormBuscarAbsenteismo()
 
-    form.cod_empresa_principal.choices = [('', 'Selecione')] + [
+    form.cod_emp_princ.choices = [("", "Selecione")] + [
         (i.cod, i.nome)
         for i in EmpresaPrincipal.query.order_by(EmpresaPrincipal.nome).all()
     ]
 
     if form.validate_on_submit():
         return redirect(
-            url_for(
-                'absenteismo_relatorios',
-                cod_empresa_principal=form.cod_empresa_principal.data,
-                id_empresa=form.cod_empresa.data,
-                id_unidade=form.cod_unidade.data,
-                data_inicio=form.data_inicio.data,
-                data_fim=form.data_fim.data
-                )
+            url_for("absenteismo.absenteismo_relatorios", **get_data_from_form(data=form.data))
         )
 
-    return render_template(
-        'absenteismo/busca.html',
-        title='Manager',
-        form=form
-    )
+    return render_template("absenteismo/busca.html", form=form)
 
 
-# ABSENTEISMO RELATORIOS---------------------------------------------
-@app.route('/absenteismo/relatorios', methods=['GET', 'POST'])
+@_absenteismo_bp.route("/relatorios", methods=["GET", "POST"])
 @login_required
 def absenteismo_relatorios():
-    query = Licenca.buscar_licencas(
-        cod_empresa_principal=request.args.get(key='cod_empresa_principal', default=None, type=int),
-        id_empresa=request.args.get(key='id_empresa', default=None, type=int),
-        id_unidade=request.args.get(key='id_unidade', default=None, type=int),
-        data_inicio=request.args.get(key='data_inicio', default=None),
-        data_fim=request.args.get(key='data_fim', default=None)
+    data = get_data_from_args(FormBuscarAbsenteismo(), data=request.args)
+
+    for key, val in data.items():
+        if "data_" in key:
+            data[key] = datetime.strptime(val, "%Y/%m/%d")
+
+    query = Licenca.buscar_licencas(**data)
+
+    df = pd.read_sql(sql=query.statement, con=db.session.bind)  # type: ignore
+    if df.empty:
+        flash("A pesquisa não gerou dados", "alert-info")
+        return redirect(url_for("absenteismo.absenteismo_busca"))
+
+    id_unidade = data.get("id_unidade", None)
+    id_empresa = data.get("id_empresa", None)
+    cod_emp_princ = data.get("cod_emp_princ", None)
+
+    nome_empresa = __get_nome_empresa(
+        cod_emp_princ=cod_emp_princ,
+        id_empresa=id_empresa,
     )
 
-    df = pd.read_sql(sql=query.statement, con=database.session.bind)
-    if not df.empty:
-        nome_empresa = EmpresaPrincipal.query.get(request.args.get(key='cod_empresa_principal', type=int)).nome
-        nome_unidade = None
-        qtd_ativos = (
-            database.session.query(Funcionario)
-            .filter(Funcionario.situacao == 'Ativo')
-            .filter(Funcionario.cod_empresa_principal == request.args.get(key='cod_empresa_principal', default=None, type=int))
-            .count()
-        )
+    qtd_ativos = __get_qtd_ativos(
+        cod_emp_princ=cod_emp_princ, id_empresa=id_empresa, id_unidade=id_unidade
+    )
 
-        id_empresa = request.args.get(key='id_empresa', default=None, type=int)
-        if id_empresa:
-            nome_empresa = Empresa.query.get(id_empresa).razao_social
-            qtd_ativos = (
-                database.session.query(Funcionario)
-                .filter(Funcionario.situacao == 'Ativo')
-                .filter(Funcionario.id_empresa == id_empresa)
-                .count()
-            )
+    timestamp = int(datetime.now().timestamp())
+    nome_arquivo = secure_filename(nome_empresa).replace("/", "_")
+    caminho_arqvs = os.path.join(
+        UPLOAD_FOLDER, f"Absenteismo_{nome_arquivo}_{timestamp}"
+    )
 
-            id_unidade = request.args.get(key='id_unidade', default=None, type=int)
-            if id_unidade:
-                nome_unidade = Unidade.query.get(id_unidade).nome_unidade
-                qtd_ativos = (
-                    database.session.query(Funcionario)
-                    .filter(Funcionario.situacao == 'Ativo')
-                    .filter(Funcionario.id_unidade == id_unidade)
-                    .count()
-                )
+    nome_excel = f"{caminho_arqvs}.xlsx"
+    df_excel = df[Licenca.COLUNAS_PLANILHA]
+    df_excel.to_excel(nome_excel, index=False, freeze_panes=(1, 0))
 
-        caminho_arqvs = f'{UPLOAD_FOLDER}/Absenteismo_{secure_filename(nome_empresa).replace("/", "")}_{int(dt.datetime.now().timestamp())}'
-        nome_excel = f'{caminho_arqvs}.xlsx'
-        df2 = df[Licenca.COLUNAS_PLANILHA]
-        df2.to_excel(nome_excel, index=False, freeze_panes=(1, 0))
+    nome_ppt = f"{caminho_arqvs}.pptx"
 
-        nome_ppt = f'{caminho_arqvs}.pptx'
-        Licenca.criar_ppt(
-            df=df,
-            funcionarios_ativos=qtd_ativos,
-            nome_arquivo=nome_ppt,
-            nome_empresa=nome_empresa,
-            nome_unidade=nome_unidade
-        )
+    nome_unidade = None
+    if id_unidade:
+        nome_unidade = Unidade.query.get(id_unidade).nome_unidade
 
-        pasta_zip = zipar_arquivos(
-            caminhos_arquivos=[nome_excel, nome_ppt],
-            caminho_pasta_zip=f'{caminho_arqvs}.zip'
-        )
-        
-        return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=pasta_zip.split('/')[-1])
-    
+    Licenca.criar_ppt(
+        df=df,
+        funcionarios_ativos=qtd_ativos,
+        nome_arquivo=nome_ppt,
+        nome_empresa=nome_empresa,
+        nome_unidade=nome_unidade,
+    )
+
+    pasta_zip = zipar_arquivos(
+        caminhos_arquivos=[nome_excel, nome_ppt],
+        caminho_pasta_zip=f"{caminho_arqvs}.zip",
+    )
+
+    return send_from_directory(
+        directory=UPLOAD_FOLDER, path="/", filename=os.path.basename(pasta_zip)
+    )
+
+
+def __get_nome_empresa(
+    cod_emp_princ: int | None = None, id_empresa: int | None = None
+) -> str:
+    if id_empresa:
+        return Empresa.query.get(id_empresa).razao_social
+    elif cod_emp_princ:
+        return EmpresaPrincipal.query.get(cod_emp_princ).nome
     else:
-        flash('A pesquisa não gerou dados', 'alert-info')
-        return(redirect(url_for('absenteismo_busca')))
+        raise ValueError("Parametros de query inválidos __get_nome_empresa")
+
+
+def __get_qtd_ativos(
+    cod_emp_princ: int | None = None,
+    id_empresa: int | None = None,
+    id_unidade: int | None = None,
+) -> int:
+    if id_unidade:
+        f = Funcionario.id_unidade == id_unidade
+    elif id_empresa:
+        f = Funcionario.id_empresa == id_empresa
+    elif cod_emp_princ:
+        f = Funcionario.id_unidade == id_unidade
+    else:
+        raise ValueError("Parametros de query inválidos para __get_qtd_ativos")
+
+    qtd_ativos = (
+        db.session.query(Funcionario)  # type: ignore
+        .filter(Funcionario.situacao == "Ativo")
+        .filter(f)
+        .count()
+    )
+
+    return qtd_ativos

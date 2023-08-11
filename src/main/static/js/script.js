@@ -234,6 +234,15 @@ function CarregarOpcoesExamesRealizados(
     document.getElementById(idUnidade).innerHTML = '<option value="">Selecione</option>';
 }
 
+function CarregarOpcoesAbsenteismo(
+    idEmpresaPrincipal,
+    idEmpresa,
+    idUnidade,
+){
+    carregarOpcoesEmpresa(idEmpresaPrincipal, idEmpresa);
+    document.getElementById(idUnidade).innerHTML = '<option value="">Selecione um Empresa</option>';
+}
+
 
 function scrollToTop(){
     window.scrollTo(0, 0);

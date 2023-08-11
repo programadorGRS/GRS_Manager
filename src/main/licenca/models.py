@@ -75,33 +75,32 @@ class Licenca(database.Model):
 
     BASE_PPT = 'src/main/licenca/ppt/base_absenteismo_v2.pptx'
 
-
     @classmethod
     def buscar_licencas(
-        self,
-        cod_empresa_principal: int | None = None,
-        id_empresa: int = None,
-        id_unidade: int = None,
-        data_inicio: datetime = None,
-        data_fim: datetime = None
+        cls,
+        cod_emp_princ: int | None = None,
+        id_empresa: int | None = None,
+        id_unidade: int | None = None,
+        data_inicio: datetime | None = None,
+        data_fim: datetime | None = None,
     ):
 
         filtros = []
 
-        if cod_empresa_principal:
-            filtros.append(self.cod_empresa_principal == cod_empresa_principal)
+        if cod_emp_princ:
+            filtros.append(cls.cod_empresa_principal == cod_emp_princ)
         if id_empresa:
-            filtros.append(self.id_empresa == id_empresa)
+            filtros.append(cls.id_empresa == id_empresa)
         if id_unidade:
-            filtros.append(self.id_unidade == id_unidade)
+            filtros.append(cls.id_unidade == id_unidade)
         if data_inicio:
-            filtros.append(self.data_ficha >= data_inicio)
+            filtros.append(cls.data_ficha >= data_inicio)
         if data_fim:
-            filtros.append(self.data_ficha <= data_fim)
-        
+            filtros.append(cls.data_ficha <= data_fim)
+
         query = (
-            database.session.query(
-                self,
+            database.session.query(  # type: ignore
+                cls,
                 EmpresaPrincipal.nome,
                 Empresa.cod_empresa,
                 Empresa.razao_social,
@@ -114,10 +113,10 @@ class Licenca(database.Model):
                 Funcionario.nome_cargo,
                 Funcionario.situacao
             )
-            .outerjoin(EmpresaPrincipal, self.cod_empresa_principal == EmpresaPrincipal.cod)
-            .outerjoin(Empresa, self.id_empresa == Empresa.id_empresa)
-            .outerjoin(Unidade, self.id_unidade == Unidade.id_unidade)
-            .outerjoin(Funcionario, self.id_funcionario == Funcionario.id_funcionario)
+            .outerjoin(EmpresaPrincipal, cls.cod_empresa_principal == EmpresaPrincipal.cod)
+            .outerjoin(Empresa, cls.id_empresa == Empresa.id_empresa)
+            .outerjoin(Unidade, cls.id_unidade == Unidade.id_unidade)
+            .outerjoin(Funcionario, cls.id_funcionario == Funcionario.id_funcionario)
             .filter(*filtros)
         )
 
@@ -761,7 +760,7 @@ class Licenca(database.Model):
         funcionarios_ativos: int,
         nome_arquivo: str,
         nome_empresa: str,
-        nome_unidade: str = None
+        nome_unidade: str | None = None
     ):
         df = df.copy()
         # instanciar apresentacao

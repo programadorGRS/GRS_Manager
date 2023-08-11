@@ -4,19 +4,25 @@ from wtforms.validators import DataRequired, Optional
 
 
 class FormBuscarAbsenteismo(FlaskForm):
-    opcoes = [('', 'Selecione')]
-    cod_empresa_principal = SelectField(
-        'Empresa Principal',
+    opcoes = [("", "Selecione")]
+    cod_emp_princ = SelectField(
+        "Empresa Principal",
         validators=[DataRequired()],
-        render_kw={'onchange': "CarregarOpcoesExamesRealizados('cod_empresa_principal', 'cod_empresa', 'cod_unidade', 'cod_exame')"}
+        render_kw={
+            "onchange": "CarregarOpcoesAbsenteismo('cod_emp_princ', 'id_empresa', 'id_unidade')"
+        },
     )
-    cod_empresa = SelectField(
-        'Empresa',
+    id_empresa = SelectField(
+        "Empresa",
         validators=[Optional()],
-        render_kw={'onchange': "carregarOpcoesUnidade('cod_empresa_principal', 'cod_empresa', 'cod_unidade')"},
+        render_kw={
+            "onchange": "carregarOpcoesUnidade('cod_emp_princ', 'id_empresa', 'id_unidade')"
+        },
         choices=opcoes,
-        validate_choice=False
+        validate_choice=False,
     )
-    cod_unidade = SelectField('Unidade', validators=[Optional()], choices=opcoes, validate_choice=False)
-    data_inicio = DateField('Data Exame Inicio', validators=[Optional()])
-    data_fim = DateField('Data Exame Fim', validators=[Optional()])
+    id_unidade = SelectField(
+        "Unidade", validators=[Optional()], choices=opcoes, validate_choice=False
+    )
+    data_inicio = DateField("Data Exame Inicio", validators=[Optional()])
+    data_fim = DateField("Data Exame Fim", validators=[Optional()])

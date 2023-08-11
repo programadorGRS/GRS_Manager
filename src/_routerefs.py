@@ -14,7 +14,7 @@ from src.main.exames_realizados import routes
 from src.main.grupo import routes
 from src.main.home import routes
 from src.main.importacao import routes
-from src.main.licenca import routes
+from src.main.licenca import absenteismo_bp
 from src.main.log_acoes import routes
 from src.main.login.routes import user_auth
 from src.main.manual import routes
@@ -39,6 +39,7 @@ def register_blueprints(app: Flask):
     app.register_blueprint(rtc)
     app.register_blueprint(unidade)
     app.register_blueprint(status_bp)
+    app.register_blueprint(absenteismo_bp)
     return app
 
 
