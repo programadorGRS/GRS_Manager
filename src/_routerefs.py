@@ -24,7 +24,7 @@ from src.main.prestador import routes
 from src.main.relatorios_agendados import routes
 from src.main.rtc.routes import rtc
 from src.main.status import routes
-from src.main.unidade import routes
+from src.main.unidade import unidade
 from src.main.usuario import routes
 
 
@@ -37,6 +37,7 @@ def register_blueprints(app: Flask):
     app.register_blueprint(user_auth)
     app.register_blueprint(conv_exames)
     app.register_blueprint(rtc)
+    app.register_blueprint(unidade)
     return app
 
 
