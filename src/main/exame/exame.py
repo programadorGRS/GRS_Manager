@@ -6,6 +6,7 @@ from pytz import timezone
 from src import database
 
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
+from sqlalchemy.exc import DatabaseError, SQLAlchemyError
 
 
 class Exame(database.Model):
@@ -59,7 +60,7 @@ class Exame(database.Model):
     def inserir_exames(
         self,
         cod_empresa_principal: int
-    ):
+    ) -> int:
         '''
         Carrega todas os Exames no exporta dados da EmpresaPrincipal selecionada
 
@@ -67,7 +68,6 @@ class Exame(database.Model):
         '''
         from modules.exporta_dados import (exames, exporta_dados,
                                            get_json_configs)
-
 
         empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
         credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
@@ -78,7 +78,7 @@ class Exame(database.Model):
             chave=credenciais['EXAMES_KEY'],
         )
         df = exporta_dados(parametro=par)
-        
+
         if not df.empty:
             exames_db = (
                 database.session.query(Exame.cod_exame)
@@ -90,32 +90,37 @@ class Exame(database.Model):
             df = df[~df['CODIGO'].isin(exames_db)]
 
             # tratar df
+            cols = {'CODIGO': 'cod_exame', 'NOME': 'nome_exame'}
             df = df.replace(to_replace={'': None})
-            df = df.rename(columns={
-                'CODIGO': 'cod_exame',
-                'NOME': 'nome_exame',
-            })
+            df = df.rename(columns=cols)
+            df = df.dropna(subset=list(cols.values()), axis=0)
+
             df['cod_empresa_principal'] = cod_empresa_principal
             df['data_inclusao'] = datetime.now(tz=timezone('America/Sao_Paulo'))
             df['incluido_por'] = 'Servidor'
 
-            # inserir
-            linhas_inseridas = df.to_sql(
-                name=self.__tablename__,
-                con=database.session.bind,
-                if_exists='append',
-                index=False
-            )
-            database.session.commit()
-            
-            return linhas_inseridas
+            try:
+                linhas_inseridas = df.to_sql(
+                    name=self.__tablename__,
+                    con=database.session.bind,
+                    if_exists='append',
+                    index=False
+                )
+                database.session.commit()
+            except (SQLAlchemyError, DatabaseError):
+                database.session.rollback()
+                linhas_inseridas = 0
 
+            if linhas_inseridas is None:
+                return 0
+            else:
+                return linhas_inseridas
 
     @classmethod
     def atualizar_exames(
         self,
         cod_empresa_principal: int
-    ):
+    ) -> int:
         '''
         Carrega todas os Exames no exporta dados da EmpresaPrincipal selecionada
 
@@ -123,7 +128,6 @@ class Exame(database.Model):
         '''
         from modules.exporta_dados import (exames, exporta_dados,
                                            get_json_configs)
-
 
         empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
         credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
@@ -134,7 +138,7 @@ class Exame(database.Model):
             chave=credenciais['EXAMES_KEY'],
         )
         df = exporta_dados(parametro=par)
-        
+
         if not df.empty:
             exames_db = pd.read_sql(
                 sql=(
@@ -163,9 +167,16 @@ class Exame(database.Model):
                 df['data_alteracao'] = datetime.now(tz=timezone('America/Sao_Paulo'))
                 df['alterado_por'] = 'Servidor'
 
+                df = df.dropna(axis=0)
+
                 df = df.to_dict(orient='records')
 
-                database.session.bulk_update_mappings(Exame, df)
-                database.session.commit()
-                
-                return len(df)
+                try:
+                    database.session.bulk_update_mappings(Exame, df)
+                    database.session.commit()
+                    qtd = len(df)
+                except (SQLAlchemyError, DatabaseError):
+                    database.session.rollback()
+                    qtd = 0
+
+                return qtd
