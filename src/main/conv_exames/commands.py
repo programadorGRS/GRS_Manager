@@ -1,6 +1,9 @@
+from datetime import datetime, timedelta
+
 import click
 from flask.cli import with_appcontext
 
+from src.commands.options import DATE_FORMAT, opt_data_inicio
 from src.extensions import database as db
 from src.main.job.infos_carregar import InfosCarregar
 from src.main.job.job import Job
@@ -20,9 +23,11 @@ def criar_ped_proc():
     total = len(empresas)
     erros = 0
 
-    for empresa in empresas:
+    for idx, empresa in enumerate(empresas):
         click.echo(
-            f"ID: {empresa.id_empresa} | Cod {empresa.cod_empresa} | Nome: {empresa.razao_social[:20]} | ",
+            f"{idx + 1}/{len(empresas)} | "
+            f"ID: {empresa.id_empresa} | Cod {empresa.cod_empresa} | "
+            f"Nome: {empresa.razao_social[:15]} | ",
             nl=False,
         )
 
@@ -51,25 +56,42 @@ def criar_ped_proc():
     click.echo(f"Done! -> Total: {total} | Erros: {erros}")
 
 
-@click.command("inserir-conv-exames")
+@click.command("inserir-conv-exames", params=[opt_data_inicio])
 @with_appcontext
-def inserir_conv_exames():
-    """Carrega Conv Exames de todos os Pedidos Proc não inseridos"""
+def inserir_conv_exames(data_inicio: datetime | None):
+    """Carrega Conv Exames de todos os Pedidos Proc não inseridos nos ultimos dias"""
     click.echo("Inserindo Convocação de Exames...")
 
-    pedidos_proc: list[PedidoProcessamento] = (
-        db.session.query(PedidoProcessamento)  # type: ignore
-        .filter(PedidoProcessamento.resultado_importado == False)  # noqa
-        .all()
+    if not data_inicio:
+        data_inicio = datetime.now() - timedelta(days=7)
+
+    pedidos_proc = db.session.query(  # type: ignore
+        PedidoProcessamento
+    ).filter(  # type: ignore
+        PedidoProcessamento.resultado_importado == False  # noqa
     )
 
-    total = len(pedidos_proc)
+    if data_inicio:
+        pedidos_proc = pedidos_proc.filter(  # type: ignore
+            PedidoProcessamento.data_criacao >= data_inicio.date()
+        )
+        click.echo(f"Data Inicio: {data_inicio.strftime(DATE_FORMAT)}")
+
+    if not pedidos_proc:
+        click.echo("Pedidos Processamento não encontrados")
+        return None
+
+    proc_list: list[PedidoProcessamento] = pedidos_proc.all()
+
+    total = len(proc_list)
     erros = 0
 
-    for ped_proc in pedidos_proc:
+    for idx, ped_proc in enumerate(proc_list):
         click.echo(
-            f"ID: {ped_proc.id_proc} | Cod Sol: {ped_proc.cod_solicitacao} "
-            f"| Empresa: {ped_proc.empresa.razao_social[:20]} #{ped_proc.empresa.cod_empresa} | ",
+            f"{idx + 1}/{len(proc_list)} | "
+            f"ID: {ped_proc.id_proc} | Cod Sol: {ped_proc.cod_solicitacao} | "
+            f"Data: {ped_proc.data_criacao.strftime(DATE_FORMAT)} | "
+            f"Empresa: {ped_proc.empresa.razao_social[:15]} # {ped_proc.empresa.cod_empresa} | ",
             nl=False,
         )
 
@@ -79,7 +101,15 @@ def inserir_conv_exames():
             id_empresa=ped_proc.id_empresa,
         )
 
-        res = ConvExames.inserir_conv_exames(id_proc=ped_proc.id_proc)
+        try:
+            res = ConvExames.inserir_conv_exames(id_proc=ped_proc.id_proc)
+        except Exception as e:
+            erros += 1
+            click.echo(click.style(e, fg="red"))
+            infos.ok = False
+            infos.add_error(str(e))
+            Job.log_job(infos)
+            continue
 
         status = res["status"]
         msg = click.style(status, fg="green")
