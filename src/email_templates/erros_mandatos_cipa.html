@@ -4,16 +4,16 @@
 <p>Olá.</p>
 <p>Segue o relatório de <b>Pendências/Vencimentos dos Mandatos CIPA</b> encontrados nos cadastros de sua Empresa/Unidade no <b>SOC</b>.</p>
 <br>
-{% if pendencias %}
-    <b>{{ pendencias[0] }}:</b>
-    <p>{{ pendencias[1].to_html(index=False) }}</p>
+{% if not pendencias.empty %}
+    <b>Pendencias:</b>
+    <p>{{ pendencias.to_html(index=False) }}</p>
     <br>
 {% endif %}
 
 {% if vencimentos %}
-    <b>{{ vencimentos[0] }}:</b>
+    <b>Vencimentos:</b>
     <p>
-        <b>{{ vencimentos[1] }}</b> Mandatos irão vencer nos próximos <b>{{ vencimentos[2] }}</b> dias.
+        <b>{{ vencimentos[0] }}</b> Mandatos irão vencer nos próximos <b>{{ vencimentos[1] }}</b> dias.
         Verifique a Aba 'Vencimentos' para ver os detalhes.
     </p>
 {% endif %}

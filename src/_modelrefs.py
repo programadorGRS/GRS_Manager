@@ -9,6 +9,10 @@ from src.main.job.job import Job
 from src.main.log_acoes.log_acoes import LogAcoes
 from src.main.login.login import Login
 from src.main.mandato_cipa.historico_mandatos import HistoricoMandatos
+from src.main.mandato_cipa.mandato_configs.mandato_config_empresa import \
+    MandatoConfigEmpresa
+from src.main.mandato_cipa.mandato_configs.mandato_config_unidade import \
+    MandatoConfigUnidade
 from src.main.pedido.pedido import Pedido
 from src.main.pedido_socnet.pedido_socnet import PedidoSOCNET
 from src.main.prestador.prestador import Prestador
