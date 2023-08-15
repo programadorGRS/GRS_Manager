@@ -9,7 +9,7 @@ from src.soc_web_service.exporta_dados import ExportaDados
 
 from ..empresa.empresa import Empresa
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
-from ..job.infos_carregar import InfosCarregar
+from ..job.job_infos import JobInfos
 from ..unidade.unidade import Unidade
 
 
@@ -54,7 +54,7 @@ class Funcionario(database.Model):
         )
         KEYS = getattr(EMPRESA_PRINCIPAL, 'chaves_exporta_dados', None)
 
-        infos = InfosCarregar(
+        infos = JobInfos(
             tabela=self.__tablename__,
             cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
             id_empresa=EMPRESA.id_empresa
@@ -80,7 +80,7 @@ class Funcionario(database.Model):
             parametroData=True if data_inicio and data_fim else None
         )
 
-        infos = InfosCarregar(
+        infos = JobInfos(
             tabela=self.__tablename__,
             cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
             id_empresa=EMPRESA.id_empresa
@@ -212,8 +212,8 @@ class Funcionario(database.Model):
     def __inserir_funcionarios(
         self,
         df: pd.DataFrame,
-        infos: InfosCarregar
-    ) -> InfosCarregar:
+        infos: JobInfos
+    ) -> JobInfos:
         df = df[df['id_funcionario'].isna()].copy()
 
         if df.empty:
@@ -243,8 +243,8 @@ class Funcionario(database.Model):
     def __atualizar_funcionarios(
         self,
         df: pd.DataFrame,
-        infos: InfosCarregar
-    ) -> InfosCarregar:
+        infos: JobInfos
+    ) -> JobInfos:
         df = df[df['id_funcionario'].notna()].copy()
 
         if df.empty:

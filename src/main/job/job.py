@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 from src import TIMEZONE_SAO_PAULO, database
 
-from .infos_carregar import InfosCarregar
+from .job_infos import JobInfos
 
 
 class Job(database.Model):
@@ -28,7 +28,7 @@ class Job(database.Model):
         return f'<{self.id}> - {self.tabela} - {self.data_hora}'
 
     @classmethod
-    def log_job(self, infos: InfosCarregar):
+    def log_job(self, infos: JobInfos):
         new_job = self(
             tabela=infos.tabela,
             cod_empresa_principal=infos.cod_empresa_principal,

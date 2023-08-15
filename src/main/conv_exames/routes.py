@@ -17,13 +17,16 @@ from src.main.unidade.unidade import Unidade
 from src.utils import get_data_from_form, zipar_arquivos
 
 from .forms import FormBuscarPedidoProcessamento, FormGerarRelatorios
-from .models import ConvExames, PedidoProcessamento
+from .conv_exames import ConvExames
+from .ped_proc import PedidoProcessamento
+
 
 _conv_exames = Blueprint(
     name="conv_exames",
     import_name=__name__,
     url_prefix="/conv-exames",
     template_folder="templates",
+    cli_group="conv-exames"
 )
 
 

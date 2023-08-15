@@ -9,7 +9,7 @@ from src.extensions import database
 
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
 from ..unidade.unidade import Unidade
-from .models import ConvExames
+from .conv_exames import ConvExames
 
 
 class FormBuscarPedidoProcessamento(FlaskForm):

@@ -11,7 +11,7 @@ from src.soc_web_service.exporta_dados import ExportaDados
 
 from ..empresa.empresa import Empresa
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
-from ..job.infos_carregar import InfosCarregar
+from ..job.job_infos import JobInfos
 
 
 class Unidade(database.Model):
@@ -124,7 +124,7 @@ class Unidade(database.Model):
         EMPRESA_PRINCIPAL: EmpresaPrincipal = (EmpresaPrincipal.query.get(cod_emp_princ))
         KEYS = getattr(EMPRESA_PRINCIPAL, 'chaves_exporta_dados', None)
 
-        infos = InfosCarregar(
+        infos = JobInfos(
             tabela=self.__tablename__,
             cod_empresa_principal=EMPRESA_PRINCIPAL.cod
         )
@@ -270,8 +270,8 @@ class Unidade(database.Model):
     def __inserir_unidades(
         self,
         df: pd.DataFrame,
-        infos: InfosCarregar
-    ) -> InfosCarregar:
+        infos: JobInfos
+    ) -> JobInfos:
         df = df[df['id_unidade'].isna()].copy()
 
         if df.empty:
@@ -301,8 +301,8 @@ class Unidade(database.Model):
     def __atualizar_unidades(
         self,
         df: pd.DataFrame,
-        infos: InfosCarregar
-    ) -> InfosCarregar:
+        infos: JobInfos
+    ) -> JobInfos:
         df = df[df['id_unidade'].notna()].copy()
 
         if df.empty:

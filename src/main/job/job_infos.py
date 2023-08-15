@@ -2,8 +2,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from src import TIMEZONE_SAO_PAULO
 
+
 @dataclass
-class InfosCarregar:
+class JobInfos:
     '''
         Dataclass para coletar informações sobre os \
         Jobs de carregameto em geral
