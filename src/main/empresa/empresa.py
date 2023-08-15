@@ -33,12 +33,14 @@ class Empresa(database.Model):
     # RTC
     modelo_rtc = database.Column(database.String(100), server_default="rtc_default.html")  # filename only (with extension)
 
+    # relationships
     pedidos = database.relationship('Pedido', backref='empresa', lazy=True) # one to many
     pedidos_proc = database.relationship('PedidoProcessamento', backref='empresa', lazy=True) # one to many
     grupo = database.relationship('Grupo', secondary=grupo_empresa, backref='empresas', lazy=True) # many to many
     unidades = database.relationship('Unidade', backref='empresa', lazy=True) # one to many
     jobs = database.relationship('Job', backref='empresa', lazy=True) # one to many
     ped_proc_config = database.relationship('PedProcConfig', backref='empresa', lazy=True)  # one to one
+    conf_mandato = database.relationship('MandatoConfigEmpresa', backref='empresa', lazy=True)  # one to one
 
     # convocacao de exames
     conv_exames = database.Column(database.Boolean, default=True, server_default=text('1'))
@@ -60,10 +62,9 @@ class Empresa(database.Model):
     absenteismo = database.Column(database.Boolean, default=True, server_default=text('1'))
     absenteismo_emails = database.Column(database.String(500))
 
-    # mandatos cipa
-    hist_mandt_cipa = database.Column(database.Boolean, server_default=text('0'), nullable=False)
-    erros_mandt_cipa = database.Column(database.Boolean, server_default=text('0'), nullable=False)
-    mandatos_cipa_emails = database.Column(database.String(500))
+    # central de avisos
+    dominios_email = database.Column(database.String(100))
+    central_avisos_token = database.Column(database.String(255))
 
     # central de avisos
     dominios_email = database.Column(database.String(100))
