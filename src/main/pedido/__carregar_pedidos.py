@@ -41,7 +41,7 @@ class CarregarPedidos:
             dataFim (str): dd/mm/yyyy
 
         Returns:
-            InfosCarregar: Dataclass com informações sobre o carregamento
+            JobInfos: Dataclass com informações sobre o carregamento
         """
         ex = ExportaDados(
             wsdl_filename='prod/ExportaDadosWs.xml',

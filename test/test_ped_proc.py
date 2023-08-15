@@ -5,7 +5,7 @@ import json
 import responses
 from src.main.job.job_infos import JobInfos
 from click.testing import CliRunner
-from src.main.conv_exames.commands.ped_proc import criar_ped_proc
+from src.main.conv_exames.commands import criar_ped_proc, sync_configs, inserir_conv_exames
 
 
 URL = "https://ws1.soc.com.br/WSSoc/ProcessamentoAssincronoWs"
@@ -52,6 +52,27 @@ RESP_ERR = f"""<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelo
 </ns2:incluirSolicitacaoResponse>
 </soap:Body>
 </soap:Envelope>"""
+
+
+RESP_INSERIR = """<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+    <soap:Body>
+        <ns2:exportaDadosWsResponse xmlns:ns2="http://services.soc.age.com/">
+            <return>
+                <erro>true</erro>
+                <mensagemErro>Sem Resultado.</mensagemErro>
+                <parametros>{'empresa':'423','codigo':'151346','chave':'b5aa04943cd28ff155ed','tipoSaida':'json','empresaTrabalho':'426','codigoSolicitacao':'114057830'}</parametros>
+                <tipoArquivoRetorno>json</tipoArquivoRetorno>
+            </return>
+        </ns2:exportaDadosWsResponse>
+    </soap:Body>
+</soap:Envelope>"""
+
+
+def test_sync_configs(runner: CliRunner):
+    res = runner.invoke(sync_configs)
+
+    assert res.exit_code == 0
+    assert res.exception is None
 
 
 @responses.activate
@@ -103,3 +124,12 @@ def test_criar_ped_proc_command(runner: CliRunner):
 
     assert result.exit_code == 0
     assert result.exception is None
+
+
+@responses.activate
+def test_inserir_conv_exames(runner: CliRunner):
+    responses.add(url=URL, method="POST", body=RESP_INSERIR, status=200)
+    res = runner.invoke(inserir_conv_exames)
+
+    assert res.exit_code == 0
+    assert res.exception is None

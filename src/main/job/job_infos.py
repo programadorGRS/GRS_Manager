@@ -23,4 +23,3 @@ class JobInfos:
             self.erro += f'; {error}'
         else:
             self.erro = error
-

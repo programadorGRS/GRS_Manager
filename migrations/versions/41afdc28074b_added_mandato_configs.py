@@ -1,7 +1,7 @@
 """added mandato configs
 
 Revision ID: 41afdc28074b
-Revises: 48dd5baf7d6c
+Revises: ada8a2fb87a1
 Create Date: 2023-08-14 14:38:13.664505
 
 """
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '41afdc28074b'
-down_revision = '48dd5baf7d6c'
+down_revision = 'ada8a2fb87a1'
 branch_labels = None
 depends_on = None
 
