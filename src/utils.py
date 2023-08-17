@@ -4,6 +4,7 @@ import os
 from datetime import date, datetime, timedelta
 from functools import wraps
 from sys import getsizeof
+from typing import Any
 from urllib.parse import urljoin, urlparse
 from zipfile import ZIP_DEFLATED, ZipFile
 
@@ -97,11 +98,9 @@ def zipar_arquivos(caminhos_arquivos: list[str], caminho_pasta_zip: str):
     return caminho_pasta_zip
 
 
-def tratar_emails(email_str: str) -> str:
+def tratar_emails(email_str: str, sep: str = ";") -> str:
     """
     Itera sobre os Emails e remove os vazios.
-
-    Substitui separadores de vírgula por ponto e vírgula.
 
     Raises:
         ValueError: se email_str não for um string.
@@ -111,14 +110,15 @@ def tratar_emails(email_str: str) -> str:
             f"email_str must be of type str, not {email_str.__class__.__name__}"
         )
 
-    email_str = email_str.replace(",", ";")
+    email_str = email_str.replace(",", sep)
+    email_str = email_str.replace(";", sep)
     email_str = email_str.replace(" ", "")
     email_str = email_str.lower()
 
-    email_list = email_str.split(";")
+    email_list = email_str.split(sep)
     email_list = [email for email in email_list if email]
 
-    return ";".join(email_list)
+    return sep.join(email_list)
 
 
 def get_json_configs(json_path: str, encoding: str = "iso-8859-1") -> dict:
@@ -140,8 +140,10 @@ def get_image_file_as_base64_data(img_data: bytes) -> bytes:
 
 
 def get_data_from_form(
-    data: dict, ignore_keys: list | None = None, ignore_vals: list | None = None
-) -> dict:
+    data: dict[Any, Any],
+    ignore_keys: list[Any] | None = None,
+    ignore_vals: list[Any] | None = None,
+) -> dict[Any, Any]:
     """
     Args:
         ignore_keys (list | None, optional): keys to ignore. Ignores 'csrf_token'  by default.
