@@ -56,11 +56,12 @@
     </div>
 
     <b>Mandatos CIPA</b>
-    <div class="input-group mb-3">
-        <div class="input-group-text">
-            {{ render_checkbox_field(form.mandatos_cipa, render_label=False) }}
+    <div class="mb-3">
+        <div class="d-flex justify-content-between my-2">
+            <div>{{ render_checkbox_field(form.cipa_erros) }}</div>
+            <div>{{ render_checkbox_field(form.cipa_venc) }}</div>
         </div>
-        {{ render_form_field(form.mandatos_cipa_emails, render_label=False) }}
+        {{ render_form_field(form.cipa_emails, render_label=False) }}
     </div>
 
     <span>Obs: para mais de um e-mail, separe-os por ";" (ponto e vírgula)</span>
@@ -72,7 +73,7 @@
         devem ser importados do SOC</span>
         <br> <br>
 
-    {{ render_checkbox_field(form.carregar_mandatos_cipa) }}
+    {{ render_checkbox_field(form.load_cipa) }}
 
     <hr>
 

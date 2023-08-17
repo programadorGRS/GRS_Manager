@@ -40,7 +40,7 @@ class Empresa(database.Model):
     unidades = database.relationship('Unidade', backref='empresa', lazy=True) # one to many
     jobs = database.relationship('Job', backref='empresa', lazy=True) # one to many
     ped_proc_config = database.relationship('PedProcConfig', backref='empresa', lazy=True)  # one to one
-    conf_mandato = database.relationship('MandatoConfigEmpresa', backref='empresa', lazy=True)  # one to one
+    conf_mandato = database.relationship('MandatoConfigEmpresa', backref='empresa', lazy=True, uselist=False)  # one to one
 
     # convocacao de exames
     conv_exames = database.Column(database.Boolean, default=True, server_default=text('1'))

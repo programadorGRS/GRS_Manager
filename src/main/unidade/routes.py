@@ -91,8 +91,9 @@ def editar_unidade(id_unidade):
         exames_realizados_emails=unidade.exames_realizados_emails,
         absenteismo=unidade.absenteismo,
         absenteismo_emails=unidade.absenteismo_emails,
-        mandatos_cipa=unidade.erros_mandt_cipa,
-        mandatos_cipa_emails=unidade.mandatos_cipa_emails,
+        cipa_erros=unidade.conf_mandato.monit_erros,
+        cipa_venc=unidade.conf_mandato.monit_venc,
+        cipa_emails=unidade.conf_mandato.emails,
     )
     form.title = "Configurar Unidade"  # type: ignore
 
@@ -106,8 +107,10 @@ def editar_unidade(id_unidade):
         unidade.absenteismo = form.absenteismo.data
         unidade.absenteismo_emails = form.absenteismo_emails.data
 
-        unidade.erros_mandt_cipa = form.mandatos_cipa.data
-        unidade.mandatos_cipa_emails = form.mandatos_cipa_emails.data
+        # CIPA
+        unidade.conf_mandato.monit_erros = form.cipa_erros.data
+        unidade.conf_mandato.monit_venc = form.cipa_venc.data
+        unidade.conf_mandato.emails = form.cipa_emails.data
 
         unidade.data_alteracao = datetime.now(tz=TIMEZONE_SAO_PAULO)
         unidade.alterado_por = current_user.username  # type: ignore

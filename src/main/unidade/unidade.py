@@ -29,7 +29,7 @@ class Unidade(database.Model):
 
     # relationships
     pedidos = database.relationship('Pedido', backref='unidade', lazy=True) # one to many
-    conf_mandato = database.relationship('MandatoConfigUnidade', backref='unidade', lazy=True)  # one to one
+    conf_mandato = database.relationship('MandatoConfigUnidade', backref='unidade', lazy=True, uselist=False)  # one to one
 
     # convocacao de exames
     conv_exames = database.Column(database.Boolean, default=False)

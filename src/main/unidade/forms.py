@@ -40,6 +40,7 @@ class FormBuscarUnidade(FlaskForm):
         self.unidade_ativa.choices = [('', 'Selecione'), (1, 'Sim'), (0, 'Não')]
         return None
 
+
 class FormUnidade(FlaskForm):
     kws = {'placeholder': "E-mails"}
 
@@ -53,10 +54,12 @@ class FormUnidade(FlaskForm):
     absenteismo = BooleanField('Absenteísmo', validators=[Optional()])
     absenteismo_emails = StringField('E-mails Absenteísmo', validators=[Optional(), Length(0, 500)], render_kw=kws)
 
-    mandatos_cipa = BooleanField('Mandatos CIPA', validators=[Optional()])
-    mandatos_cipa_emails = StringField('E-mails Mandato CIPA', validators=[Optional(), Length(0, 500)], render_kw=kws)
+    cipa_erros = BooleanField("Pendencias CIPA", validators=[Optional()])
+    cipa_venc = BooleanField("Vencimentos CIPA", validators=[Optional()])
+    cipa_emails = StringField(
+        "E-mails CIPA", validators=[Optional(), Length(0, 500)], render_kw=kws
+    )
 
     # override Flaskform validate method to validate multiple fields
     def validate(self, *args, **kwargs):
         return validate_email_fields(form=self, *args, **kwargs)
-

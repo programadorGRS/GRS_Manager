@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import SelectMultipleField, StringField
 from wtforms.validators import DataRequired, Length, Optional
 
-from src.extensions import database
+from src.extensions import database as db
 
 from ..unidade.unidade import Unidade
 
@@ -37,7 +37,7 @@ class FormCentralUnidades(FlaskForm):
 
     def load_choices(self, id_empresas: list[int]):
         query = (
-            database.session.query(Unidade)
+            db.session.query(Unidade)  # type: ignore
             .filter(Unidade.id_empresa.in_(id_empresas))
             .filter(Unidade.ativo == True)  # noqa
         )

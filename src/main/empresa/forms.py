@@ -41,13 +41,14 @@ class FormEmpresa(FlaskForm):
         "E-mails Absenteísmo", validators=[Optional(), Length(0, 500)], render_kw=kws
     )
 
-    mandatos_cipa = BooleanField("Mandatos CIPA", validators=[Optional()])
-    mandatos_cipa_emails = StringField(
-        "E-mails Mandato CIPA", validators=[Optional(), Length(0, 500)], render_kw=kws
+    cipa_erros = BooleanField("Pendencias CIPA", validators=[Optional()])
+    cipa_venc = BooleanField("Vencimentos CIPA", validators=[Optional()])
+    cipa_emails = StringField(
+        "E-mails CIPA", validators=[Optional(), Length(0, 500)], render_kw=kws
     )
 
     # carregamentos
-    carregar_mandatos_cipa = BooleanField("Mandatos CIPA", validators=[Optional()])
+    load_cipa = BooleanField("Mandatos CIPA", validators=[Optional()])
 
     kws_dominio = {"placeholder": "exemplo.com.br"}
     dominios_email = StringField(

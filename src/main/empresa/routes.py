@@ -75,7 +75,7 @@ def empresas_csv():
     data = get_data_from_args(prev_form=FormBuscarEmpresa(), data=request.args)
     query = Empresa.buscar_empresas(**data)
 
-    df = pd.read_sql(sql=query.statement, con=database.session.bind)
+    df = pd.read_sql(sql=query.statement, con=database.session.bind)  # type: ignore
 
     nome_arqv = f"Empresas_{int(datetime.now().timestamp())}.csv"
     camihno_arqv = f"{UPLOAD_FOLDER}/{nome_arqv}"
@@ -96,9 +96,10 @@ def editar_empresa(id_empresa):
         exames_realizados_emails=empresa.exames_realizados_emails,
         absenteismo=empresa.absenteismo,
         absenteismo_emails=empresa.absenteismo_emails,
-        mandatos_cipa=empresa.erros_mandt_cipa,
-        mandatos_cipa_emails=empresa.mandatos_cipa_emails,
-        carregar_mandatos_cipa=empresa.hist_mandt_cipa,
+        cipa_erros=empresa.conf_mandato.monit_erros,
+        cipa_venc=empresa.conf_mandato.monit_venc,
+        cipa_emails=empresa.conf_mandato.emails,
+        load_cipa=empresa.conf_mandato.load_hist,
         dominios_email=empresa.dominios_email,
     )
 
@@ -114,17 +115,18 @@ def editar_empresa(id_empresa):
         empresa.absenteismo = form.absenteismo.data
         empresa.absenteismo_emails = form.absenteismo_emails.data
 
-        empresa.erros_mandt_cipa = form.mandatos_cipa.data
-        empresa.mandatos_cipa_emails = form.mandatos_cipa_emails.data
-
-        empresa.hist_mandt_cipa = form.carregar_mandatos_cipa.data
+        # CIPA
+        empresa.conf_mandato.monit_erros = form.cipa_erros.data
+        empresa.conf_mandato.monit_venc = form.cipa_venc.data
+        empresa.conf_mandato.emails = form.cipa_emails.data
+        empresa.conf_mandato.load_hist = form.load_cipa.data
 
         empresa.data_alteracao = datetime.now(tz=TIMEZONE_SAO_PAULO)
         empresa.alterado_por = current_user.username  # type: ignore
 
         empresa.dominios_email = form.dominios_email.data
 
-        database.session.commit()
+        database.session.commit()  # type: ignore
 
         flash("Empresa atualizada com sucesso!", "alert-success")
 
