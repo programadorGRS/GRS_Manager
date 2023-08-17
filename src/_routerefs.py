@@ -7,7 +7,7 @@ from src.main.central_avisos import central_avisos
 from src.main.conv_exames import conv_exames
 from src.main.empresa.routes import empresa
 from src.main.empresa_socnet.routes import empresa_socnet
-from src.main.error_handlers.error_handlers import (error_404, http_exeptions,
+from src.main.error_handlers.error_handlers import (error_404, http_exceptions,
                                                     internal_exceptions)
 from src.main.exame import exame_bp
 from src.main.exames_realizados import routes
@@ -48,5 +48,5 @@ def register_error_handlers(app: Flask):
     """Registers main error handlers"""
     app.register_error_handler(404, error_404)
     app.register_error_handler(Exception, internal_exceptions)
-    app.register_error_handler(HTTPException, http_exeptions)
+    app.register_error_handler(HTTPException, http_exceptions)
     return app
