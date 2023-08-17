@@ -48,11 +48,16 @@ def unidades(token: str, token_data: dict, *args, **kwargs):
 
     form: FormCentralUnidades = FormCentralUnidades()
     form.load_choices(id_empresas=ids_empresas)
+    LIMITE_UNIDADES = 50
 
     if form.validate_on_submit():
         form_data = get_data_from_form(form.data)
 
         ids_unidades: list[int] = form_data.get("id_unidades")  # type: ignore
+
+        if len(ids_unidades) > LIMITE_UNIDADES:
+            flash(f"Selecione no máximo {LIMITE_UNIDADES} Unidades por vez", "alert-info")
+            return redirect(url_for("central_avisos.unidades", token=token))
 
         emails = __get_emails(form_data=form_data, allowed_domains=domains)
 
@@ -84,6 +89,7 @@ def unidades(token: str, token_data: dict, *args, **kwargs):
         form=form,
         form_title="Central de Avisos Connect",
         form_sub_title=f"Unidades da Empresa: {empresa.razao_social}",
+        max_unidades=LIMITE_UNIDADES
     )
 
 
