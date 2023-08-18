@@ -1,4 +1,5 @@
 from src.main.cargo.cargo import Cargo
+from src.main.client_ip.client_ip import ClientIP
 from src.main.conv_exames.conv_exames import ConvExames
 from src.main.conv_exames.ped_proc import PedidoProcessamento
 from src.main.conv_exames.ped_proc_config import PedProcConfig

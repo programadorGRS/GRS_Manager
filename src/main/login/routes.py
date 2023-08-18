@@ -12,6 +12,7 @@ from pytz import timezone
 from src import app
 from src.email_connect import EmailConnect
 from src.extensions import bcrypt, database, limiter, mail
+from src.main.client_ip.client_ip import ClientIP
 from src.main.login.login import Login
 from src.main.usuario.usuario import Usuario
 from src.utils import is_safe_url
@@ -31,7 +32,11 @@ RATE_LIMIT = "5/5 minutes"
 
 
 @user_auth.route("/", methods=["GET", "POST"])
-@limiter.limit(limit_value=RATE_LIMIT, methods=["POST"])
+@limiter.limit(
+    limit_value=RATE_LIMIT,
+    methods=["POST"],
+    exempt_when=ClientIP.is_rate_limit_exempt,
+)
 def login():
     form = FormLogin()
     if current_user.is_authenticated:  # type: ignore
@@ -122,7 +127,11 @@ def login():
 
 
 @user_auth.route("/two-factor", methods=["GET", "POST"])
-@limiter.limit(limit_value=RATE_LIMIT, methods=["POST"])
+@limiter.limit(
+    limit_value=RATE_LIMIT,
+    methods=["POST"],
+    exempt_when=ClientIP.is_rate_limit_exempt,
+)
 def login_otp():
     form = FormOTP()
 

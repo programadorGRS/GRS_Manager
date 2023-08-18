@@ -3,15 +3,18 @@ import os
 
 from flask import Flask
 from pytz import timezone
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from .config import setup_loggers
-from .extensions import bcrypt, database, login_manager, mail, migrate, limiter
+from .extensions import bcrypt, database, limiter, login_manager, mail, migrate
 
 app = Flask(
     import_name=__name__,
     template_folder=os.path.join("main", "templates"),
     static_folder=os.path.join("main", "static"),
 )
+
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
 # carregar configs universais
 app.config.from_file("../configs/email.json", load=json.load)
