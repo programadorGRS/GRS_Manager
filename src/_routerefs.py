@@ -1,4 +1,5 @@
 from flask import Flask
+from flask_limiter.errors import RateLimitExceeded
 from werkzeug.exceptions import HTTPException
 
 from src.api import routes
@@ -8,7 +9,8 @@ from src.main.conv_exames import conv_exames
 from src.main.empresa.routes import empresa
 from src.main.empresa_socnet.routes import empresa_socnet
 from src.main.error_handlers.error_handlers import (error_404, http_exceptions,
-                                                    internal_exceptions)
+                                                    internal_exceptions,
+                                                    rate_limit_exceptions)
 from src.main.exame import exame_bp
 from src.main.exames_realizados import routes
 from src.main.grupo import routes
@@ -49,4 +51,5 @@ def register_error_handlers(app: Flask):
     app.register_error_handler(404, error_404)
     app.register_error_handler(Exception, internal_exceptions)
     app.register_error_handler(HTTPException, http_exceptions)
+    app.register_error_handler(RateLimitExceeded, rate_limit_exceptions)
     return app

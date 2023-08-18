@@ -1,5 +1,4 @@
 from flask import jsonify, render_template
-from werkzeug.exceptions import HTTPException
 
 from src import app
 
@@ -11,7 +10,7 @@ def error_404(error):
     return (
         render_template(
             "error_handlers/erro.html",
-            titulo_erro="Page not Found",
+            titulo_erro="Page Not Found",
             descr_erro="Essa página não existe",
         ),
         404,
@@ -33,3 +32,17 @@ def internal_exceptions(error):
 def http_exceptions(error):
     """Return JSON instead of HTML for HTTP errors."""
     return jsonify(error.name), error.code
+
+
+def rate_limit_exceptions(error):
+    return (
+        render_template(
+            "error_handlers/erro.html",
+            titulo_erro="Too Many Requests",
+            descr_erro=(
+                "Você excedeu o limite de chamadas para esta página."
+                "Tente novamente mais tarde."
+            ),
+        ),
+        error.code,
+    )

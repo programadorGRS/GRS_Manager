@@ -5,7 +5,7 @@ from flask import Flask
 from pytz import timezone
 
 from .config import setup_loggers
-from .extensions import bcrypt, database, login_manager, mail, migrate
+from .extensions import bcrypt, database, login_manager, mail, migrate, limiter
 
 app = Flask(
     import_name=__name__,
@@ -31,6 +31,7 @@ database.init_app(app)
 migrate.init_app(app=app, db=database)
 mail.init_app(app)
 bcrypt.init_app(app)
+limiter.init_app(app)
 
 
 UPLOAD_FOLDER = os.path.join(app.root_path, app.config["UPLOAD_FOLDER"])

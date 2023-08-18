@@ -9,14 +9,14 @@ from flask_login import (confirm_login, current_user, login_fresh,
 from flask_mail import Attachment, Message
 from pytz import timezone
 
-from src import app, bcrypt, database, mail
+from src import app
 from src.email_connect import EmailConnect
+from src.extensions import bcrypt, database, limiter, mail
 from src.main.login.login import Login
 from src.main.usuario.usuario import Usuario
 from src.utils import is_safe_url
 
 from .forms import FormLogin, FormOTP
-
 
 # NOTE: usar o nome user_auth ao invez de login para evitar confitos com flask_login
 user_auth = Blueprint(
@@ -27,28 +27,51 @@ user_auth = Blueprint(
 )
 
 
+RATE_LIMIT = "5/5 minutes"
+
+
 @user_auth.route("/", methods=["GET", "POST"])
+@limiter.limit(limit_value=RATE_LIMIT, methods=["POST"])
 def login():
     form = FormLogin()
     if current_user.is_authenticated:  # type: ignore
         return redirect(url_for("home"))
 
-    elif form.validate_on_submit():
-        usuario = Usuario.query.filter_by(username=form.username.data).first()
-        if (
-            usuario
-            and usuario.is_active  # noqa
-            and bcrypt.check_password_hash(  # noqa
-                usuario.senha.encode("utf-8"), form.senha.data
+    if form.validate_on_submit():
+        username = form.username.data
+        usuario = Usuario.query.filter_by(username=username).first()
+
+        denied_msg = "Username ou Senha incorretos"
+
+        if not usuario:
+            Login.log_attempt(
+                username=username,
+                tela="login",
+                ip=Login.get_ip(),
+                obs="Recusado",
             )
-        ):
+            flash(denied_msg, "alert-danger")
+            return redirect(url_for("user_auth.login"))
+
+        if not usuario.is_active:
+            Login.log_attempt(
+                username=username,
+                tela="login",
+                ip=Login.get_ip(),
+                obs="Recusado",
+            )
+            flash(denied_msg, "alert-danger")
+            return redirect(url_for("user_auth.login"))
+
+        pwd_hash = usuario.senha.encode("utf-8")
+        pwd_input = form.senha.data
+        if bcrypt.check_password_hash(pw_hash=pwd_hash, password=pwd_input):
             # gerar otp
             otp = base64.b32encode(os.urandom(10)).decode("utf-8")
             usuario.otp = bcrypt.generate_password_hash(otp).decode("utf-8")
-            database.session.add(usuario)
-            database.session.commit()
+            database.session.commit()  # type: ignore
 
-            # eviar email
+            # enviar email
             horario = datetime.now(tz=timezone("America/Sao_Paulo")).strftime(
                 "%d-%m-%Y %H:%M:%S"
             )
@@ -78,120 +101,141 @@ def login():
             )
             mail.send(msg)
 
-            # registrar tentativa
             Login.log_attempt(
-                username=form.username.data, tela="login", ip=Login.get_ip(), obs="OK"
+                username=username, tela="login", ip=Login.get_ip(), obs="OK"
             )
 
             # guardar username na sessao
-            session["username"] = usuario.username
+            session["username"] = username
             flash("A chave temporária foi enviada para o seu email", "alert-info")
             return redirect(url_for("user_auth.login_otp"))
         else:
-            # registrar tentativa
             Login.log_attempt(
-                username=form.username.data,
+                username=username,
                 tela="login",
                 ip=Login.get_ip(),
                 obs="Recusado",
             )
-            flash("Username ou Senha incorretos", "alert-danger")
-    return render_template("login/login.html", form_login=form, title="GRS+Connect")
+            flash(denied_msg, "alert-danger")
+            return redirect(url_for("user_auth.login"))
+    return render_template("login/login.html", form_login=form)
 
 
-@user_auth.route("/two_factor", methods=["GET", "POST"])
+@user_auth.route("/two-factor", methods=["GET", "POST"])
+@limiter.limit(limit_value=RATE_LIMIT, methods=["POST"])
 def login_otp():
     form = FormOTP()
-    if "username" in session:
-        usuario = Usuario.query.filter_by(username=session["username"]).first()
-        if usuario:
-            if form.validate_on_submit():
-                if bcrypt.check_password_hash(
-                    usuario.otp.encode("utf-8"), form.otp.data
-                ):
-                    # remover username da sessao
-                    del session["username"]
 
-                    login_user(usuario)
+    username = session.get("username")
+    if not username:
+        return abort(404)
 
-                    # registrar tentativa
-                    Login.log_attempt(
-                        username=usuario.username,
-                        tela="login_otp",
-                        ip=Login.get_ip(),
-                        obs="OK",
-                    )
+    usuario = Usuario.query.filter_by(username=username).first()
+    if not usuario:
+        Login.log_attempt(
+            username=username,
+            tela="login_otp",
+            ip=Login.get_ip(),
+            obs="Recusado",
+        )
+        flash("Username ou Senha incorretos", "alert-danger")
+        return redirect(url_for("user_auth.login"))
 
-                    # atualizar horario do login
-                    current_user.ultimo_login = datetime.now(
-                        tz=timezone("America/Sao_Paulo")
-                    )
-                    database.session.commit()
+    if form.validate_on_submit():
+        otp_hash = usuario.otp.encode("utf-8")
+        otp_input = form.otp.data
+        if bcrypt.check_password_hash(pw_hash=otp_hash, password=otp_input):
+            # remover username da sessao
+            del session["username"]
 
-                    flash(f"Logado com sucesso em: {usuario.username}", "alert-success")
-                    return redirect(url_for("home"))
-                else:
-                    Login.log_attempt(
-                        username=usuario.username,
-                        tela="login_otp",
-                        ip=Login.get_ip(),
-                        obs="Recusado",
-                    )
-                    flash("Chave inválida", "alert-danger")
-        else:
-            flash("Username ou Senha incorretos", "alert-danger")
-            return redirect(url_for("user_auth.login"))
-    else:
-        abort(404)
-    return render_template("login/login_otp.html", form=form, title="GRS+Connect")
+            login_user(usuario)
 
-
-@user_auth.route("/refresh_login", methods=["GET", "POST"])
-@login_required
-def refresh_login():
-    form = FormLogin()
-    if login_fresh():
-        return redirect(url_for("home"))
-    elif form.validate_on_submit():
-        usuario = Usuario.query.filter_by(username=form.username.data).first()
-        if (
-            usuario
-            and usuario.is_active  # noqa
-            and bcrypt.check_password_hash(  # noqa
-                usuario.senha.encode("utf-8"), form.senha.data
-            )
-        ):
-            confirm_login()
-
-            # resgistrar tentativa
+            # registrar tentativa
             Login.log_attempt(
                 username=usuario.username,
-                tela="refresh_login",
+                tela="login_otp",
                 ip=Login.get_ip(),
                 obs="OK",
             )
 
             # atualizar horario do login
+            current_user.ultimo_login = datetime.now(tz=timezone("America/Sao_Paulo"))
+            database.session.commit()  # type: ignore
+
+            flash(f"Logado com sucesso em: {usuario.username}", "alert-success")
+            return redirect(url_for("home"))
+        else:
+            Login.log_attempt(
+                username=usuario.username,
+                tela="login_otp",
+                ip=Login.get_ip(),
+                obs="Recusado",
+            )
+            flash("Chave inválida", "alert-danger")
+    return render_template("login/login_otp.html", form=form, title="GRS+Connect")
+
+
+@user_auth.route("/refresh-login", methods=["GET", "POST"])
+@login_required
+def refresh_login():
+    form = FormLogin()
+    if login_fresh():
+        return redirect(url_for("home"))
+
+    if form.validate_on_submit():
+        username = form.username.data
+        usuario = Usuario.query.filter_by(username=username).first()
+
+        if not usuario:
+            logout_user()
+            Login.log_attempt(
+                username=username,
+                tela="refresh_login",
+                ip=Login.get_ip(),
+                obs="Recusado",
+            )
+            return redirect(url_for("user_auth.login"))
+
+        if not usuario.is_active:
+            logout_user()
+            Login.log_attempt(
+                username=username,
+                tela="refresh_login",
+                ip=Login.get_ip(),
+                obs="Recusado",
+            )
+            return redirect(url_for("user_auth.login"))
+
+        pw_hash = usuario.senha.encode("utf-8")
+        pw_input = form.senha.data
+        if bcrypt.check_password_hash(pw_hash=pw_hash, password=pw_input):
+            confirm_login()
+
+            Login.log_attempt(
+                username=username,
+                tela="refresh_login",
+                ip=Login.get_ip(),
+                obs="OK",
+            )
+
             Usuario.update_ultimo_login()
 
             # redirecionar
             par_next = request.args.get(key="next", type=str)
             if par_next and is_safe_url(par_next):
-                flash(
-                    f"Autenticado com sucesso em: {usuario.username}", "alert-success"
-                )
+                flash(f"Autenticado com sucesso em: {username}", "alert-success")
                 return redirect(par_next)
             else:
                 return redirect(url_for("home"))
         else:
             Login.log_attempt(
-                username=usuario.username,
+                username=username,
                 tela="refresh_login",
                 ip=Login.get_ip(),
                 obs="Recusado",
             )
             flash("Username ou Senha incorretos", "alert-danger")
-    return render_template("login.html", form_login=form, title="GRS+Connect")
+    return render_template("login.html", form_login=form)
 
 
 @user_auth.route("/logout")
