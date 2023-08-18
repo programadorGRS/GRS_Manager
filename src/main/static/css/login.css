@@ -1,0 +1,58 @@
+body {
+    background-repeat: no-repeat;
+    background-size: cover;
+    max-height: 100vh;
+}
+
+#connect-logo {
+    object-fit: contain;
+}
+
+#logo-container {
+    width: 10%;
+}
+
+#btn-login {
+    background-color: #064966;
+    border: #064966;
+}
+
+#login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+#login-card {
+    width: 35%;
+    height: fit-content;
+    background-color: rgba(255, 255, 255, 0.8); /* opacidade 80%*/
+    border-radius: 2%;
+    border: lightgrey solid 1px;
+}
+
+@media only screen and (max-width: 600px) {
+    #login-container {
+        align-items: start;
+        padding-top: 20%;
+    }
+
+    #login-card {
+        width: 95%;
+    }
+}
+
+#link-grs {
+    text-align: center;
+    text-decoration: none;
+    color: black;
+}
+
+footer {
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    text-align: center;
+    padding: 10px;
+}
