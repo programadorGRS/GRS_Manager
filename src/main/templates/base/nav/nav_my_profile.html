@@ -3,27 +3,27 @@
         <button type="button" class="btn-transparent dropdown-toggle" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">Meu perfil </button>
         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton1">
             <li>
-                <a class="dropdown-item" href="{{ url_for('perfil', id_usuario=current_user.id_usuario) }}">
+                <a class="dropdown-item" href="{{ url_for('usuario.perfil_usuario', id_usuario=current_user.id_usuario) }}">
                     <span class="material-icons align-middle">person</span> {{ current_user.username }}
                 </a>
             </li>
             <li>
-                <a class="dropdown-item" href="{{ url_for('editar_perfil', id_usuario=current_user.id_usuario) }}">
+                <a class="dropdown-item" href="{{ url_for('usuario.editar_perfil', id_usuario=current_user.id_usuario) }}">
                     <span class="material-icons align-middle">badge</span> Editar Perfil
                 </a>
             </li>
             <li>
-                <a class="dropdown-item" href="{{ url_for('alterar_senha', id_usuario=current_user.id_usuario) }}">
+                <a class="dropdown-item" href="{{ url_for('usuario.alterar_senha', id_usuario=current_user.id_usuario) }}">
                     <span class="material-icons align-middle">lock</span> Alterar Senha
                 </a>
             </li>
             <li>
-                <a class="dropdown-item" href="{{ url_for('alterar_chave', id_usuario=current_user.id_usuario) }}">
+                <a class="dropdown-item" href="{{ url_for('usuario.alterar_chave', id_usuario=current_user.id_usuario) }}">
                     <span class="material-icons align-middle">vpn_key</span> Alterar Chave API
                 </a>
             </li>
             <li>
-                <a class="dropdown-item" href="{{ url_for('config_usuario', id_usuario=current_user.id_usuario) }}">
+                <a class="dropdown-item" href="{{ url_for('usuario.config_usuario', id_usuario=current_user.id_usuario) }}">
                     <span class="material-icons align-middle">manage_accounts</span> Configurações
                 </a>
             </li>

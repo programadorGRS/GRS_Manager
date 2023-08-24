@@ -1,7 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'base/base_default.html' %}
 
 {% block body %}
-
 <div class="container justify-content-center d-flex mt-2">
     <div class="d-flex justify-content-center border">
         <div class="d-flex align-items-center m-5">
@@ -35,8 +34,8 @@
             {% endif %}
             <span>Alterado por: {{ usuario.alterado_por }}</span> <br>
             <div class="d-flex justify-content-between">
-                <a href="{{ url_for('usuarios') }}" id="botao_voltar">
-                    <button type="button" class="btn btn-info text-nowrap mt-2" style="width: fit-content;">
+                <a href="{{ url_for('usuario.listar_usuarios') }}" id="botao_voltar">
+                    <button type="button" class="btn btn-info text-white text-nowrap mt-2" style="width: fit-content;">
                         <span class="material-icons align-middle">arrow_back</span> Voltar
                     </button>
                 </a>
@@ -48,25 +47,23 @@
     </div>
 </div>
 
-    <!-- Modal -->
-    <div class="modal fade" id="excluir_usuario" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Excluir Usuário</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<div class="modal fade" id="excluir_usuario" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Excluir Usuário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+                <div class="modal-body">
+                    O usuário {{ usuario.username }} será excluído.
                 </div>
-                    <div class="modal-body">
-                        O usuário {{usuario.username}} será excluído.
-                    </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <form action="{{ url_for('excluir_usuario', id_usuario=usuario.id_usuario) }}" method="POST">
-                        <button type="submit" class="btn btn-danger">Excluir</button>
-                    </form>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form action="{{ url_for('usuario.excluir_usuario', id_usuario=usuario.id_usuario) }}" method="POST">
+                    <button type="submit" class="btn btn-danger">Excluir</button>
+                </form>
             </div>
         </div>
     </div>
-
+</div>
 {% endblock %}

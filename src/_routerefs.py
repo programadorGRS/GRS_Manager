@@ -27,7 +27,7 @@ from src.main.relatorios_agendados import routes
 from src.main.rtc.routes import rtc
 from src.main.status import status_bp
 from src.main.unidade import unidade
-from src.main.usuario import routes
+from src.main.usuario.routes import usuario_bp
 
 
 def register_blueprints(app: Flask):
@@ -43,6 +43,7 @@ def register_blueprints(app: Flask):
     app.register_blueprint(status_bp)
     app.register_blueprint(absenteismo_bp)
     app.register_blueprint(exame_bp)
+    app.register_blueprint(usuario_bp)
     return app
 
 

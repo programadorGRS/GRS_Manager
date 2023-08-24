@@ -1,27 +1,20 @@
-{% extends 'base.html' %}
+{% extends "base/base_default.html" %}
+
+{% from "macros.html" import render_form_field, render_checkbox_field %}
 
 {% block body %}
-
 <div class="container justify-content-center d-flex mt-2">
     <div class="card p-4">
         <form method="POST">
             {{ form.csrf_token }}
             <legend>Configurações do Usuário</legend>
             <fieldset>
-              <!-- ATIVO -->
-              <div class="form-group my-3">
-                {{ form.ativo(class="form-check-input") }}
-                {{ form.ativo.label(class="form-check-label") }}
-              </div>
-              <!-- TIPO USUARIO -->
-              <div class="form-group">
-                {{ form.tipo_usuario.label(class="form-control-label") }}
-                {{ form.tipo_usuario(class="form-control") }}
-              </div>
+                <div class="my-3">{{ render_checkbox_field(form.ativo) }}</div>
+                {{ render_form_field(form.tipo_usuario) }}
             </fieldset>
             <div class="d-flex justify-content-between">
-                <a href="{{ url_for('usuarios') }}" id="botao_voltar">
-                    <button type="button" class="btn btn-info text-nowrap mt-2" style="width: fit-content;">
+                <a href="{{ url_for('usuario.listar_usuarios') }}" id="botao_voltar">
+                    <button type="button" class="btn btn-info text-white text-nowrap mt-2" style="width: fit-content;">
                         <span class="material-icons align-middle">arrow_back</span> Voltar
                     </button>
                 </a>
@@ -29,8 +22,7 @@
                     <span class="material-icons align-middle">save</span> Salvar
                 </button>
             </div>
-          </form>
+        </form>
     </div>
 </div>
-
 {% endblock %}

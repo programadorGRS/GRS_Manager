@@ -1,10 +1,9 @@
-{% extends 'base.html' %}
+{% extends 'base/base_default.html' %}
 
 {% block body %}
-
 <div class="container">
     <h1>Usuarios</h1>
-    <a href="{{ url_for('criar_conta') }}" class="btn btn-outline-success">
+    <a href="{{ url_for('usuario.criar_usuario') }}" class="btn btn-outline-success">
         <span class="material-icons align-middle">add</span> Criar
     </a>
     <table class="table table-hover">
@@ -44,27 +43,27 @@
                         </button>
                             <ul class="dropdown-menu">
                                 <li>
-                                    <a class="dropdown-item" href="{{ url_for('perfil', id_usuario=usuario.id_usuario ) }}">
+                                    <a class="dropdown-item" href="{{ url_for('usuario.perfil_usuario', id_usuario=usuario.id_usuario ) }}">
                                         <span class="material-icons align-middle">person</span> {{ usuario.username }}
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="{{ url_for('editar_perfil', id_usuario=usuario.id_usuario) }}">
+                                    <a class="dropdown-item" href="{{ url_for('usuario.editar_perfil', id_usuario=usuario.id_usuario) }}">
                                         <span class="material-icons align-middle">badge</span> Editar perfil
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="{{ url_for('alterar_senha', id_usuario=usuario.id_usuario) }}">
+                                    <a class="dropdown-item" href="{{ url_for('usuario.alterar_senha', id_usuario=usuario.id_usuario) }}">
                                         <span class="material-icons align-middle">lock</span> Alterar senha
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="{{ url_for('alterar_chave', id_usuario=usuario.id_usuario) }}">
+                                    <a class="dropdown-item" href="{{ url_for('usuario.alterar_chave', id_usuario=usuario.id_usuario) }}">
                                         <span class="material-icons align-middle">vpn_key</span> Alterar chave API
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="{{ url_for('config_usuario', id_usuario=usuario.id_usuario) }}">
+                                    <a class="dropdown-item" href="{{ url_for('usuario.config_usuario', id_usuario=usuario.id_usuario) }}">
                                         <span class="material-icons align-middle">manage_accounts</span> Config usuário
                                     </a>
                                 </li>
@@ -74,7 +73,5 @@
             {% endfor %}
         </tbody>
     </table>
-
 </div>
-
 {% endblock %}
