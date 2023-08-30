@@ -1,15 +1,14 @@
 import mimetypes
+import os
 import smtplib
 import time
 from email.message import EmailMessage
 from email.utils import make_msgid
+
 import jinja2
-from flask_mail import Attachment, Message
-from src.extensions import mail
-from dataclasses import dataclass
+from flask_mail import Attachment
 
 from src import app, database
-import os
 
 
 class EmailConnect(database.Model):
@@ -153,9 +152,9 @@ class EmailConnect(database.Model):
                     maintype, subtype = mimetypes.guess_type(arqv.name)[0].split('/')
                     message.add_attachment(
                         arqv.read(),
-                        maintype=maintype, # main e subtypes generalistas
+                        maintype=maintype,
                         subtype=subtype,
-                        filename=arqv.name.split(sep='/')[-1]
+                        filename=os.path.basename(arqv.name)
                     )
 
 
@@ -166,8 +165,6 @@ class EmailConnect(database.Model):
         }
         for tentativa in range(send_attempts):
             try:
-                print(f"Sending email, attempt: {tentativa + 1}/{send_attempts}...")
-                
                 # using Office365
                 with smtplib.SMTP(host=mail_server, port=mail_port) as server:
                     server.ehlo()
@@ -179,17 +176,14 @@ class EmailConnect(database.Model):
                         msg=message
                     )
 
-                print("Sent")
                 infos["sent"] = 1
                 return infos
 
             except smtplib.SMTPException as err:
-                print(f"Error: {type(err).__name__}")
                 infos["error"] = type(err).__name__
                 infos["sent"] = 0
                 
                 if tentativa + 1 < send_attempts:
-                    print(f"Trying again in {attempt_delay} secs...")
                     time.sleep(attempt_delay)
                 
                 continue
