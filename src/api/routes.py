@@ -9,13 +9,13 @@ from pytz import timezone
 from sqlalchemy import and_, func, or_
 
 from src import app, bcrypt, database
+from src.main.absenteismo.absenteismo import Absenteismo
 from src.main.conv_exames.conv_exames import ConvExames
 from src.main.conv_exames.ped_proc import PedidoProcessamento
 from src.main.empresa.empresa import Empresa
 from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
 from src.main.exame.exame import Exame
 from src.main.funcionario.funcionario import Funcionario
-from src.main.licenca.models import Licenca
 from src.main.log_acoes.log_acoes import LogAcoes
 from src.main.pedido.pedido import Pedido
 from src.main.pedido_socnet.pedido_socnet import PedidoSOCNET
@@ -354,7 +354,7 @@ def get_licencas():
     
     query: BaseQuery = (
         database.session.query(
-            Licenca,
+            Absenteismo,
             EmpresaPrincipal.nome,
             Empresa.cod_empresa,
             Empresa.razao_social,
@@ -367,15 +367,15 @@ def get_licencas():
             Funcionario.nome_funcionario,
             Funcionario.situacao
         )
-        .join(EmpresaPrincipal, Licenca.cod_empresa_principal == EmpresaPrincipal.cod)
-        .join(Empresa, Licenca.id_empresa == Empresa.id_empresa)
-        .join(Unidade, Licenca.id_unidade == Unidade.id_unidade)
-        .join(Funcionario, Licenca.id_funcionario == Funcionario.id_funcionario)
+        .join(EmpresaPrincipal, Absenteismo.cod_empresa_principal == EmpresaPrincipal.cod)
+        .join(Empresa, Absenteismo.id_empresa == Empresa.id_empresa)
+        .join(Unidade, Absenteismo.id_unidade == Unidade.id_unidade)
+        .join(Funcionario, Absenteismo.id_funcionario == Funcionario.id_funcionario)
         .filter(Empresa.id_empresa == id_empresa)
-        .filter(Licenca.data_inicio_licenca >= inicio)
+        .filter(Absenteismo.data_inicio_licenca >= inicio)
         .filter(or_(
-            Licenca.data_fim_licenca <= fim,
-            Licenca.data_fim_licenca == None
+            Absenteismo.data_fim_licenca <= fim,
+            Absenteismo.data_fim_licenca == None
         ))
     )
 
@@ -431,7 +431,7 @@ def get_licencas2():
 
     query: BaseQuery = (
         database.session.query(
-            Licenca,
+            Absenteismo,
             EmpresaPrincipal.nome,
             Empresa.cod_empresa,
             Empresa.razao_social,
@@ -444,11 +444,11 @@ def get_licencas2():
             Funcionario.nome_funcionario,
             Funcionario.situacao
         )
-        .join(EmpresaPrincipal, Licenca.cod_empresa_principal == EmpresaPrincipal.cod)
-        .join(Empresa, Licenca.id_empresa == Empresa.id_empresa)
-        .join(Unidade, Licenca.id_unidade == Unidade.id_unidade)
-        .join(Funcionario, Licenca.id_funcionario == Funcionario.id_funcionario)
-        .filter(Licenca.cod_empresa_principal == cod_empresa_principal)
+        .join(EmpresaPrincipal, Absenteismo.cod_empresa_principal == EmpresaPrincipal.cod)
+        .join(Empresa, Absenteismo.id_empresa == Empresa.id_empresa)
+        .join(Unidade, Absenteismo.id_unidade == Unidade.id_unidade)
+        .join(Funcionario, Absenteismo.id_funcionario == Funcionario.id_funcionario)
+        .filter(Absenteismo.cod_empresa_principal == cod_empresa_principal)
     )
 
     if subgrupo == '0':

@@ -15,10 +15,10 @@ from src.main.funcionario.funcionario import Funcionario
 from src.main.unidade.unidade import Unidade
 from src.utils import get_data_from_args, get_data_from_form, zipar_arquivos
 
+from .absenteismo import Absenteismo
 from .forms import FormBuscarAbsenteismo
-from .models import Licenca
 
-_absenteismo_bp = Blueprint(
+absenteismo_bp = Blueprint(
     name="absenteismo",
     import_name=__name__,
     url_prefix="/absenteismo",
@@ -26,7 +26,7 @@ _absenteismo_bp = Blueprint(
 )
 
 
-@_absenteismo_bp.route("/buscar", methods=["GET", "POST"])
+@absenteismo_bp.route("/buscar", methods=["GET", "POST"])
 @login_required
 def absenteismo_busca():
     form = FormBuscarAbsenteismo()
@@ -44,16 +44,12 @@ def absenteismo_busca():
     return render_template("absenteismo/busca.html", form=form)
 
 
-@_absenteismo_bp.route("/relatorios", methods=["GET", "POST"])
+@absenteismo_bp.route("/relatorios", methods=["GET", "POST"])
 @login_required
 def absenteismo_relatorios():
     data = get_data_from_args(FormBuscarAbsenteismo(), data=request.args)
 
-    for key, val in data.items():
-        if "data_" in key:
-            data[key] = datetime.strptime(val, "%Y/%m/%d")
-
-    query = Licenca.buscar_licencas(**data)
+    query = Absenteismo.buscar_licencas(**data)
 
     df = pd.read_sql(sql=query.statement, con=db.session.bind)  # type: ignore
     if df.empty:
@@ -80,7 +76,7 @@ def absenteismo_relatorios():
     )
 
     nome_excel = f"{caminho_arqvs}.xlsx"
-    df_excel = df[Licenca.COLUNAS_PLANILHA]
+    df_excel = df[Absenteismo.COLUNAS_PLANILHA]
     df_excel.to_excel(nome_excel, index=False, freeze_panes=(1, 0))
 
     nome_ppt = f"{caminho_arqvs}.pptx"
@@ -89,7 +85,7 @@ def absenteismo_relatorios():
     if id_unidade:
         nome_unidade = Unidade.query.get(id_unidade).nome_unidade
 
-    Licenca.criar_ppt(
+    Absenteismo.criar_ppt(
         df=df,
         funcionarios_ativos=qtd_ativos,
         nome_arquivo=nome_ppt,

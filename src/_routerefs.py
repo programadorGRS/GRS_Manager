@@ -4,6 +4,7 @@ from werkzeug.exceptions import HTTPException
 
 from src.api import routes
 from src.api.routes_internas import internal_api
+from src.main.absenteismo.routes import absenteismo_bp
 from src.main.central_avisos import central_avisos
 from src.main.conv_exames import conv_exames
 from src.main.empresa.routes import empresa
@@ -16,7 +17,6 @@ from src.main.exames_realizados import routes
 from src.main.grupo import routes
 from src.main.home import routes
 from src.main.importacao import routes
-from src.main.licenca import absenteismo_bp
 from src.main.log_acoes import routes
 from src.main.login.routes import user_auth
 from src.main.manual import routes
