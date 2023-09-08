@@ -13,7 +13,7 @@ from src.main.error_handlers.error_handlers import (error_404, http_exceptions,
                                                     internal_exceptions,
                                                     rate_limit_exceptions)
 from src.main.exame import exame_bp
-from src.main.exames_realizados import routes
+from src.main.exames_realizados.routes import exames_realizados_bp
 from src.main.grupo import routes
 from src.main.home import routes
 from src.main.importacao import routes
@@ -44,6 +44,7 @@ def register_blueprints(app: Flask):
     app.register_blueprint(absenteismo_bp)
     app.register_blueprint(exame_bp)
     app.register_blueprint(usuario_bp)
+    app.register_blueprint(exames_realizados_bp)
     return app
 
 

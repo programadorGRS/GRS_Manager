@@ -164,7 +164,7 @@ def get_data_from_form(
     return new_data
 
 
-def get_data_from_args(prev_form: FlaskForm, data: dict):
+def get_data_from_args(prev_form: FlaskForm, data: dict) -> dict[Any, Any]:
     DATE_FORMAT = "%Y-%m-%d"
 
     ignore_v = [None, ""]

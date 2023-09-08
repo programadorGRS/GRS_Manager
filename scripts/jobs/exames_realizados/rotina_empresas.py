@@ -1,81 +1,91 @@
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
-    sys.path.append('../GRS_Manager')
 
-    import os
+    sys.path.append("../GRS_Manager")
+
     from datetime import datetime, timedelta
-    from smtplib import SMTPException
 
-    import pandas as pd
-
-    from src import TIMEZONE_SAO_PAULO, app, database
+    from scripts.utils import set_app_config_by_os_name
+    from src import app
     from src.email_connect import EmailConnect
+    from src.extensions import database as db
     from src.main.empresa.empresa import Empresa
-    from src.main.exames_realizados.models import ExamesRealizados
+    from src.main.exames_realizados.exames_realizados import ExamesRealizados
 
     with app.app_context():
+        set_app_config_by_os_name(app=app)
+
+        REPLY_TO = ["gabrielsantos@grsnucleo.com.br", "relacionamento@grsnucleo.com.br"]
+
         dias: int = 90
-        infos: list[tuple] = []
 
-        empresas: list[Empresa] = (
-            database.session.query(Empresa)
-            .filter(Empresa.exames_realizados == True)
-            .all()
-        )
-        for empresa in empresas:
-            print(empresa)
+        data_inicio = datetime.now() - timedelta(days=dias)
+        data_fim = datetime.now()
 
-            if empresa.exames_realizados_emails:
-                corpo_email: str = EmailConnect.create_email_body(
-                    email_template_path='src/email_templates/exames_realizados.html',
-                    replacements={'PLACEHOLDER_DIAS': str(dias)}
-                )
+        date_format = "%d/%m/%Y"
 
-                infos.append(
-                    ExamesRealizados.rotina_exames_realizados(
-                        cod_empresa_principal=empresa.cod_empresa_principal,
-                        id_empresa=empresa.id_empresa,
-                        nome_empresa=empresa.razao_social,
-                        data_inicio=datetime.now() - timedelta(days=dias),
-                        data_fim=datetime.now(),
-                        emails_destinatario=empresa.exames_realizados_emails.split(';'),
-                        corpo_email=corpo_email,
-                        testando=False
-                    )
-                )
-
-
-        # enviar report
-        df = pd.DataFrame(
-            infos,
-            columns=[
-                'id_empresa',
-                'nome_empresa',
-                'id_unidade',
-                'nome_unidade',
-                'emails',
-                'qtd_linhas',
-                'status_email'
-            ]
+        print(
+            "Enviando relatórios Exames Realizados Empresas | "
+            "Periodo: "
+            f"{data_inicio.strftime(date_format)}"
+            " a "
+            f"{data_fim.strftime(date_format)}"
         )
 
-        nome_arquivo = f'Report_ExamesRealizados_{int(datetime.now().timestamp())}.xlsx'
-        df.to_excel(nome_arquivo, index=False, freeze_panes=(1,0))
+        total = 0
+        erros = 0
 
-        for i in range(3):
-            try:
-                EmailConnect.send_email(
-                    to_addr=['gabrielsantos@grsnucleo.com.br'],
-                    message_subject=f"Report ExamesRealizados Empresas - {datetime.now(tz=TIMEZONE_SAO_PAULO).strftime('%d-%m-%Y %H:%M:%S')}",
-                    message_attachments=[nome_arquivo],
-                    message_body=''
-                )
-                break
-            except SMTPException:
+        query_empresas = (
+            db.session.query(Empresa)  # type: ignore
+            .filter(Empresa.exames_realizados == True)  # noqa
+            .filter(Empresa.exames_realizados_emails != None)  # noqa
+        )
+
+        lista_empresas: list[Empresa] = query_empresas.all()
+
+        for empresa in lista_empresas:
+            if not empresa.exames_realizados_emails:
                 continue
 
-        try:
-            os.remove(nome_arquivo)
-        except:
-            pass
+            print(
+                f"Cod: {empresa.cod_empresa} | Nome: {empresa.razao_social[:20]}",
+                end=" | ",
+            )
 
+            corpo_email: str = EmailConnect.create_email_body(
+                email_template_path="src/email_templates/exames_realizados.html",
+                replacements={"PLACEHOLDER_DIAS": str(dias)},
+            )
+
+            try:
+                res = ExamesRealizados.rotina_exames_realizados(
+                    cod_empresa_principal=empresa.cod_empresa_principal,
+                    id_empresa=empresa.id_empresa,
+                    nome_empresa=empresa.razao_social,
+                    data_inicio=data_inicio,
+                    data_fim=data_fim,
+                    emails_destinatario=empresa.exames_realizados_emails.split(";"),
+                    corpo_email=corpo_email,
+                    reply_to=REPLY_TO,
+                )
+            except Exception as e:
+                erros += 1
+                app.logger.error(e, exc_info=True)
+                continue
+
+            total += 1
+
+            if not res:
+                print("Sem resultado")
+                erros += 1
+                continue
+
+            stt = res.get("status")
+            qtd = res.get("qtd")
+
+            if stt != "OK":
+                erros += 1
+
+            print(f"Status: {stt} | Qtd: {qtd}")
+
+    print(f"Done! -> Total {total} | Erros {erros}")

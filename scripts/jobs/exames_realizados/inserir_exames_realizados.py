@@ -1,55 +1,65 @@
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
-    sys.path.append('../GRS_Manager')
 
-    import os
+    sys.path.append("../GRS_Manager")
+
     from datetime import datetime, timedelta
-    from smtplib import SMTPException
 
-    import pandas as pd
-
-    from src import TIMEZONE_SAO_PAULO, app
-    from src.email_connect import EmailConnect
+    from scripts.utils import set_app_config_by_os_name
+    from src import app
     from src.main.empresa.empresa import Empresa
-    from src.main.exames_realizados.models import ExamesRealizados
+    from src.main.exames_realizados.exames_realizados import ExamesRealizados
 
     with app.app_context():
-        responses: list[dict] = []
+        set_app_config_by_os_name(app=app)
 
         dias: int = 30
-        data_inicio: datetime = datetime.now(tz=TIMEZONE_SAO_PAULO) - timedelta(days=dias)
-        data_fim: datetime = datetime.now(tz=TIMEZONE_SAO_PAULO)
+        data_inicio: datetime = datetime.now() - timedelta(days=dias)
+        data_fim: datetime = datetime.now()
+
+        date_format = "%d/%m/%Y"
+
+        print(
+            "Inserindo Exames Realizados | "
+            "Período: "
+            f"{data_inicio.strftime(date_format)}"
+            " a "
+            f"{data_fim.strftime(date_format)}"
+        )
+
+        total = 0
+        inseridos = 0
+        erros = 0
 
         empresas: list[Empresa] = Empresa.query.all()
+
         for empresa in empresas:
-            print(empresa)
-            responses.append(
-                ExamesRealizados.inserir_exames_realizados(
-                id_empresa = empresa.id_empresa,
-                dataInicio = data_inicio,
-                dataFim = data_fim
-                )
+            print(
+                f"Cod: {empresa.cod_empresa} | Nome: {empresa.razao_social[:20]}",
+                end=" | ",
             )
 
-        print('Enviar report...')
-        df = pd.DataFrame(responses)
-        df.to_excel('ExamesRealizados.xlsx', index=False, freeze_panes=(1,0))
-
-        # enviar report
-        for i in range(3):
             try:
-                EmailConnect.send_email(
-                    to_addr = ['gabrielsantos@grsnucleo.com.br'],
-                    message_subject = f"Report Exames Realizados - {datetime.now(tz=TIMEZONE_SAO_PAULO).strftime('%d-%m-%Y %H:%M:%S')}",
-                    message_body = '',
-                    message_attachments=['ExamesRealizados.xlsx']
+                res = ExamesRealizados.inserir_exames_realizados(
+                    id_empresa=empresa.id_empresa,
+                    data_inicio=data_inicio,
+                    data_fim=data_fim,
                 )
-                break
-            except SMTPException:
+            except Exception as e:
+                app.logger.error(e, exc_info=True)
                 continue
 
-        try:
-            os.remove('ExamesRealizados.xlsx')
-        except:
-            pass
+            total += 1
 
+            stt: str | None = res.get("status")
+            qtd: int | None = res.get("qtd")
+
+            if stt != "OK":
+                erros += 1
+
+            if qtd:
+                inseridos += qtd
+
+            print(f"Status: {stt} | Qtd: {qtd}")
+
+    print(f"Done! -> Total {total} | Inseridos {inseridos} | Erros: {erros}")
