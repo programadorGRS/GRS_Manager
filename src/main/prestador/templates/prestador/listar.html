@@ -1,7 +1,6 @@
-{% extends 'base.html' %}
+{% extends 'base/base_default.html' %}
 
 {% block body %}
-
 <div class="container">
     <h1>Prestadores</h1>
     <h5>Qtd prestadores: {{ qtd }}</h5>
@@ -18,7 +17,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for prestador in lista_prestadores %}
+            {% for prestador in prestadores %}
                 <tr>
                     <td>{{ prestador.id_prestador }}</td>
                     <td>{{ prestador.cod_prestador }}</td>
@@ -37,7 +36,7 @@
                         <td></td>
                     {% endif %}
                     <td>
-                        <a href="{{ url_for('editar_prestador', id_prestador=prestador.id_prestador, cod_empresa_principal=prestador.cod_empresa_principal) }}">
+                        <a href="{{ url_for('prestador.editar_prestador', id_prestador=prestador.id_prestador) }}">
                             <button class="btn btn-sm btn-outline-primary">
                                 <span class="material-icons align-middle">edit_note</span> Editar
                             </button>
@@ -47,7 +46,5 @@
             {% endfor %}
         </tbody>
     </table>
-
 </div>
-
 {% endblock %}

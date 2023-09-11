@@ -22,7 +22,7 @@ from src.main.login.routes import user_auth
 from src.main.manual import routes
 from src.main.pedido import routes
 from src.main.pedido_socnet import routes
-from src.main.prestador import routes
+from src.main.prestador import prestador_bp
 from src.main.relatorios_agendados import routes
 from src.main.rtc.routes import rtc
 from src.main.status import status_bp
@@ -45,6 +45,7 @@ def register_blueprints(app: Flask):
     app.register_blueprint(exame_bp)
     app.register_blueprint(usuario_bp)
     app.register_blueprint(exames_realizados_bp)
+    app.register_blueprint(prestador_bp)
     return app
 
 

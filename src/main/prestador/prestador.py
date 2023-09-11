@@ -1,258 +1,230 @@
 from datetime import datetime
+from io import BytesIO
+from typing import Any
 
 import pandas as pd
-from pytz import timezone
+from sqlalchemy.exc import DatabaseError, SQLAlchemyError
 
-from src import database
-
-from ..empresa_principal.empresa_principal import EmpresaPrincipal
+from src import TIMEZONE_SAO_PAULO, app
+from src.extensions import database as db
+from src.main.job.job_infos import JobInfos
+from src.soc_web_service.exporta_dados_v2 import ExportaDados
+from src.utils import tratar_emails
 
 from ..grupo.grupo import grupo_prestador
 
 
-class Prestador(database.Model):
-    __tablename__ = 'Prestador'
-    id_prestador = database.Column(database.Integer, primary_key=True)
-    cod_empresa_principal = database.Column(database.Integer, database.ForeignKey('EmpresaPrincipal.cod'), nullable=False)
-    cod_prestador = database.Column(database.Integer)
-    nome_prestador = database.Column(database.String(255), nullable=False)
-    emails = database.Column(database.String(500))
-    ativo = database.Column(database.Boolean, nullable=False)
+class Prestador(db.Model):
+    __tablename__ = "Prestador"
+
+    id_prestador = db.Column(db.Integer, primary_key=True)
+
+    cod_empresa_principal = db.Column(
+        db.Integer, db.ForeignKey("EmpresaPrincipal.cod"), nullable=False
+    )
+    cod_prestador = db.Column(db.Integer)
+    nome_prestador = db.Column(db.String(255), nullable=False)
+
+    emails = db.Column(db.String(500))
+    ativo = db.Column(db.Boolean, nullable=False)
+
     # se recebe ou nao emails de solicitacao de ASOs
-    solicitar_asos = database.Column(database.Boolean, default=True)
-    cnpj = database.Column(database.String(100))
-    uf = database.Column(database.String(4))
-    razao_social = database.Column(database.String(255))
+    solicitar_asos = db.Column(db.Boolean, default=True)
 
-    pedidos = database.relationship('Pedido', backref='prestador', lazy=True) # one to many
-    pedidos_socnet = database.relationship('PedidoSOCNET', backref='prestador', lazy=True) # one to many
-    grupo = database.relationship('Grupo', secondary=grupo_prestador, backref='prestadores', lazy=True) # many to many
+    cnpj = db.Column(db.String(100))
+    uf = db.Column(db.String(4))
+    razao_social = db.Column(db.String(255))
 
-    data_inclusao = database.Column(database.DateTime)
-    data_alteracao = database.Column(database.DateTime)
-    incluido_por = database.Column(database.String(50))
-    alterado_por = database.Column(database.String(50))
+    data_inclusao = db.Column(db.DateTime)
+    data_alteracao = db.Column(db.DateTime)
+
+    incluido_por = db.Column(db.String(50))
+    alterado_por = db.Column(db.String(50))
+
+    last_server_update = db.Column(db.DateTime)
+
+    # relationships
+    pedidos = db.relationship("Pedido", backref="prestador", lazy=True)  # one to many
+    pedidos_socnet = db.relationship(
+        "PedidoSOCNET", backref="prestador", lazy=True
+    )  # one to many
+    grupo = db.relationship(
+        "Grupo", secondary=grupo_prestador, backref="prestadores", lazy=True
+    )  # many to many
 
     def __repr__(self) -> str:
-        return f'<{self.id_prestador}> {self.nome_prestador}'
+        return f"<{self.id_prestador}> {self.nome_prestador}"
 
     @classmethod
     def buscar_prestadores(
-        self,
-        cod_empresa_principal: int | None = None,
+        cls,
+        cod_emp_princ: int | None = None,
         id_prestador: int | None = None,
         cod_prestador: int | None = None,
-        nome: str | None = None,
-        ativo: int | None = None
+        nome_prestador: str | None = None,
+        prestador_ativo: int | None = None,
     ):
         params = []
 
-        if cod_empresa_principal:
-            params.append(self.cod_empresa_principal == cod_empresa_principal)
+        if cod_emp_princ:
+            params.append(cls.cod_empresa_principal == cod_emp_princ)
         if id_prestador:
-            params.append(self.id_prestador == id_prestador)
+            params.append(cls.id_prestador == id_prestador)
         if cod_prestador:
-            params.append(self.cod_prestador == cod_prestador)
-        if nome:
-            params.append(self.nome_prestador.like(f'%{nome}%'))
-        if ativo == 0 or ativo == 1:
-            params.append(self.ativo == ativo)
+            params.append(cls.cod_prestador == cod_prestador)
+        if nome_prestador:
+            params.append(cls.nome_prestador.like(f"%{nome_prestador}%"))
+        if prestador_ativo in (0, 1):
+            params.append(cls.ativo == prestador_ativo)
 
         query = (
-            database.session.query(self)
+            db.session.query(cls)  # type: ignore
             .filter(*params)
-            .order_by(self.nome_prestador)
+            .order_by(cls.nome_prestador)
         )
+
         return query
 
+    @classmethod
+    def carregar_prestadores(
+        cls, cod_emp_princ: int, wsdl: str | BytesIO, ed_keys: dict[str, Any]
+    ):
+        ed = ExportaDados()
+        ed.set_ed_keys(keys=ed_keys)
+        ed.set_client(wsdl=wsdl)
+        ed.set_factory()
+
+        PARAM = ed.prestadores(
+            empresa=cod_emp_princ,
+            codigo=ed.ED_KEYS["PRESTADORES_COD"],
+            chave=ed.ED_KEYS["PRESTADORES_KEY"],
+        )
+
+        body = ed.build_request_body(param=PARAM)
+
+        infos = JobInfos(tabela=cls.__tablename__, cod_empresa_principal=cod_emp_princ)
+
+        try:
+            resp = ed.call_service(request_body=body)
+        except Exception as e:
+            infos.add_error(f"Erro no request: {str(e)}")
+            infos.ok = False
+            return infos
+
+        erro = getattr(resp, "erro", None)
+        if erro:
+            msg_erro = getattr(resp, "mensagemErro", None)
+            infos.add_error(f"Erro SOC: {msg_erro}")
+            infos.ok = False
+            return infos
+
+        df = ed.df_from_zeep(response=resp)
+
+        if df.empty:
+            infos.add_error("df vazio")
+            infos.ok = False
+            return infos
+
+        df = cls.__tratar_df(df=df)
+
+        df = cls.__get_infos_prestador(df=df, cod_emp_princ=cod_emp_princ)
+
+        df["cod_empresa_principal"] = cod_emp_princ
+
+        infos = cls.__inserir(df=df.copy(), infos=infos)
+        infos = cls.__atualizar(df=df.copy(), infos=infos)
+
+        return infos
 
     @classmethod
-    def inserir_prestadores(
-        self,
-        cod_empresa_principal: int
-    ):
-        '''
-        Carrega todas os Prestadores no exporta dados da EmpresaPrincipal selecionada (ativos e inativos)
+    def __tratar_df(cls, df: pd.DataFrame):
+        df = df.copy()
 
-        Insere apenas Prestadores não existem na db
-        '''
-        
+        COLS = {
+            "codigoPrestador": "cod_prestador",
+            "nomePrestador": "nome_prestador",
+            "razaoSocial": "razao_social",
+            "cnpj": "cnpj",
+            "email": "emails",
+            "estado": "uf",
+            "situacao": "ativo",
+        }
 
-        from modules.exporta_dados import (exporta_dados, get_json_configs,
-                                           prestadores)
+        df = df.replace(to_replace={"": None})
 
+        df = df[list(COLS.keys())]
 
-        empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
-        credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
+        df = df.rename(columns=COLS)
 
-        par = prestadores(
-            cod_empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['PRESTADORES_COD'],
-            chave=credenciais['PRESTADORES_KEY'],
-            ativo='' # carregar todos
-        )
-        df_exporta_dados = exporta_dados(parametro=par)
-        
-        if not df_exporta_dados.empty:
+        df["cod_prestador"] = df["cod_prestador"].astype(int)
 
-            df_database = pd.read_sql(
-                sql=(
-                    database.session.query(
-                        Prestador.id_prestador,
-                        Prestador.cod_prestador
-                    )
-                    .filter(Prestador.cod_empresa_principal == cod_empresa_principal)
-                ).statement,
-                con=database.session.bind
-            )
+        df["ativo"] = df["ativo"].replace({"Sim": True, "Não": False})
 
-            if not df_database.empty:
-                df_exporta_dados['codigoPrestador'] = df_exporta_dados['codigoPrestador'].astype(int)
-                df_final = pd.merge(
-                    df_exporta_dados,
-                    df_database,
-                    how='left',
-                    left_on='codigoPrestador',
-                    right_on='cod_prestador'
-                )
-                df_final = df_final[~df_final['id_prestador'].isin(df_database['id_prestador'])]
-            else:
-                df_final = df_exporta_dados
+        # tratar emails
+        df["emails"] = df["emails"].fillna("").astype(str)
+        df["emails"] = list(map(tratar_emails, df["emails"]))
+        df["emails"] = df["emails"].replace("", None)
 
-            # tratar df
-            df_final = df_final[[
-                'codigoPrestador',
-                'nomePrestador',
-                'razaoSocial',
-                'cnpj',
-                'estado',
-                'email',
-                'situacao'
-            ]]
-            df_final = df_final.replace(to_replace={'': None})
-            df_final = df_final.rename(columns={
-                    'codigoPrestador': 'cod_prestador',
-                    'nomePrestador': 'nome_prestador',
-                    'razaoSocial': 'razao_social',
-                    'email': 'emails',
-                    'estado': 'uf',
-                    'situacao': 'ativo'
-                })
-            df_final['ativo'] = df_final['ativo'].replace({'Sim': True, 'Não': False})
-            df_final['cod_empresa_principal'] = cod_empresa_principal
-            df_final['data_inclusao'] = datetime.now(tz=timezone('America/Sao_Paulo'))
-            df_final['incluido_por'] = 'Servidor'
-
-            # tratar emails
-            df_final['emails'] = df_final['emails'].str.replace(',', ';')
-            df_final['emails'] = df_final['emails'].str.replace(' ', '')
-            df_final['emails'] = df_final['emails'].str.lower()
-            df_final['emails'] = list(map(self.tratar_emails, df_final['emails']))
-
-            # inserir
-            linhas_inseridas = df_final.to_sql(
-                name=self.__tablename__,
-                con=database.session.bind,
-                if_exists='append',
-                index=False
-            )
-            database.session.commit()
-            
-            return linhas_inseridas
+        return df
 
     @classmethod
-    def atualizar_prestadores(
-        self,
-        cod_empresa_principal: int
-    ):
-        '''
-        Carrega todas os Prestadores no exporta dados da EmpresaPrincipal selecionada
+    def __get_infos_prestador(cls, df: pd.DataFrame, cod_emp_princ: int):
+        df = df.copy()
 
-        Atualiza infos dos Prestadores que ja existem na db
-
-        '''
-        
-
-        from modules.exporta_dados import (exporta_dados, get_json_configs,
-                                           prestadores)
-
-
-        empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
-        credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
-
-        par = prestadores(
-            cod_empresa_principal=empresa_principal.cod,
-            cod_exporta_dados=credenciais['PRESTADORES_COD'],
-            chave=credenciais['PRESTADORES_KEY'],
+        query = db.session.query(cls.id_prestador, cls.cod_prestador).filter(  # type: ignore
+            cls.cod_empresa_principal == cod_emp_princ
         )
-        df_exporta_dados = exporta_dados(parametro=par)
-        
-        if not df_exporta_dados.empty:
+        df_db = pd.read_sql(sql=query.statement, con=db.session.bind)  # type: ignore
 
-            df_database = pd.read_sql(
-                sql=(
-                    database.session.query(
-                        Prestador.id_prestador,
-                        Prestador.cod_prestador
-                    )
-                    .filter(Prestador.cod_empresa_principal == cod_empresa_principal)
-                ).statement,
-                con=database.session.bind
+        df = df.merge(right=df_db, how="left", on="cod_prestador")
+
+        return df
+
+    @classmethod
+    def __inserir(cls, df: pd.DataFrame, infos: JobInfos):
+        df = df[df["id_prestador"].isna()]
+
+        if df.empty:
+            return infos
+
+        df["data_inclusao"] = datetime.now(TIMEZONE_SAO_PAULO)
+
+        try:
+            qtd = df.to_sql(
+                name=cls.__tablename__,
+                con=db.session.bind,  # type: ignore
+                if_exists="append",
+                index=False,
             )
+            db.session.commit()  # type: ignore
+            infos.qtd_inseridos = qtd if qtd else 0
+        except (SQLAlchemyError, DatabaseError) as e:
+            db.session.rollback()  # type: ignore
+            app.logger.error(msg=e, exc_info=True)
+            infos.add_error(f"Erro ao inserir: {str(e)}")
+            infos.ok = False
 
-            if not df_database.empty:
-                df_exporta_dados['codigoPrestador'] = df_exporta_dados['codigoPrestador'].astype(int)
-                df_final = pd.merge(
-                    df_exporta_dados,
-                    df_database,
-                    how='right',
-                    left_on='codigoPrestador',
-                    right_on='cod_prestador'
-                )
-                df_final.dropna(axis=0, subset=['id_prestador', 'codigoPrestador'], inplace=True)
+        return infos
 
-                # tratar df
-                df_final = df_final[[
-                    'id_prestador',
-                    'nomePrestador',
-                    'razaoSocial',
-                    'cnpj',
-                    'estado',
-                    'email',
-                    'situacao'
-                ]]
-                df_final = df_final.replace(to_replace={'': None})
-                df_final = df_final.rename(columns={
-                        'nomePrestador': 'nome_prestador',
-                        'razaoSocial': 'razao_social',
-                        'email': 'emails',
-                        'estado': 'uf',
-                        'situacao': 'ativo'
-                })
-                df_final['ativo'] = df_final['ativo'].replace({'Sim': True, 'Não': False})
-                df_final['data_alteracao'] = datetime.now(tz=timezone('America/Sao_Paulo'))
-                df_final['alterado_por'] = 'Servidor'
+    @classmethod
+    def __atualizar(cls, df: pd.DataFrame, infos: JobInfos):
+        df = df[df["id_prestador"].notna()]
 
-                # tratar emails
-                df_final['emails'] = df_final['emails'].str.replace(',', ';')
-                df_final['emails'] = df_final['emails'].str.replace(' ', '')
-                df_final['emails'] = df_final['emails'].str.lower()
-                df_final['emails'] = list(map(self.tratar_emails, df_final['emails']))
+        if df.empty:
+            return infos
 
-                df_final = df_final.to_dict(orient='records')
+        df["last_server_update"] = datetime.now(TIMEZONE_SAO_PAULO)
 
-                database.session.bulk_update_mappings(Prestador, df_final)
-                database.session.commit()
-        
-            return len(df_final)
-    
-    @staticmethod
-    def tratar_emails(emails: str):
-        if emails:
-            emails = emails.split(sep=';')
-            for indice, email in enumerate(emails):
-                if not email:
-                    emails.pop(indice)
-            return ';'.join(emails)
-        else:
-            return None
+        df_mappings = df.to_dict(orient="records")
+
+        try:
+            db.session.bulk_update_mappings(cls, mappings=df_mappings)  # type: ignore
+            db.session.commit()  # type: ignore
+            infos.qtd_atualizados = len(df_mappings)
+        except (SQLAlchemyError, DatabaseError) as e:
+            db.session.rollback()  # type: ignore
+            app.logger.error(msg=e, exc_info=True)
+            infos.add_error(f"Erro ao atualizar: {str(e)}")
+            infos.ok = False
+
+        return infos

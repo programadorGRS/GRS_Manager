@@ -53,6 +53,50 @@ class ExportaDadosParams:
         }
         return self.__processar_parametro(par)
 
+    def prestadores(
+        self,
+        empresa: int,
+        codigo: int,
+        chave: int,
+        cod: int | None = None,
+        ativo: bool | None = None,
+        cnpj: str | None = None,
+        cpf: str | None = None,
+        cidade: str | None = None,
+        estado: str | None = None,
+        tipoPrestador: str | None = None,
+        tipoPessoa: str | None = None,
+        tipoSaida: str = "json",
+    ):
+        """
+        Prestadores
+
+        Exporta dados de Prestadores com filtros por cnpj, cpf, codigo do prestador, \
+        situacao, cidade, estado, tipo de prestador e tipo de pessoa.
+
+        Campos de saída:socnet, codigoPrestador, situacao, statusContrato, bairro, cidade, estado, endereco, numeroEndereco, complementoEndereco, cep, \
+        representanteLegal, cnpj, cpf, codigoAgenciaBanco, codigoBanco, nomeBanco, numeroContaCorrente, nomeTitularConta, \
+        dataCancelamento, dataContratacao, diaPagamento, email, horarioAtendimentoInicial, horarioAtendimentoFinal
+        , motivoCancelamento, nomePrestador, razaoSocial, telefone, celular, tipoAtendimento, tipoPagamento, tipoPrestador, \
+        tipoPessoa, regraPadraoPagamento, codigoRH, nivelClassificacao, responsavel, pagamentoAntecipado, \
+        conselhoClasse, ufConselhoClasse, especialidadeResponsavel, especialidadeResponsavel2
+        """
+        par = {
+            "empresa": empresa,
+            "codigo": codigo,
+            "chave": chave,
+            "tipoSaida": tipoSaida,
+            "cnpj": cnpj,
+            "cpf": cpf,
+            "cod": cod,
+            "ativo": ativo,
+            "cidade": cidade,
+            "estado": estado,
+            "tipoPrestador": tipoPrestador,
+            "tipoPessoa": tipoPessoa,
+        }
+        return self.__processar_parametro(param=par)
+
     def __processar_parametro(self, param: dict) -> str:
         param_tratado = param.copy()
 
