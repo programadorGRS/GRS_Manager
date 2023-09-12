@@ -1,9 +1,8 @@
-{% extends 'base.html' %}
+{% extends 'base/base_default.html' %}
 
 {% from 'macros.html' import render_page_header, render_form_field %}
 
 {% block body %}
-
 <div class="container">
     {{ render_page_header(page_title=page_title, socnet=form.socnet) }}
 
@@ -29,11 +28,12 @@
             </fieldset>
 
             <div class="d-flex mt-3 justify-content-between">
-                <button type="submit" id="btn-carregar" class="btn btn-primary text-nowrap" style="width: fit-content;">
+                <button type="submit" id="btn-carregar" class="btn btn-primary text-nowrap"
+                    style="width: fit-content;">
                     <span class="material-icons align-middle">sync</span> Carregar</button>
 
-                <button type="button" class="btn btn-secondary text-nowrap" style="width: fit-content;"
-                    onclick="resetForm()">
+                <button type="button" class="btn btn-secondary text-nowrap"
+                    style="width: fit-content;" onclick="resetForm()">
                     <span class="material-icons align-middle">close</span> Limpar</button>
             </div>
         </div>
@@ -86,5 +86,4 @@
     window.onload = resetIdEmpresa();
     window.onload = document.getElementById('formCarregar').addEventListener('submit', disableForm);
 </script>
-
 {% endblock %}

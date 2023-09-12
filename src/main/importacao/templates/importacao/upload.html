@@ -1,11 +1,11 @@
-{% extends 'base.html' %}
+{% extends 'base/base_default.html' %}
+
+{% from 'macros.html' import render_form_field %}
 
 {% block body %}
-
 <div class="container mt-2 mb-2">
     <form method="POST" enctype="multipart/form-data">
         {{ form.csrf_token }}
-        <!-- DIV FORM -->
         <div class="border p-4">
             <legend>Importar Dados</legend>
             <div class="accordion" id="accordion01">
@@ -30,45 +30,17 @@
                     </div>
                 </div>
             </div>
-
             <fieldset>
-                <div class="form-group mt-2">
-                    {{ form.tabela.label(class="form-control-label") }}
-                    {% if form.tabela.errors %}
-                    {{ form.tabela(class="form-control is-invalid") }}
-                    <div class="invalid-feedback">
-                        {% for erro in form.tabela.errors %}
-                        {{ erro }}
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    {{ form.tabela(class="form-control") }}
-                    {% endif %}
-                </div>
-                <!-- file field -->
-                <div class="form-group mt-2">
-                    {% if form.csv.errors %}
-                    {{ form.csv(class="form-control is-invalid") }}
-                    <div class="invalid-feedback">
-                        {% for erro in form.csv.errors %}
-                        {{ erro }}
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    {{ form.csv(class="form-control") }}
-                    {% endif %}
-                </div>
+                {{ render_form_field(form.tabela) }}
+                {{ render_form_field(form.csv) }}
             </fieldset>
-            <!-- BOTOES -->
             <div class="d-flex mt-3 justify-content-between">
-                <button type="submit" class="btn btn-success text-nowrap btn-perfil" id="btn_upload" name="btn_upload" type="submit" value="Upload">
+                <button type="submit" class="btn btn-success text-nowrap"
+                    id="btn_upload" name="btn_upload">
                     <span class="material-icons align-middle">upload</span> Upload
                 </button>
             </div>
         </div>
     </form>
 </div>
-
-
 {% endblock %}
-
