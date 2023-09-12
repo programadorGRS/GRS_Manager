@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta
 import jwt
 import numpy as np
 import pandas as pd
-from flask import jsonify, request
+from flask import Blueprint, jsonify, request
 from flask_sqlalchemy import BaseQuery
 from pytz import timezone
 from sqlalchemy import and_, func, or_
@@ -26,6 +26,13 @@ from src.utils import token_required
 
 from ..main.mandato_cipa.historico_mandatos import HistoricoMandatos
 
+api_bp = Blueprint(
+    name="api",
+    import_name=__name__,
+    url_prefix=None,
+    template_folder=None
+)
+
 
 def organizar_grupos(pedido: object):
     '''
@@ -47,7 +54,7 @@ def organizar_grupos(pedido: object):
 
 
 # GET TOKEN-----------------------------------------------------
-@app.route('/get_token')
+@api_bp.route('/get_token')
 def get_token():
     auth_username = request.args.get(key='username', type=str) # id usuario
     auth_password = request.args.get(key='password', type=str)
@@ -78,7 +85,7 @@ def get_token():
 
 
 # GET PEDIDO-----------------------------------------------------
-@app.route('/get_pedido')
+@api_bp.route('/get_pedido')
 @token_required
 def get_pedido():
     seq_ficha = request.args.get(key='seq_ficha', type=int)
@@ -124,7 +131,7 @@ def get_pedido():
 
 
 # PATCH PEDIDO-----------------------------------------------------
-@app.route('/patch_pedido', methods=['PATCH'])
+@api_bp.route('/patch_pedido', methods=['PATCH'])
 @token_required
 def patch_pedido():
     seq_ficha = request.args.get(key='seq_ficha', type=int)
@@ -208,14 +215,14 @@ def patch_pedido():
 
 
 # GET STATUS-----------------------------------------------------
-@app.route('/get_status')
+@api_bp.route('/get_status')
 @token_required
 def get_status():
     return {stt.id_status: stt.nome_status for stt in Status.query.all()}, 200
 
 
 # GET PEDIDOS POR DATA-----------------------------------------------------
-@app.route('/get_pedidos_data')
+@api_bp.route('/get_pedidos_data')
 @token_required
 def get_pedidos_data():
     data_inicio = request.args.get(key='data_inicio', type=str)
@@ -278,7 +285,7 @@ def get_pedidos_data():
 
 
 # GET PEDIDOS POR DATA SOCNET-----------------------------------------------------
-@app.route('/get_pedidos_data_socnet')
+@api_bp.route('/get_pedidos_data_socnet')
 @token_required
 def get_pedidos_data_socnet():
     data_inicio = request.args.get(key='data_inicio', type=str)
@@ -336,7 +343,7 @@ def get_pedidos_data_socnet():
 
 
 # GET LICENCAS-----------------------------------------------------
-@app.route('/get_licencas')
+@api_bp.route('/get_licencas')
 @token_required
 def get_licencas():
     id_empresa = request.args.get(key='id_empresa', type=int)
@@ -420,7 +427,7 @@ def get_licencas():
 
     return jsonify(dados_json), 200
 
-@app.route('/get_licencas_v2')
+@api_bp.route('/get_licencas_v2')
 @token_required
 def get_licencas2():
     cod_empresa_principal = request.args.get(key='cod_empresa_principal', type=int)
@@ -499,7 +506,7 @@ def get_licencas2():
 
 
 # GET CONV EXAMES-----------------------------------------------------
-@app.route('/get_conv_exames')
+@api_bp.route('/get_conv_exames')
 @token_required
 def get_conv_exames():
     id_empresa = request.args.get(key='id_empresa', type=int)
@@ -580,7 +587,7 @@ def get_conv_exames():
 
 
 # GET CONV EXAMES-----------------------------------------------------
-@app.route('/get_conv_exames_v2')
+@api_bp.route('/get_conv_exames_v2')
 @token_required
 def get_conv_exames2():
     cod_empresa_principal = request.args.get(key='cod_empresa_principal', type=int)
@@ -678,7 +685,7 @@ def get_conv_exames2():
     return jsonify(dados)
 
 # GET EMPRESAS-----------------------------------------------------
-@app.route('/get_empresas')
+@api_bp.route('/get_empresas')
 @token_required
 def get_empresas():
 
@@ -688,7 +695,7 @@ def get_empresas():
 
     return jsonify(df.to_dict(orient='records')), 200
 
-@app.route('/get_ped_proc')
+@api_bp.route('/get_ped_proc')
 @token_required
 def get_ped_proc():
     sub_query = (
@@ -716,7 +723,7 @@ def get_ped_proc():
 
     return jsonify(df.to_dict(orient='records')), 200
 
-@app.route('/get_hist_mandato')
+@api_bp.route('/get_hist_mandato')
 @token_required
 def get_hist_mandato():
     cod_empresa_principal = request.args.get('cod_empresa_principal', type=int)
