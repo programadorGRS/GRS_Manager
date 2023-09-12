@@ -1,0 +1,26 @@
+{% extends 'base/base_default.html' %}
+
+{% from "macros.html" import render_form_field %}
+
+{% block body %}
+<div class="container justify-content-center d-flex mt-2">
+    <div class="card">
+        <form method="POST" class="p-4">
+            {{ form.csrf_token }}
+            <legend>Log de Ações</legend>
+            <fieldset>
+                <div class="d-flex justify-content-between">
+                    <div class="w-49">{{ render_form_field(form.data_inicio) }}</div>
+                    <div class="w-49">{{ render_form_field(form.data_fim) }}</div>
+                </div>
+                {{ render_form_field(form.tabela) }}
+                {{ render_form_field(form.usuario) }}
+            </fieldset>
+            <button type="submit" class="btn btn-success text-nowrap mt-2 btn-perfil"
+                id="botao_buscar" name="botao_buscar" type="submit">
+                <span class="material-icons align-middle">download</span> Gerar relatório
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
