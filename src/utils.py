@@ -33,7 +33,7 @@ def admin_required(funcao):
             return funcao(*args, **kwargs)
         else:
             flash("Você não tem permissão para executar esta ação", "alert-danger")
-            return redirect(url_for("home"))
+            return redirect(url_for("home.home"))
 
     return wrap
 
