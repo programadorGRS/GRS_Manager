@@ -1,0 +1,46 @@
+{% extends 'base/base_default.html' %}
+
+{% from "macros.html" import render_form_field %}
+
+{% block body %}
+<div class="container">
+    <h1>{{ grupo.nome_grupo }}</h1>
+    <form method="POST" class="border p-4">
+        {{ form.csrf_token }}
+        <legend>{{ form_legend }}</legend>
+        <fieldset>
+            {{ form.select(id="dualListBox", size='7', multiple=True) }}
+        </fieldset>
+        <div class="d-flex justify-content-between mt-2">
+            <button type="button" id="botao_voltar" class="btn btn-info text-nowrap text-light"
+                name="botao_voltar" style="width: fit-content;" onclick="window.history.back()">
+                <span class="material-icons align-middle">arrow_back</span> Voltar
+            </button>
+            <button type="submit" id="botao_salvar"
+                class="btn btn-primary text-nowrap">
+                <span class="material-icons align-middle">save</span> Salvar
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    var box = $('#dualListBox').bootstrapDualListbox({
+        selectedListLabel: 'Incluir',
+        nonSelectedListLabel: 'Remover',
+        filterTextClear: 'Limpar',
+        filterPlaceHolder: 'Filtrar',
+        nonSelectedListLabel: 'Remover',
+        selectedListLabel: 'Incluir',
+        preserveSelectionOnMove: 'moved',
+        moveOnSelect: false,
+        moveSelectedLabel: 'Incluir',
+        removeSelectedLabel: 'Remover',
+        moveAllLabel: 'Incluir todos',
+        removeAllLabel: 'Remover todos',
+        infoTextEmpty: 'Vazio',
+        infoText: 'Mostrando todos {0}',
+        infoTextFiltered: 'Filtrando de {0} a {1}'
+    });
+</script>
+{% endblock %}

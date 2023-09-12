@@ -1,0 +1,27 @@
+{% extends 'base/base_default.html' %}
+
+{% from "macros.html" import render_form_field %}
+
+{% block body %}
+<div class="container justify-content-center d-flex mt-2">
+    <div class="card p-4">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <legend>Criar Grupo</legend>
+            <fieldset>
+                {{ render_form_field(form.nome_grupo) }}
+            </fieldset>
+            <div class="d-flex justify-content-between mt-2">
+                <button type="button" id="botao_voltar" class="btn btn-info text-nowrap text-light"
+                    name="botao_voltar" style="width: fit-content;" onclick="window.history.back()">
+                    <span class="material-icons align-middle">arrow_back</span> Voltar
+                </button>
+                <button type="submit" id="botao_salvar"
+                    class="btn btn-primary text-nowrap">
+                    <span class="material-icons align-middle">save</span> Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
