@@ -1,10 +1,15 @@
-from flask import render_template
+from flask import Blueprint, render_template
 from flask_login import login_required
 
-from src import app
+manual_bp = Blueprint(
+    name="manual",
+    import_name=__name__,
+    url_prefix="/manual",
+    template_folder="templates",
+)
 
 
-@app.route('/manual')
+@manual_bp.route("/")
 @login_required
 def manual():
-    return render_template('manual.html', title='GRS+Connect')
+    return render_template("manual/manual.html")
