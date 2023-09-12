@@ -40,7 +40,7 @@ RATE_LIMIT = "5/5 minutes"
 def login():
     form = FormLogin()
     if current_user.is_authenticated:  # type: ignore
-        return redirect(url_for("home"))
+        return redirect(url_for("home.home"))
 
     if form.validate_on_submit():
         username = form.username.data
@@ -172,7 +172,7 @@ def login_otp():
             database.session.commit()  # type: ignore
 
             flash(f"Logado com sucesso em: {usuario.username}", "alert-success")
-            return redirect(url_for("home"))
+            return redirect(url_for("home.home"))
         else:
             Login.log_attempt(
                 username=usuario.username,
@@ -189,7 +189,7 @@ def login_otp():
 def refresh_login():
     form = FormLogin()
     if login_fresh():
-        return redirect(url_for("home"))
+        return redirect(url_for("home.home"))
 
     if form.validate_on_submit():
         username = form.username.data
@@ -235,7 +235,7 @@ def refresh_login():
                 flash(f"Autenticado com sucesso em: {username}", "alert-success")
                 return redirect(par_next)
             else:
-                return redirect(url_for("home"))
+                return redirect(url_for("home.home"))
         else:
             Login.log_attempt(
                 username=username,
