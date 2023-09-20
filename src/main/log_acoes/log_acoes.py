@@ -3,7 +3,8 @@ from datetime import date, datetime
 import jwt
 from flask_login import current_user
 
-from src import TIMEZONE_SAO_PAULO, app, database
+from src import TIMEZONE_SAO_PAULO, app
+from src.extensions import database
 
 from ..usuario.usuario import Usuario
 

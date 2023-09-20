@@ -1,5 +1,4 @@
 import json
-import re
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -10,7 +9,7 @@ from zeep.settings import Settings
 from zeep.wsse.username import UsernameToken
 from zeep.wsse.utils import WSU
 
-from src import TIMEZONE_SAO_PAULO, database
+from src.extensions import database
 
 
 class ExportaDadosWS(database.Model):

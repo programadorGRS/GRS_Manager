@@ -6,7 +6,8 @@ from flask import current_app
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy import text
 
-from src import TIMEZONE_SAO_PAULO, database
+from src import TIMEZONE_SAO_PAULO
+from src.extensions import database
 from src.exporta_dados import ExportaDadosWS
 from src.utils import get_json_configs
 

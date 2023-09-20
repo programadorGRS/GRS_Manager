@@ -1,6 +1,6 @@
 from flask_sqlalchemy import BaseQuery
 
-from src import database
+from src.extensions import database
 
 from ..grupo.grupo import grupo_empresa_socnet
 

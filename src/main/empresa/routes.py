@@ -5,7 +5,8 @@ from flask import (Blueprint, flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import current_user, login_required
 
-from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, database
+from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER
+from src.extensions import database
 from src.main.empresa.empresa import Empresa
 from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
 from src.utils import (get_data_from_args, get_data_from_form,

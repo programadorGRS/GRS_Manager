@@ -2,9 +2,9 @@ from datetime import datetime
 
 from sqlalchemy import delete, insert, Table
 
-from src import TIMEZONE_SAO_PAULO, database
+from src import TIMEZONE_SAO_PAULO
+from src.extensions import database
 from typing import Literal
-from flask_login import current_user
 
 grupo_usuario = database.Table('grupo_usuario',
     database.Column('id_grupo', database.Integer, database.ForeignKey('Grupo.id_grupo')),

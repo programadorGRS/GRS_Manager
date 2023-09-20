@@ -1,4 +1,4 @@
-from src import database
+from src.extensions import database as db
 
 
 class EmpresaPrincipal(database.Model):

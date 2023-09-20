@@ -4,7 +4,7 @@ from sys import getsizeof
 
 import numpy as np
 import pandas as pd
-from flask import (current_app, flash, redirect, render_template, request,
+from flask import (flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import current_user, login_required
 from flask_mail import Attachment, Message
@@ -12,8 +12,8 @@ from pytz import timezone
 from sqlalchemy.exc import IntegrityError
 from werkzeug.utils import secure_filename
 
-from src import (DOWNLOAD_FOLDER, TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app,
-                 database, mail)
+from src import DOWNLOAD_FOLDER, TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app
+from src.extensions import database, mail
 from src.email_connect import EmailConnect
 from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
 from src.main.empresa_socnet.empresa_socnet import EmpresaSOCNET

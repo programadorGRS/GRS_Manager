@@ -8,7 +8,8 @@ from flask import (Blueprint, flash, redirect, render_template, request,
 from flask_login import login_required
 from werkzeug.utils import secure_filename
 
-from src import UPLOAD_FOLDER, database
+from src import UPLOAD_FOLDER
+from src.extensions import database
 from src.main.empresa.empresa import Empresa
 from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
 from src.main.exame.exame import Exame

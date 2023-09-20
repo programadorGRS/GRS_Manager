@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import request
 from pytz import timezone
 
-from src import database as db
+from src.extensions import database as db
 
 
 class Login(db.Model):

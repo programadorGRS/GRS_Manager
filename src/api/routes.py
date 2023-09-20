@@ -8,7 +8,8 @@ from flask_sqlalchemy import BaseQuery
 from pytz import timezone
 from sqlalchemy import and_, func, or_
 
-from src import app, bcrypt, database
+from src import app
+from src.extensions import database, bcrypt
 from src.main.absenteismo.absenteismo import Absenteismo
 from src.main.conv_exames.conv_exames import ConvExames
 from src.main.conv_exames.ped_proc import PedidoProcessamento

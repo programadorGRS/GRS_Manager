@@ -3,7 +3,7 @@ from datetime import datetime
 import pandas as pd
 from pytz import timezone
 
-from src import database
+from src.extensions import database
 
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
 from sqlalchemy.exc import DatabaseError, SQLAlchemyError

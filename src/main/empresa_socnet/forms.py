@@ -1,9 +1,8 @@
-from flask import request
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, IntegerField, SelectField, StringField
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
 
-from src import database
+from src.extensions import database
 from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
 
 from .empresa_socnet import EmpresaSOCNET

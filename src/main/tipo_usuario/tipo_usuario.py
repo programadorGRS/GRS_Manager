@@ -1,4 +1,4 @@
-from src import database
+from src.extensions import database
 
 
 class TipoUsuario(database.Model):

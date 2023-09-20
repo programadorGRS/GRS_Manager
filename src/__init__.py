@@ -5,8 +5,8 @@ from flask import Flask
 from pytz import timezone
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from .config import setup_loggers
-from .extensions import bcrypt, database, limiter, login_manager, mail, migrate
+from .extensions import initialize_extensions
+from .loggers import setup_loggers
 
 app = Flask(
     import_name=__name__,
@@ -29,12 +29,7 @@ else:
 
 app = setup_loggers(app=app)
 
-login_manager.init_app(app)
-database.init_app(app)
-migrate.init_app(app=app, db=database)
-mail.init_app(app)
-bcrypt.init_app(app)
-limiter.init_app(app)
+app = initialize_extensions(app=app)
 
 
 UPLOAD_FOLDER = os.path.join(app.root_path, app.config["UPLOAD_FOLDER"])

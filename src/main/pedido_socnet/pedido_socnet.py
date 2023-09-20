@@ -7,7 +7,7 @@ from flask_login import current_user
 from flask_sqlalchemy import BaseQuery
 from sqlalchemy import and_
 
-from src import database
+from src.extensions import database
 
 from ..empresa_socnet.empresa_socnet import EmpresaSOCNET
 from ..grupo.grupo import Grupo, grupo_empresa_prestador_socnet

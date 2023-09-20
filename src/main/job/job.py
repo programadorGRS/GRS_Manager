@@ -2,7 +2,8 @@ from datetime import datetime
 
 from sqlalchemy import text
 
-from src import TIMEZONE_SAO_PAULO, database
+from src import TIMEZONE_SAO_PAULO
+from src.extensions import database
 
 from .job_infos import JobInfos
 

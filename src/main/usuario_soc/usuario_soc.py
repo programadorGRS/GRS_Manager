@@ -1,7 +1,7 @@
 import pandas as pd
 import requests
 
-from src import database
+from src.extensions import database
 from src.exporta_dados import ExportaDadosWS
 from src.utils import get_json_configs
 

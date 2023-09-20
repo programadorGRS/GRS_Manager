@@ -8,7 +8,8 @@ from email.utils import make_msgid
 import jinja2
 from flask_mail import Attachment
 
-from src import app, database
+from src import app
+from src.extensions import database as db
 
 
 class EmailConnect(database.Model):

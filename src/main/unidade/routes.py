@@ -6,7 +6,7 @@ from flask import (Blueprint, flash, redirect, render_template, request,
 from flask_login import current_user, login_required
 
 from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER
-from src import database as db
+from src.extensions import database as db
 from src.main.unidade.unidade import Unidade
 from src.utils import (get_data_from_args, get_data_from_form,
                        get_pagination_url_args)

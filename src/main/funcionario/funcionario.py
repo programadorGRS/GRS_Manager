@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 from sqlalchemy.exc import IntegrityError
 
-from src import TIMEZONE_SAO_PAULO, database
+from src import TIMEZONE_SAO_PAULO
+from src.extensions import database
 from src.soc_web_service.exporta_dados import ExportaDados
 
 from ..empresa.empresa import Empresa

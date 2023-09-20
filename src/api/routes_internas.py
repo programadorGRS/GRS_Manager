@@ -2,7 +2,7 @@ import pandas as pd
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 
-from src import database
+from src.extensions import database
 from src.main.empresa.empresa import Empresa
 from src.main.empresa_socnet.empresa_socnet import EmpresaSOCNET
 from src.main.exame.exame import Exame
