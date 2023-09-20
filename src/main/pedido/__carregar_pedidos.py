@@ -7,7 +7,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.inspection import inspect
 from workalendar.america import Brazil
 
-from src import TIMEZONE_SAO_PAULO, database
+from src import TIMEZONE_SAO_PAULO
+from src.extensions import database
 from src.soc_web_service.exporta_dados import ExportaDados
 
 from ..empresa.empresa import Empresa

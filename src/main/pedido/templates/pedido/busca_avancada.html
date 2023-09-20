@@ -1,0 +1,42 @@
+<div class="accordion mt-3" id="buscaAvancada">
+    <div class="accordion-item">
+        <h2 class="accordion-header" id="headingOne">
+            <button class="accordion-button collapsed"  type="button"
+                data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                <b>Busca Avançada</b>
+            </button>
+        </h2>
+
+        <div id="collapseOne" class="accordion-collapse collapse"
+            data-bs-parent="#buscaAvancada">
+            <div class="accordion-body">
+                {{ render_form_field(form.cod_emp_princ, 
+                    kwargs={'onchange': 'loadOptsEmpPrinc()'}) 
+                }}
+
+                {{ render_form_field(form.id_empresa, 
+                    kwargs={
+                        'onchange': 'fetchOpcoesEmpresa(
+                        "/api/internal/unidade",
+                        "id_empresa",
+                        "id_unidade")'
+                    })
+                }}
+
+                {{ render_form_field(form.id_unidade) }}
+                {{ render_form_field(form.id_prestador) }}
+                {{ render_form_field(form.cod_tipo_exame) }}
+
+                <div class="d-flex justify-content-between">
+                    <div class="w-49">
+                        {{ render_form_field(form.seq_ficha) }}
+                    </div>
+                    <div class="w-49">{{ render_form_field(form.obs) }}</div>
+                </div>
+
+                {{ render_form_field(form.nome_funcionario) }}
+            </div>
+        </div>
+
+    </div>
+</div>

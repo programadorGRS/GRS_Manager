@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from click.testing import CliRunner
 from flask import Flask
 
-from src import database
+from src.extensions import database
 from src.main.empresa.empresa import Empresa
 from src.main.pedido.commands import carregar_pedidos
 from src.main.pedido.pedido import Pedido

@@ -1,680 +1,577 @@
-import datetime as dt
+import os
+from datetime import date, datetime
 from io import StringIO
 from sys import getsizeof
+from typing import Any
 
 import numpy as np
 import pandas as pd
-from flask import (flash, redirect, render_template, request,
+from flask import (Blueprint, abort, flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import current_user, login_required
 from flask_mail import Attachment, Message
-from pandas.errors import IntCastingNaNError
-from pytz import timezone
+from sqlalchemy.exc import DatabaseError, SQLAlchemyError
 
-from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app, database, mail
+from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app
 from src.email_connect import EmailConnect
-from src.main.empresa.empresa import Empresa
-from src.main.empresa_principal.empresa_principal import EmpresaPrincipal
-from src.main.log_acoes.log_acoes import LogAcoes
-from src.main.pedido.pedido import Pedido
-from src.main.prestador.prestador import Prestador
-from src.main.status.status import Status
-from src.main.status.status_lib import StatusLiberacao
-from src.main.status.status_rac import StatusRAC
-from src.main.tipo_exame.tipo_exame import TipoExame
-from src.main.unidade.unidade import Unidade
-from src.utils import admin_required, get_data_from_form
+from src.extensions import database as db
+from src.extensions import mail
+from src.utils import get_data_from_args, get_data_from_form
 
-from .forms import (FormAtualizarStatus, FormBuscarASO, FormEditarPedido,
-                    FormEnviarEmails, FormPedidoBulkUpdate)
+from ..empresa.empresa import Empresa
+from ..pedido.pedido import Pedido
+from ..prestador.prestador import Prestador
+from ..status.status import Status
+from ..status.status_lib import StatusLiberacao
+from ..tipo_exame.tipo_exame import TipoExame
+from .bulk_update import BulkUpdateHandler, DfValidationInfos
+from .forms import (FormAtualizarStatus, FormBuscarASO, FormEnviarEmails,
+                    FormPedidoBulkUpdate)
+
+pedido_bp = Blueprint(
+    name="pedido",
+    import_name=__name__,
+    url_prefix="/pedido",
+    template_folder="templates",
+    cli_group="pedido",
+)
 
 
-@app.route('/busca', methods=['GET', 'POST'])
+@pedido_bp.route("/buscar", methods=["GET", "POST"])
 @login_required
-def busca():
+def buscar_pedidos():
     form = FormBuscarASO()
-    # opcoes dinamicas de busca, como empresa, unidade \
-    # prestador etc, sao incluidas via fetch no javascript
 
     form.load_choices()
 
     if form.validate_on_submit():
-        parametros = get_data_from_form(data=form.data, ignore_keys=['pesquisa_geral'])
+        parametros = get_data_from_form(data=form.data)
 
-        if 'btn_buscar' in request.form:
-            return redirect(url_for('atualizar_status', **parametros))
+        if "btn_buscar" in request.form:
+            return redirect(url_for("pedido.atualizar_status", **parametros))
 
-        elif 'btn_emails' in request.form:
-            return redirect(url_for('enviar_emails', **parametros))
+        elif "btn_emails" in request.form:
+            return redirect(url_for("pedido.enviar_emails", **parametros))
 
-        elif 'btn_csv' in request.form:
-            parametros['id_grupos'] = Pedido.handle_group_choice(choice=parametros['id_grupos'])
-            query = Pedido.buscar_pedidos(**parametros)
-            query = Pedido.add_csv_cols(query=query)
-            
-            df = pd.read_sql(sql=query.statement, con=database.session.bind)
+        elif "btn_csv" in request.form:
+            return redirect(url_for("pedido.pedidos_csv", **parametros))
 
-            df = df[Pedido.COLS_CSV]
-            
-            nome_arqv = f'Pedidos_exames_{int(dt.datetime.now().timestamp())}'
-            camihno_arqv = f'{UPLOAD_FOLDER}/{nome_arqv}'
-            df.to_csv(
-                f'{camihno_arqv}.zip',
-                sep=';',
-                index=False,
-                encoding='iso-8859-1',
-                compression={'method': 'zip', 'archive_name': f'{nome_arqv}.csv'}
-            )
-            return send_from_directory(directory=UPLOAD_FOLDER, path='/', filename=f'{nome_arqv}.zip')
-
-    return render_template('busca/busca.html', form=form, title='GRS+Connect')
+    return render_template("pedido/buscar.html", form=form)
 
 
-@app.route('/atualizar_status', methods=['GET', 'POST'])
+@pedido_bp.route("/atualizar-status", methods=["GET", "POST"])
 @login_required
 def atualizar_status():
     form = FormAtualizarStatus()
-    form.status_aso.choices = (
-        [('', 'Selecione')] + 
-        [(status.id_status, status.nome_status) for status in Status.query.all()]
-    )
-    form.status_rac.choices = (
-        [('', 'Selecione')] + 
-        [(status.id_status, status.nome_status) for status in StatusRAC.query.all()]
-    )
 
-    datas = {
-        'data_inicio': request.args.get('data_inicio', type=str, default=None),
-        'data_fim': request.args.get('data_fim', type=str, default=None)
-    }
-    for chave, valor in datas.items():
-        if valor:
-            datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
+    form.load_choices()
 
-    query_pedidos = Pedido.buscar_pedidos(
-        id_grupos=Pedido.handle_group_choice(choice=request.args.get('id_grupos')),
-        cod_empresa_principal=request.args.get('cod_empresa_principal', type=int, default=None),
-        data_inicio=datas['data_inicio'],
-        data_fim=datas['data_fim'],
-        id_status=request.args.get('id_status', type=int, default=None),
-        id_status_rac=request.args.get('id_status_rac', type=int, default=None),
-        id_tag=request.args.get('id_tag', type=int, default=None),
-        id_empresa=request.args.get('id_empresa', type=int, default=None),
-        id_unidade=request.args.get('id_unidade', type=int, default=None),
-        id_prestador=request.args.get('id_prestador', type=int, default=None),
-        cod_tipo_exame=request.args.get('cod_tipo_exame', type=int, default=None),
-        seq_ficha=request.args.get('seq_ficha', type=int, default=None),
-        nome_funcionario=request.args.get('nome_funcionario', type=str, default=None),
-        obs=request.args.get('obs', type=str, default=None)
-    )
+    params = get_data_from_args(prev_form=FormBuscarASO(), data=request.args)
 
-    total = Pedido.get_total_busca(query=query_pedidos)
+    id_grupos = params.get("id_grupos")
+    if id_grupos:
+        params["id_grupos"] = Pedido.handle_group_choice(choice=id_grupos)
 
-    # ATUALIZAR STATUS-----------------------------------------------
+    query = Pedido.buscar_pedidos(**params)
+
+    total = Pedido.get_total_busca(query=query)
+
     if form.validate_on_submit():
-        lista_atualizar = request.form.getlist('checkItem', type=int)
+        lista_atualizar = request.form.getlist("checkItem", type=int)
 
-        # dados antigos------------------------------------------
-        query_dados_antigos = (
-            database.session.query(
-                Pedido.id_ficha,
-                Pedido.prev_liberacao,
-                Pedido.id_status_lib,
-                Pedido.nome_funcionario
-            )
-            .filter(Pedido.id_ficha.in_(lista_atualizar))
-            .all()
+        update_values = __get_update_vals(form_data=form.data)
+        update_values["data_alteracao"] = datetime.now(TIMEZONE_SAO_PAULO)
+        update_values["alterado_por"] = current_user.username  # type: ignore
+
+        df = __get_update_df(id_fichas=lista_atualizar, update_vals=update_values)
+        df = __handle_status_lib_col(
+            df=df, id_status_aso=int(update_values["id_status"])
         )
 
-        # dados novos---------------------------------------------
-        hoje = dt.datetime.now(tz=TIMEZONE_SAO_PAULO)
+        df = __tto_final_df_update(df=df)
 
-        dados_novos = [
-            {
-                'id_ficha': pedido.id_ficha,
-                'id_status': int(form.status_aso.data),
-                'data_alteracao': hoje,
-                'alterado_por': current_user.username,
-                'id_status_lib': pedido.id_status_lib
-            } for pedido in query_dados_antigos
-        ]
+        df_mappings = df.to_dict(orient="records")
 
-        if form.status_rac.data:
-            for pedido in dados_novos:
-                pedido['id_status_rac'] = int(form.status_rac.data)
-        if form.data_recebido.data:
-            for pedido in dados_novos:
-                pedido['data_recebido'] = form.data_recebido.data
-        if form.data_comparecimento.data:
-            for pedido in dados_novos:
-                pedido['data_comparecimento'] = form.data_comparecimento.data
-        if form.obs.data:
-            for pedido in dados_novos:
-                pedido['obs'] = form.obs.data
-        
-        # se status novo finaliza processo, mudar tag para ok (2)
-        # se nao, calcular a nova tag
-        status_novo = Status.query.get(int(form.status_aso.data))
-        if status_novo.finaliza_processo:
-            for pedido in dados_novos:
-                pedido['id_status_lib'] = 2
-        else:
-            for i, dados_antigos in enumerate(query_dados_antigos):
-                dados_novos[i]['id_status_lib'] = Pedido.calcular_tag_prev_lib(dados_antigos.prev_liberacao)
+        try:
+            db.session.bulk_update_mappings(Pedido, df_mappings)  # type: ignore
+            db.session.commit()  # type: ignore
+        except (SQLAlchemyError, DatabaseError) as e:
+            db.session.rollback()  # type: ignore
+            app.logger.error(msg=e, exc_info=True)
+            flash("Erro interno ao atualizar Status", "alert-danger")
 
-        database.session.bulk_update_mappings(Pedido, dados_novos)
-        database.session.commit()
-
-        # log acoes---------------------------------------------------
-        logs_acoes = [
-            {
-                'id_usuario': current_user.id_usuario,
-                'username': current_user.username,
-                'tabela': 'Pedido',
-                'acao': 'Atualizar Status',
-                'id_registro': pedido.id_ficha,
-                'nome_registro': pedido.nome_funcionario,
-                'obs': f'status_novo: {status_novo.id_status}-{status_novo.nome_status}, obs: {form.obs.data}, data_recebido: {form.data_recebido.data}',
-                'data': hoje.date(),
-                'hora': hoje.time()
-            } for pedido in query_dados_antigos
-        ]
-
-        database.session.bulk_insert_mappings(LogAcoes, logs_acoes)
-        database.session.commit()
-
-        flash(f'Status atualizados com sucesso! Qtd: {len(lista_atualizar)}', 'alert-success')
-        return redirect(url_for('busca'))
+        flash(
+            f"Status atualizados com sucesso! Qtd: {len(df_mappings)}",
+            "alert-success",
+        )
+        return redirect(url_for("pedido.buscar_pedidos"))
 
     return render_template(
-        'busca/busca_atualizar_status.html',
-        form=form,
-        busca=query_pedidos,
-        total=total
+        "pedido/atualizar_status.html", form=form, query=query, total=total
     )
 
 
-@app.route('/enviar_emails', methods=['GET', 'POST'])
+def __get_update_vals(form_data: dict[str, Any]) -> dict[str, Any]:
+    # (coluna tabela, campo formulario, default val)
+    CAMPOS = (
+        ("id_status", "status_aso", None),
+        ("id_status_rac", "status_rac", 1),
+        ("data_recebido", "data_recebido", None),
+        ("data_comparecimento", "data_comparecimento", None),
+        ("obs", "obs", None),
+    )
+
+    update_data = {}
+    for db_col, form_field, deft_val in CAMPOS:
+        field_data = form_data.get(form_field)
+        if field_data:
+            update_data[db_col] = field_data
+        else:
+            update_data[db_col] = deft_val
+
+    return update_data
+
+
+def __get_update_df(id_fichas: list[int], update_vals: dict[str, Any]):
+    """Queries id_ficha and adds non empty cols to dataframe"""
+    query = db.session.query(Pedido.id_ficha, Pedido.prev_liberacao).filter(  # type: ignore
+        Pedido.id_ficha.in_(id_fichas)
+    )
+    df = pd.read_sql(sql=query.statement, con=db.session.bind)  # type: ignore
+
+    # add update cols from the update_vals dict
+    for key, val in update_vals.items():
+        val = update_vals.get(key)
+        if val:
+            df[key] = val
+
+    return df
+
+
+def __handle_status_lib_col(df: pd.DataFrame, id_status_aso: int):
+    """Calcula id_status_lib de acordo com o status ASO selecionado"""
+    # status aso que finalizam processo
+    query_fin_proc = db.session.query(Status.id_status).filter(  # type: ignore
+        Status.finaliza_processo == True  # noqa
+    )
+    list_fin_proc: list[int] = [stt.id_status for stt in query_fin_proc]
+
+    if id_status_aso in (list_fin_proc):
+        # se status aso filaniza processo: setar todas tags para OK
+        STT_LIB_OK = StatusLiberacao.get_id_status_ok()
+        df["id_status_lib"] = STT_LIB_OK
+    else:
+        # se não: calcular cada tag baseado na prev liberacao de cada pedido
+        df["id_status_lib"] = list(
+            map(Pedido.calcular_tag_prev_lib, df["prev_liberacao"])
+        )
+
+    return df
+
+
+def __tto_final_df_update(df: pd.DataFrame):
+    """Selects correct cols and casts to proper data type. Drops unwanted cols"""
+    df = df.copy()
+
+    COL_TYPES: dict[str, type] = {
+        "id_ficha": int,
+        "id_status": int,
+        "id_status_rac": int,
+        "id_status_lib": int,
+        "data_recebido": date,
+        "data_comparecimento": date,
+        "data_alteracao": datetime,
+        "obs": str,
+        "alterado_por": str,
+    }
+
+    for col in df.columns:
+        if col not in COL_TYPES.keys():
+            df = df.drop(columns=col)
+        else:
+            col_type = COL_TYPES[col].__name__
+            match col_type:
+                case "int":
+                    df[col] = df[col].astype(int)
+                case "date":
+                    df[col] = pd.to_datetime(df[col], dayfirst=True).dt.date
+                case "datetime":
+                    df[col] = pd.to_datetime(df[col], dayfirst=True)
+
+    return df
+
+
+@pedido_bp.route("/enviar-emails", methods=["GET", "POST"])
 @login_required
 def enviar_emails():
     form = FormEnviarEmails()
 
-    datas = {
-        'data_inicio': request.args.get('data_inicio', type=str, default=None),
-        'data_fim': request.args.get('data_fim', type=str, default=None)
-    }
-    for chave, valor in datas.items():
-        if valor:
-            datas[chave] = dt.datetime.strptime(valor, '%Y-%m-%d').date()
+    params = get_data_from_args(prev_form=FormBuscarASO(), data=request.args)
 
-    query_pedidos = Pedido.buscar_pedidos(
-        id_grupos=Pedido.handle_group_choice(choice=request.args.get('id_grupos')),
-        cod_empresa_principal=request.args.get('cod_empresa_principal', type=int, default=None),
-        data_inicio=datas['data_inicio'],
-        data_fim=datas['data_fim'],
-        id_status=request.args.get('id_status', type=int, default=None),
-        id_status_rac=request.args.get('id_status_rac', type=int, default=None),
-        id_tag=request.args.get('id_tag', type=int, default=None),
-        id_empresa=request.args.get('id_empresa', type=int, default=None),
-        id_unidade=request.args.get('id_unidade', type=int, default=None),
-        id_prestador=request.args.get('id_prestador', type=int, default=None),
-        cod_tipo_exame=request.args.get('cod_tipo_exame', type=int, default=None),
-        seq_ficha=request.args.get('seq_ficha', type=int, default=None),
-        nome_funcionario=request.args.get('nome_funcionario', type=str, default=None),
-        obs=request.args.get('obs', type=str, default=None)
-    )
+    id_grupos = params.get("id_grupos")
+    if id_grupos:
+        params["id_grupos"] = Pedido.handle_group_choice(choice=id_grupos)
 
-    total = Pedido.get_total_busca(query=query_pedidos)
+    query = Pedido.buscar_pedidos(**params)
+
+    total = Pedido.get_total_busca(query=query)
 
     if form.validate_on_submit():
-        lista_enviar = request.form.getlist('checkItem', type=int)
-        
-        query_pedidos = (
-            database.session.query(
-                Pedido,
-                Prestador.nome_prestador,
-                Prestador.emails,
-                Prestador.solicitar_asos,
-                Empresa.razao_social,
-                TipoExame.nome_tipo_exame,
-                StatusLiberacao.nome_status_lib
-            )
-            .outerjoin(Prestador, Empresa, TipoExame, StatusLiberacao)
-            .filter(Pedido.id_ficha.in_(lista_enviar))
-        )
+        lista_enviar = request.form.getlist("checkItem", type=int)
 
-        df = pd.read_sql(sql=query_pedidos.statement, con=database.session.bind)
-        df = df.replace({np.nan: None})
-        
+        if not lista_enviar:
+            flash("Nenhum Pedido selecionado", "alert-info")
+            return redirect(url_for("pedido.buscar_pedidos"))
+
+        df = __get_df_enviar_emails(id_fichas=lista_enviar)
+
         with mail.connect() as conn:
             qtd_envios = 0
             qtd_pedidos = 0
-            erros_envio = [] # registrar erros de envio
+            nao_enviados = []
+            erros_envio = []
 
-            for id_prestador, solicitar_asos in df[['id_prestador', 'solicitar_asos']].drop_duplicates(subset='id_prestador').values:
-                # se o pedido tem prestador
-                if id_prestador and solicitar_asos:
-                    # filtrar tabela
-                    tab_aux: pd.DataFrame = df[df['id_prestador'] == id_prestador]
+            prestadores = df["id_prestador"].drop_duplicates().tolist()
 
-                    # pegar nome do prestador
-                    nome_prestador = tab_aux['nome_prestador'].values[0]
-                    # pegar lista de emails do prestador
-                    emails_prestador = tab_aux['emails'].values[0]
+            for id_prest in prestadores:
+                df_pedidos_email: pd.DataFrame = df[df["id_prestador"] == id_prest]
 
-                    if emails_prestador and "@" in emails_prestador:
-                        try:
-                            # selecionar colunas
-                            tab_aux = tab_aux[list(Pedido.COLS_EMAIL.keys())]
-                            # renomear colunas
-                            tab_aux.rename(columns=Pedido.COLS_EMAIL, inplace=True)
+                if df_pedidos_email.empty:
+                    continue
 
-                            # formatar datas
-                            tab_aux['Data Ficha'] = (
-                                pd.to_datetime(
-                                    tab_aux['Data Ficha'],
-                                    format='%Y-%m-%d'
-                                ).dt.strftime('%d/%m/%Y')
-                            )
+                nome_prest: str = df_pedidos_email["nome_prestador"].values[0]
+                emails_prest: str = df_pedidos_email["emails"].values[0]
+                sol_aso: bool = df_pedidos_email["solicitar_asos"].values[0]
 
-                            # enviar email
-                            destinatario = (
-                                emails_prestador
-                                .replace(" ", "")
-                                .replace(",", ";")
-                            ).split(';')
-                            assinatura = EmailConnect.ASSINATURA_BOT.get('img_path')
-                            anexo = Attachment(
-                                filename=assinatura,
-                                content_type='image/png',
-                                data=app.open_resource(assinatura).read(),
-                                disposition='inline',
-                                headers=[['Content-ID','<AssEmail>']]
-                            )
+                if not emails_prest or not sol_aso:
+                    nao_enviados.append(nome_prest)
+                    continue
 
+                df_pedidos_email = __tto_df_pedidos_email(df=df_pedidos_email)
 
-                            if form.obs_email.data:
-                                email_body = EmailConnect.create_email_body(
-                                    email_template_path='src/email_templates/email_aso.html',
-                                    replacements={
-                                        'DATAFRAME_ASO': tab_aux.to_html(index=False),
-                                        'USER_OBS': form.obs_email.data,
-                                        'USER_NAME': current_user.nome_usuario,
-                                        'USER_EMAIL': current_user.email,
-                                        'USER_TEL': current_user.telefone,
-                                        'USER_CEL': current_user.celular
-                                    }
-                                )
-                            else:
-                                email_body = EmailConnect.create_email_body(
-                                    email_template_path='src/email_templates/email_aso.html',
-                                    replacements={
-                                        'DATAFRAME_ASO': tab_aux.to_html(index=False),
-                                        'USER_OBS': 'Sinalizar se o funcionário não compareceu.',
-                                        'USER_NAME': current_user.nome_usuario,
-                                        'USER_EMAIL': current_user.email,
-                                        'USER_TEL': current_user.telefone,
-                                        'USER_CEL': current_user.celular
-                                    }
-                                )
+                try:
+                    msg = __handle_email_msg(
+                        df_pedidos=df_pedidos_email,
+                        nome_prest=nome_prest,
+                        email_prest=emails_prest,
+                        obs=form.obs_email.data,
+                        assunto_email=form.assunto_email.data,
+                        email_copia=form.email_copia.data,
+                    )
+                except Exception as e:
+                    app.logger.error(msg=e, exc_info=True)
+                    flash("Erro interno ao gerar email", "alert-danger")
+                    return redirect(url_for("pedido.buscar_pedidos"))
 
-                            if form.assunto_email.data:
-                                assunto_email = f'{form.assunto_email.data} - {nome_prestador}'
-                            else:
-                                assunto_email = f'ASO GRS - {nome_prestador}'
-                            
-                            emails_cc = [current_user.email]
-                            if form.email_copia.data:
-                                emails_cc.extend(form.email_copia.data.replace(',', ';').split(';'))
-
-                            msg = Message(
-                                reply_to=current_user.email,
-                                subject=assunto_email,
-                                recipients=destinatario,
-                                cc=emails_cc,
-                                html=email_body,
-                                attachments=[anexo]
-                            )
-                            conn.send(msg)
-
-                            # resgistrar envio
-                            qtd_envios = qtd_envios + 1
-                            qtd_pedidos = qtd_pedidos + len(tab_aux)
-                        except:
-                            # registrar erro
-                            erros_envio.append(nome_prestador)
-                    else:
-                        # registrar erro
-                        erros_envio.append(nome_prestador)
-
-        # registrar costumizacoes feitas no email
-        costumizacoes = {}
-        for campo in ['assunto_email', 'email_copia', 'obs_email']:
-            if form.data[campo]:
-                costumizacoes[campo] = form.data[campo]
-        
-        if costumizacoes:
-            LogAcoes.registrar_acao(
-                username=current_user.username,
-                nome_tabela='Email',
-                tipo_acao='Enviar Email',
-                id_registro=0,
-                nome_registro=0,
-                observacao=f'Detalhes adicionados ao Email: {str(costumizacoes)}'
-            )
-
+                try:
+                    conn.send(msg)
+                    qtd_envios += 1
+                    qtd_pedidos += len(df_pedidos_email)
+                except Exception as e:
+                    app.logger.error(msg=e, exc_info=True)
+                    erros_envio.append(nome_prest)
 
         if qtd_envios:
-            flash(f'Emails enviados com sucesso! Qtd Emails: {qtd_envios} Qtd Pedidos: {qtd_pedidos}', 'alert-success')
+            flash(
+                "Emails enviados com sucesso! "
+                f"Qtd Emails: {qtd_envios} Qtd Pedidos: {qtd_pedidos}",
+                "alert-success",
+            )
+
+        if nao_enviados:
+            flash(f"Não enviados: {'; '.join(nao_enviados)}", "alert-warning")
+
         if erros_envio:
-            erros_envio = '; '.join(erros_envio)
-            flash(f'Erros: {erros_envio}', 'alert-danger')
-        return(redirect(url_for('busca')))
+            erros_envio = "; ".join(erros_envio)
+            flash(f"Erros: {erros_envio}", "alert-danger")
+
+        return redirect(url_for("pedido.buscar_pedidos"))
+
+    # NOTE: val_email_prest = bloquear selecao de pedidos onde a solicitacao
+    # de aso esteja desativada ou o prestador não possua email
 
     return render_template(
-        'busca/busca_enviar_emails.html',
+        "pedido/enviar_emails.html",
         form=form,
-        busca=query_pedidos,
-        total=total
+        query=query,
+        total=total,
+        val_email_prest=True,
     )
 
 
-@app.route('/pedidos/editar', methods=['GET', 'POST'])
-@login_required
-def pedido_editar():
-    pedido = Pedido.query.get(request.args.get('id_ficha', type=int))
-    
-    # criar form com opcoes pre selecionadas
-    form = FormEditarPedido(
-        cod_empresa_principal=pedido.cod_empresa_principal,
-        seq_ficha=pedido.seq_ficha,
-        cod_funcionario=pedido.cod_funcionario,
-        cpf=pedido.cpf,
-        nome_funcionario=pedido.nome_funcionario,
-        data_ficha=pedido.data_ficha,
-        tipo_exame=pedido.cod_tipo_exame,
-        prestador=pedido.id_prestador,
-        empresa=pedido.id_empresa,
-        unidade=pedido.id_unidade,
-        status=pedido.id_status,
-        prazo=pedido.prazo,
-        prev_liberacao=pedido.prev_liberacao,
-        data_recebido=pedido.data_recebido,
-        obs=pedido.obs,
-        data_inclusao=pedido.data_inclusao,
-        data_alteracao=pedido.data_alteracao,
-        incluido_por=pedido.incluido_por,
-        alterado_por=pedido.alterado_por
-    )
-
-    # opcoes
-    form.cod_empresa_principal.choices = (
-        [   (i.cod, i.nome)
-            for i in EmpresaPrincipal.query.filter_by(cod=423)
-        ]
-    )
-    form.tipo_exame.choices = [
-        (i.cod_tipo_exame, i.nome_tipo_exame)
-        for i in TipoExame.query.order_by(TipoExame.nome_tipo_exame).all()
-    ]
-    
-    form.prestador.choices = [
-        (i.id_prestador, i.nome_prestador)
-        for i in Prestador.query.order_by(Prestador.nome_prestador).all()
-    ]
-
-    form.empresa.choices = [
-        (i.id_empresa, i.razao_social)
-        for i in Empresa.query
-        .filter_by(cod_empresa_principal=pedido.cod_empresa_principal)
-        .order_by(Empresa.razao_social)
-    ]
-
-    form.status.choices = [
-        (i.id_status, i.nome_status)
-        for i in Status.query.all()
-    ]
-
-    form.unidade.choices = [
-        (i.id_unidade, i.nome_unidade)
-        for i in Unidade.query.filter_by(id_empresa=pedido.id_empresa)
-        .order_by(Unidade.nome_unidade)
-        .all()
-    ]
-
-    if form.validate_on_submit():        
-        pedido.data_ficha = form.data_ficha.data
-        pedido.prazo = form.prazo.data
-        pedido.prev_liberacao = form.prev_liberacao.data
-        pedido.cod_tipo_exame = form.tipo_exame.data
-        pedido.id_prestador = form.prestador.data
-        pedido.id_empresa = form.empresa.data
-        pedido.id_unidade = form.unidade.data
-        pedido.id_status = form.status.data
-        pedido.data_recebido = form.data_recebido.data
-        pedido.obs = form.obs.data
-
-        status_novo = Status.query.get(form.status.data)
-
-        if status_novo.finaliza_processo:
-            pedido.id_status_lib = 2
-        else:
-            pedido.id_status_lib = Pedido.calcular_tag_prev_lib(form.prev_liberacao.data)
-
-        # atualizar data alteracao
-        pedido.data_alteracao = dt.datetime.now(tz=timezone('America/Sao_Paulo'))
-        pedido.alterado_por = current_user.username
-        database.session.commit()
-
-        # registar acao
-        LogAcoes.registrar_acao(
-            nome_tabela = 'Pedido',
-            tipo_acao = 'Alteração',
-            id_registro = pedido.id_ficha,
-            nome_registro = pedido.nome_funcionario
+def __get_df_enviar_emails(id_fichas: list[int]):
+    query = (
+        db.session.query(  # type: ignore
+            Pedido.seq_ficha,
+            Pedido.cpf,
+            Pedido.nome_funcionario,
+            Pedido.data_ficha,
+            TipoExame.nome_tipo_exame,
+            Prestador.id_prestador,
+            Prestador.nome_prestador,
+            Prestador.emails,
+            Prestador.solicitar_asos,
+            Empresa.razao_social,
+            StatusLiberacao.nome_status_lib,
         )
-        flash('Pedido atualizado com sucesso!', 'alert-success')
-        return redirect(url_for('pedido_editar', id_ficha=pedido.id_ficha))
+        .outerjoin(Prestador, Empresa, TipoExame, StatusLiberacao)
+        .filter(Pedido.id_ficha.in_(id_fichas))
+        .filter(Pedido.id_prestador != None)  # noqa
+    )
 
-    return render_template(
-        'pedido/pedido_editar.html',
-        title='GRS+Connect',
-        form=form,
-        pedido=pedido
+    df = pd.read_sql(sql=query.statement, con=db.session.bind)  # type: ignore
+    df = df.replace({np.nan: None, "": None})
+
+    return df
+
+
+def __tto_df_pedidos_email(df: pd.DataFrame):
+    df_pedidos = df[list(Pedido.COLS_EMAIL.keys())]
+    df_pedidos = df_pedidos.rename(columns=Pedido.COLS_EMAIL)
+
+    df_pedidos["Data Ficha"] = pd.to_datetime(df_pedidos["Data Ficha"])
+    df_pedidos["Data Ficha"] = df_pedidos["Data Ficha"].dt.strftime("%d/%m/%Y")
+
+    return df_pedidos
+
+
+def __handle_email_msg(
+    df_pedidos: pd.DataFrame,
+    nome_prest: str,
+    email_prest: str,
+    obs: str | None = None,
+    assunto_email: str | None = None,
+    email_copia: str | None = None,
+):
+    if not obs:
+        obs = "Sinalizar se o funcionário não compareceu."
+
+    em_temp_pth = os.path.join("src", "email_templates", "email_aso.html")
+
+    body = EmailConnect.create_email_body(
+        email_template_path=em_temp_pth,
+        replacements={
+            "DATAFRAME_ASO": df_pedidos.to_html(index=False),
+            "USER_OBS": obs,
+            "USER_NAME": current_user.nome_usuario,  # type: ignore
+            "USER_EMAIL": current_user.email,  # type: ignore
+            "USER_TEL": current_user.telefone,  # type: ignore
+            "USER_CEL": current_user.celular,  # type: ignore
+        },
+    )
+
+    email_prest = email_prest.replace(" ", "").replace(",", ";")
+    list_email_prest = email_prest.split(";")
+
+    if assunto_email:
+        assunto_email = f"{assunto_email} - {nome_prest}"
+    else:
+        assunto_email = f"ASO GRS - {nome_prest}"
+
+    emails_cc = [current_user.email]  # type: ignore
+    if email_copia:
+        email_copia = email_copia.replace(",", ";")
+        emails_cc.extend(email_copia.split(";"))
+
+    ass_pth: str = EmailConnect.ASSINATURA_BOT["img_path"]
+    ass_data = app.open_resource(ass_pth).read()
+    ass_att = Attachment(
+        filename=ass_pth,
+        data=ass_data,
+        content_type="image/png",
+        disposition="inline",
+        headers=[["Content-ID", "<AssEmail>"]],
+    )
+
+    msg = Message(
+        recipients=list_email_prest,
+        cc=emails_cc,
+        subject=assunto_email,
+        html=body,
+        attachments=[ass_att],
+        reply_to=current_user.email,  # type: ignore
+    )
+
+    return msg
+
+
+@pedido_bp.route("/buscar/csv", methods=["GET", "POST"])
+@login_required
+def pedidos_csv():
+    params = get_data_from_args(prev_form=FormBuscarASO(), data=request.args)
+
+    id_grupos = params.get("id_grupos")
+    if id_grupos:
+        params["id_grupos"] = Pedido.handle_group_choice(choice=id_grupos)
+
+    query = Pedido.buscar_pedidos(**params)
+    query = Pedido.add_csv_cols(query=query)
+
+    df = pd.read_sql(sql=query.statement, con=db.session.bind)  # type: ignore
+
+    df = df[Pedido.COLS_CSV]
+
+    timestamp = int(datetime.now().timestamp())
+    nome_arqv = f"Pedidos_exames_{timestamp}"
+    camihno_arqv = os.path.join(UPLOAD_FOLDER, nome_arqv)
+
+    df.to_csv(
+        f"{camihno_arqv}.zip",
+        sep=";",
+        index=False,
+        encoding="iso-8859-1",
+        compression={"method": "zip", "archive_name": f"{nome_arqv}.csv"},
+    )
+
+    return send_from_directory(
+        directory=UPLOAD_FOLDER, path="/", filename=f"{nome_arqv}.zip"
     )
 
 
-@app.route('/pedidos/excluir', methods=['GET', 'POST'])
+@pedido_bp.route("/<int:id_ficha>", methods=["GET", "POST"])
 @login_required
-@admin_required
-def pedido_excluir():
-    pedido = Pedido.query.get(request.args.get('id_ficha', type=int))
+def editar_pedido(id_ficha: int):
+    pedido: Pedido = Pedido.query.get(id_ficha)
 
-    database.session.delete(pedido)
-    database.session.commit()
+    if not pedido:
+        return abort(404)
 
-    LogAcoes.registrar_acao(
-        nome_tabela = 'Pedido',
-        tipo_acao = 'Exclusão',
-        id_registro = pedido.id_ficha,
-        nome_registro = pedido.nome_funcionario
+    form = FormAtualizarStatus(
+        status_aso=pedido.id_status,
+        status_rac=pedido.id_status_rac,
+        data_recebido=pedido.data_recebido,
+        data_comparecimento=pedido.data_comparecimento,
+        obs=pedido.obs,
     )
 
-    flash(f'Pedido excluído! Seq. Ficha: {pedido.seq_ficha}', 'alert-danger')
-    return redirect(url_for('busca'))
+    form.load_choices()
 
-@app.route('/pedidos/bulk_update', methods=['GET', 'POST'])
+    if form.validate_on_submit():
+        CAMPOS = (
+            "data_recebido",
+            "data_comparecimento",
+            "obs",
+        )
+
+        for form_field in CAMPOS:
+            field_data = form.data.get(form_field)
+            if field_data:
+                setattr(pedido, form_field, field_data)
+            else:
+                setattr(pedido, form_field, None)
+
+        stt_rac = form.status_rac.data
+        pedido.id_status_rac = int(stt_rac) if stt_rac else 1
+
+        Pedido.set_id_status(
+            id_ficha=id_ficha, id_status=int(form.status_aso.data)  # type: ignore
+        )
+
+        pedido.data_alteracao = datetime.now(TIMEZONE_SAO_PAULO)
+        pedido.alterado_por = current_user.username  # type: ignore
+        db.session.commit()  # type: ignore
+
+        flash("Pedido atualizado com sucesso!", "alert-success")
+        return redirect(url_for("pedido.editar_pedido", id_ficha=id_ficha))
+
+    return render_template("pedido/editar.html", form=form, pedido=pedido)
+
+
+@pedido_bp.route("/bulk-update", methods=["GET", "POST"])
 @login_required
-def pedidos_bulk_update():
+def bulk_update_pedidos():
     form = FormPedidoBulkUpdate()
 
-    lista_status: list[Status] = (
-        database.session.query(
-            Status.id_status, Status.nome_status
-        )
-        .all()
-    )
+    lista_status: list[Status] = db.session.query(  # type: ignore
+        Status.id_status, Status.nome_status
+    ).all()
 
     if form.validate_on_submit():
         # ler arquivo
-        arqv = request.files['csv']
-        data = arqv.read().decode('iso-8859-1')
+        arqv = request.files["csv"]
+        data = arqv.read().decode()
 
-        # tamnho maximo
-        max_size_mb = app.config['MAX_UPLOAD_SIZE_MB']
+        # tamanho maximo
+        max_size_mb = app.config["MAX_UPLOAD_SIZE_MB"]
         max_bytes = max_size_mb * 1024 * 1024
 
-        if getsizeof(data) <= max_bytes:
-            # ler string como objeto para csv
-            df: pd.DataFrame = pd.read_csv(
-                filepath_or_buffer=StringIO(data),
-                sep=';',
-                encoding='iso-8859-1',
-            )
+        if getsizeof(data) > max_bytes:
+            flash(f"O arquivo deve ser menor que {max_size_mb} MB", "alert-danger")
+            return redirect(url_for("pedido.bulk_update_pedidos"))
 
-            colunas_permitidas = ['id_ficha', 'id_status', 'data_recebido', 'obs']
-            colunas_obrigatorias = ['id_ficha', 'id_status'] # integer not null
-            
-            # remover colunas inuteis
-            for col in df.columns:
-                if col not in colunas_permitidas:
-                    df.drop(columns=col, inplace=True)
+        # ler string como objeto para csv
+        df_base: pd.DataFrame = pd.read_csv(
+            filepath_or_buffer=StringIO(data),
+            sep=";",
+        )
 
-            # validar colunas obrigatorias
-            for col in colunas_obrigatorias:
-                if col in df.columns:
-                    try:
-                        df[col] = df[col].astype(int)
-                    except (IntCastingNaNError, ValueError):
-                        flash(f'A coluna {col} deve conter apenas números inteiros', 'alert-danger')
-                        return redirect(url_for('pedidos_bulk_update'))
-                else:
-                    flash(f'A coluna {col} é obrigatória', 'alert-danger')
-                    return redirect(url_for('pedidos_bulk_update'))
+        handler = BulkUpdateHandler()
 
-            # validar status
-            status_validos: list[int] = [stt.id_status for stt in Status.query.all()]
-            status_invalidos: list[int] = []
-            for stt in df['id_status'].drop_duplicates():
-                if stt not in status_validos:
-                    status_invalidos.append(str(stt))
+        res = handler.handle_df_columns(
+            df=df_base,
+            required_cols=list(handler.REQUIRED_COLS.keys()),
+            allowed_cols=list(handler.ALLOWED_COLS.keys()),
+        )
+        if not res.ok:
+            return __stop_update_proc(res=res)
 
-            if status_invalidos:
-                flash(f'A coluna id_status contém Status inválidos. id_status: {", ".join(status_invalidos)}', 'alert-danger')
-                return redirect(url_for('pedidos_bulk_update'))
+        df = res.df
 
-            df.drop_duplicates(subset='id_ficha', inplace=True, ignore_index=True)
-            
-            # tratar col de datas, se houver
-            if 'data_recebido' in df.columns:
-                try:
-                    df['data_recebido'] = df['data_recebido'].astype(str)
-                    df['data_recebido'] = pd.to_datetime(df['data_recebido'], dayfirst=True).dt.date
-                    # remover pd.NaT, databases aceitam apenas None como valor nulo
-                    df['data_recebido'] = df['data_recebido'].astype(object).replace(pd.NaT, None)
-                except: # numero excessivo de exceptions para importar
-                    flash(f'A coluna data_recebido contém valores inválidos. Utilize o formato dd/mm/yyyy', 'alert-danger')
-                    return redirect(url_for('pedidos_bulk_update'))
-            
-            # tratar col str
-            if 'obs' in df.columns:
-                df['obs'] = df['obs'].astype(object).replace(np.nan, None)
+        res = handler.cast_df_col_types(
+            df=df, cols=dict(**handler.REQUIRED_COLS, **handler.ALLOWED_COLS)
+        )
+        if not res.ok:
+            return __stop_update_proc(res=res)
 
-            # validar se pedidos existem
-            query_pedidos_db = (
-                database.session.query(Pedido.id_ficha, Pedido.prev_liberacao)
-                .filter(Pedido.id_ficha.in_(df['id_ficha']))
-            )
-            df_pedidos_db = pd.read_sql(query_pedidos_db.statement, con=database.session.bind)
+        df = res.df
+        df = df.drop_duplicates(subset="id_ficha", ignore_index=True)
 
-            inexistentes: list[str] = (
-                df[~df['id_ficha'].isin(df_pedidos_db['id_ficha'])]['id_ficha']
-                .astype(str)
-                .tolist()
-            )
+        res = handler.handle_enum_col(df=df, col_name="id_status", table=Status)
+        if not res.ok:
+            return __stop_update_proc(res=res)
 
-            df = df[df['id_ficha'].isin(df_pedidos_db['id_ficha'])]
+        df = res.df
 
-            # calcular tags
-            df = df.merge(df_pedidos_db, how='left', on='id_ficha')
-            df['id_status_lib'] = list(map(Pedido.calcular_tag_prev_lib, df['prev_liberacao']))
+        res = handler.handle_id_ficha(df=df)
+        if not res.ok:
+            return __stop_update_proc(res=res)
 
-            status_finaliza_processo: list[int] = (
-                database.session.query(Status.id_status)
-                .filter(Status.finaliza_processo == True)
-                .all()
-            )
-            status_finaliza_processo = [status.id_status for status in status_finaliza_processo]
+        df = res.df
 
-            df.loc[df['id_status'].isin(status_finaliza_processo), 'id_status_lib'] = 2 # tag ok
+        df = handler.handle_status_lib(df=df)
 
-            # registrar alterador
-            df['data_alteracao'] = dt.datetime.now(tz=TIMEZONE_SAO_PAULO)
-            df['alterado_por'] = current_user.username
+        df["data_alteracao"] = datetime.now(tz=TIMEZONE_SAO_PAULO)
+        df["alterado_por"] = current_user.username  # type: ignore
 
-            # manter apenas colunas finais necessarias apos o tratamento do df
-            cols_finais = [
-                'id_ficha',
-                'id_status',
-                'id_status_lib',
-                'data_recebido',
-                'obs',
-                'data_alteracao',
-                'alterado_por'
-            ]
-            for col in df.columns:
-                if col not in cols_finais:
-                    df.drop(columns=col, inplace=True)
+        df_final = handler.tto_final_bulk_update(df=df)
 
-            # commit update
-            df_dicts: list[dict[str, any]] = df.to_dict(orient='records')
-            database.session.bulk_update_mappings(Pedido, df_dicts)
-            database.session.commit()
+        df_mappings = df_final.to_dict(orient="records")
 
-            flash(f'Pedidos atualizados com sucesso! Total: {len(df)}, Colunas: {", ".join(list(df.columns))}', 'alert-success')
-            if inexistentes:
-                flash(f'Alguns pedidos na planilha não foram encontrados no banco de dados. Total: {len(inexistentes)}, Ex: {", ".join(inexistentes[:6])}', 'alert-danger')
+        try:
+            db.session.bulk_update_mappings(Pedido, df_mappings)  # type: ignore
+            db.session.commit()  # type: ignore
+        except (SQLAlchemyError, DatabaseError) as e:
+            db.session.rollback()  # type: ignore
+            app.logger.error(msg=e, exc_info=True)
+            flash("Erro interno ao atualizar o Banco de Dados", "alert-danger")
+            return redirect(url_for("pedido.bulk_update_pedidos"))
 
-            # logar acoes
-            query_acoes: list[Pedido] = (
-                database.session.query(
-                    Pedido.id_ficha,
-                    Pedido.nome_funcionario,
-                    Pedido.data_recebido,
-                    Pedido.obs,
-                    Pedido.id_status,
-                    Status.nome_status
-                )
-                .filter(Pedido.id_ficha.in_(df['id_ficha']))
-                .join(Status, Pedido.id_status == Status.id_status)
-                .all()
-            )
+        flash(
+            "Pedidos atualizados com sucesso! | " f"Total: {len(df_mappings)}",
+            "alert-success",
+        )
 
-            logs_acoes: list[dict[str, any]] = [
-                {
-                    'id_usuario': current_user.id_usuario,
-                    'username': current_user.username,
-                    'tabela': 'Pedido',
-                    'acao': 'Atualizar Status em Massa',
-                    'id_registro': pedido.id_ficha,
-                    'nome_registro': pedido.nome_funcionario,
-                    'obs': f'status_novo: {pedido.id_status}-{pedido.nome_status}, obs: {pedido.obs}, data_recebido: {pedido.data_recebido}',
-                    'data': dt.datetime.now(tz=TIMEZONE_SAO_PAULO).date(),
-                    'hora': dt.datetime.now(tz=TIMEZONE_SAO_PAULO).time()
-                } for pedido in query_acoes
-            ]
-
-            database.session.bulk_insert_mappings(LogAcoes, logs_acoes)
-            database.session.commit()
-
-            return redirect(url_for('pedidos_bulk_update'))
-        else:
-            flash(f'O arquivo deve ser menor que {max_size_mb} MB', 'alert-danger')
-            return redirect(url_for('pedidos_bulk_update'))
+        return redirect(url_for("pedido.bulk_update_pedidos"))
 
     return render_template(
-        'pedido/bulk_update.html',
-        title='GRS+Connect',
+        "pedido/bulk_update.html",
         form=form,
-        lista_status=lista_status
+        lista_status=lista_status,
     )
+
+
+def __stop_update_proc(res: DfValidationInfos):
+    if res.msgs:
+        for msg, cat_msg in res.msgs:
+            flash(msg, cat_msg)
+    return redirect(url_for("pedido.bulk_update_pedidos"))

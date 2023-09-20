@@ -4,6 +4,7 @@ from werkzeug.exceptions import HTTPException
 
 from src.api.routes import api_bp
 from src.api.routes_internas import internal_api
+from src.api.routes_internas_v2 import internal_api_bp_v2
 from src.main.absenteismo.routes import absenteismo_bp
 from src.main.central_avisos import central_avisos
 from src.main.conv_exames import conv_exames
@@ -20,7 +21,7 @@ from src.main.importacao.routes import importacao_bp
 from src.main.log_acoes.routes import log_acoes_bp
 from src.main.login.routes import user_auth
 from src.main.manual.routes import manual_bp
-from src.main.pedido import routes
+from src.main.pedido.routes import pedido_bp
 from src.main.pedido_socnet import routes
 from src.main.prestador import prestador_bp
 from src.main.relatorios_agendados.routes import rel_agendados_bp
@@ -54,6 +55,8 @@ def register_blueprints(app: Flask):
         api_bp,
         grupo_bp,
         importacao_bp,
+        internal_api_bp_v2,
+        pedido_bp
     ]
 
     for bp in BPS:

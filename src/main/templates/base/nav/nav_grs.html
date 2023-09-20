@@ -13,7 +13,7 @@
             </a>
             <ul class="dropdown-menu">
                 <li>
-                    <a class="dropdown-item" href="{{ url_for('busca') }}">
+                    <a class="dropdown-item" href="{{ url_for('pedido.buscar_pedidos') }}">
                         <span class="material-icons align-middle"
                             >manage_search</span
                         >
@@ -23,7 +23,7 @@
                 <li>
                     <a
                         class="dropdown-item"
-                        href="{{ url_for('pedidos_bulk_update') }}"
+                        href="{{ url_for('pedido.bulk_update_pedidos') }}"
                     >
                         <span class="material-icons align-middle"
                             >done_all</span
