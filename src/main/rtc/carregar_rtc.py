@@ -11,15 +11,15 @@ class CarregarRTC:
 
     @classmethod
     def tratar_df_rtc_cargos(
-        self, cod_emp_princ: int, df: pd.DataFrame
+        cls, cod_emp_princ: int, df: pd.DataFrame
     ) -> pd.DataFrame:
         df = df.copy()
 
-        self.__validate_rtc_cargos_cols(df)
+        cls.__validate_rtc_cargos_cols(df)
 
-        df = self.__get_cod_cargos(cod_emp_princ, df)
+        df = cls.__get_cod_cargos(cod_emp_princ, df)
 
-        df = self.__transpose_rtc_cargos_cols(df)
+        df = cls.__transpose_rtc_cargos_cols(df)
 
         return df
 
@@ -37,7 +37,7 @@ class CarregarRTC:
         return None
 
     @classmethod
-    def __get_cod_cargos(self, cod_emp_principal: int, df: pd.DataFrame):
+    def __get_cod_cargos(cls, cod_emp_principal: int, df: pd.DataFrame):
         df = df.copy()
 
         AUX_COLS = {"CODIGOCARGO": "cod_cargo", "NOMECARGO": "nome_cargo"}

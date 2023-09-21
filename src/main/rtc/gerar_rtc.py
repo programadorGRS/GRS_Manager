@@ -7,7 +7,8 @@ import pdfkit
 from jinja2 import Template
 from werkzeug.utils import secure_filename
 
-from src import UPLOAD_FOLDER, app, database
+from src import UPLOAD_FOLDER, app
+from src.extensions import database as db
 from src.main.exame.exame import Exame
 from src.main.funcionario.funcionario import Funcionario
 from src.main.pedido.pedido import Pedido
@@ -47,7 +48,7 @@ class GerarRTC:
         exames = self.__get_exames_rtc(
             ids_rtcs=[rtc.id_rtc for rtc in rtcs],
             cod_tipo_exame=pedido.cod_tipo_exame,
-            cod_emp_princ=pedido.cod_empresa_principal
+            cod_emp_princ=pedido.cod_empresa_principal,
         )
         if not exames:
             raise RTCGeneratioError("Nenhum Exame encontrado para as RTCs dessa Ficha")
@@ -57,7 +58,7 @@ class GerarRTC:
             pedido=pedido,
             funcionario=funcionario,
             exames=exames,
-            rtcs=rtcs
+            rtcs=rtcs,
         )
 
         return infos
@@ -65,7 +66,7 @@ class GerarRTC:
     @staticmethod
     def __get_funcionario(cod_funcionario: int, id_empresa: int) -> Funcionario | None:
         funcionario: Funcionario = (
-            database.session.query(Funcionario)
+            db.session.query(Funcionario)  # type: ignore
             .filter(Funcionario.cod_funcionario == cod_funcionario)
             .filter(Funcionario.id_empresa == id_empresa)
             .first()
@@ -74,32 +75,25 @@ class GerarRTC:
 
     @staticmethod
     def __get_rtcs_cargo(cod_cargo: str) -> list[RTC]:
-        rtc_cargos = (
-            database.session.query(RTCCargos.c.id_rtc)
-            .filter(RTCCargos.c.cod_cargo == cod_cargo)
+        rtc_cargos = db.session.query(RTCCargos.c.id_rtc).filter(  # type: ignore
+            RTCCargos.c.cod_cargo == cod_cargo
         )
 
-        rtcs = (
-            database.session.query(RTC)
-            .filter(RTC.id_rtc.in_(rtc_cargos))
-            .all()
-        )
+        rtcs = db.session.query(RTC).filter(RTC.id_rtc.in_(rtc_cargos)).all()  # type: ignore
         return rtcs
 
     @staticmethod
     def __get_exames_rtc(
-        ids_rtcs: list[int],
-        cod_tipo_exame: int,
-        cod_emp_princ: int
+        ids_rtcs: list[int], cod_tipo_exame: int, cod_emp_princ: int
     ) -> list[tuple[Exame.cod_exame, Exame.nome_exame]]:
         rtc_exames = (
-            database.session.query(RTCExames.c.cod_exame)
+            db.session.query(RTCExames.c.cod_exame)  # type: ignore
             .filter(RTCExames.c.id_rtc.in_(ids_rtcs))
             .filter(RTCExames.c.cod_tipo_exame == cod_tipo_exame)
         )
 
         exames = (
-            database.session.query(Exame.cod_exame, Exame.nome_exame)
+            db.session.query(Exame.cod_exame, Exame.nome_exame)  # type: ignore
             .filter(Exame.cod_empresa_principal == cod_emp_princ)
             .filter(Exame.cod_exame.in_(rtc_exames))
             .group_by(Exame.cod_exame, Exame.nome_exame)  # avoid duplicates
@@ -114,19 +108,23 @@ class GerarRTC:
         template_body: str,
         logo_empresa: str | None = None,
         qr_code: str | None = None,
-        render_tipo_sang: bool = True
+        render_tipo_sang: bool = True,
     ) -> str:
         template_data: dict[str, Any] = {}
 
-        template_data['funcionario'] = infos.funcionario
+        template_data["funcionario"] = infos.funcionario
 
         if infos.funcionario.cpf_funcionario:
-            template_data['cpf_formatado'] = self.__format_cpf(cpf=infos.funcionario.cpf_funcionario)
+            template_data["cpf_formatado"] = self.__format_cpf(
+                cpf=infos.funcionario.cpf_funcionario
+            )
 
         template_data["render_tipo_sang"] = render_tipo_sang
 
         # RTCs
-        template_data["rtc_checkboxes"] = self.__get_rtc_checkboxes(ids_rtc=[rtc.id_rtc for rtc in infos.rtcs])
+        template_data["rtc_checkboxes"] = self.__get_rtc_checkboxes(
+            ids_rtc=[rtc.id_rtc for rtc in infos.rtcs]
+        )
         # criar duas colunas de RTC
         cols = self.list_to_columns(item_list=template_data["rtc_checkboxes"])
         template_data["rtc_col_a"] = cols[0]
@@ -209,7 +207,9 @@ class GerarRTC:
 
     @staticmethod
     def gerar_df_erros(erros: list[tuple[Pedido, str]]):
-        erros2: list[tuple[int, str, str]] = [(p.seq_ficha, p.nome_funcionario, err) for p, err in erros]
+        erros2: list[tuple[int, str, str]] = [
+            (p.seq_ficha, p.nome_funcionario, err) for p, err in erros
+        ]
         df = pd.DataFrame(erros2, columns=["seq_ficha", "funcionario", "erro"])
         return df
 

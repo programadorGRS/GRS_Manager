@@ -9,20 +9,18 @@ from sqlalchemy import delete
 from werkzeug.datastructures import FileStorage
 
 from src import UPLOAD_FOLDER, app
-from src.extensions import database
-from src.main.pedido.forms import FormBuscarASO
-from src.main.pedido.pedido import Pedido
+from src.extensions import database as db
 from src.utils import (get_data_from_args, get_data_from_form,
                        get_image_file_as_base64_data,
                        validate_upload_file_size)
 
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
+from ..pedido.pedido import Pedido
 from ..qrcode.qrcode_rtc import QrCodeRtc
 from .exceptions import RTCGeneratioError, RTCValidationError
-from .forms import FormGerarRTC, FormUploadCSV
+from .forms import FormBuscarRTC, FormGerarRTC, FormUploadCSV
 from .gerar_rtc import GerarRTC
 from .models import RTC, RTCCargos
-
 
 rtc = Blueprint(
     name="rtc",
@@ -39,29 +37,25 @@ LOGOS_EMPRESAS = os.path.join(app.static_folder, "logos", "empresas")  # type: i
 LOGO_DEFAULT = os.path.join(LOGOS_EMPRESAS, "grs.png")
 
 
-@rtc.route("/rtc/buscar", methods=["GET", "POST"])
+@rtc.route("/buscar", methods=["GET", "POST"])
 @login_required
 def busca_rtc():
-    form = FormBuscarASO()
+    form = FormBuscarRTC()
     form.load_choices()
 
     if form.validate_on_submit():
-        parametros = get_data_from_form(data=form.data, ignore_keys=["pesquisa_geral"])
+        parametros = get_data_from_form(data=form.data)
         return redirect(url_for("rtc.gerar_rtcs", **parametros))
 
-    return render_template("rtc/busca.html", form=form)
+    return render_template("rtc/buscar.html", form=form)
 
 
-@rtc.route("/rtc/gerar", methods=["GET", "POST"])
+@rtc.route("/gerar", methods=["GET", "POST"])
 @login_required
 def gerar_rtcs():
     form: FormGerarRTC = FormGerarRTC()
 
-    data = get_data_from_args(prev_form=FormBuscarASO(), data=request.args)
-
-    id_grupos = data.get("id_grupos")
-    if id_grupos is not None:
-        data["id_grupos"] = Pedido.handle_group_choice(choice=id_grupos)
+    data = get_data_from_args(prev_form=FormBuscarRTC(), data=request.args)
 
     query = Pedido.buscar_pedidos(**data)
 
@@ -151,7 +145,7 @@ def __get_qrcode(id_ficha: int):
     return get_image_file_as_base64_data(img_data=qrcode_data)
 
 
-@rtc.route("/rtc/importar-dados", methods=["GET", "POST"])
+@rtc.route("/importar-dados", methods=["GET", "POST"])
 @login_required
 def importar_dados_rtc():
     form: FormUploadCSV = FormUploadCSV()
@@ -191,8 +185,8 @@ def __get_df_from_form(form: FormUploadCSV):
         return None
 
     # read dataframe
-    sep = form.SEP.get(int(form.file_sep.data))
-    enc = form.ENCODING.get(int(form.file_sep.data))
+    sep = form.SEP.get(int(form.file_sep.data))  # type: ignore
+    enc = form.ENCODING.get(int(form.file_sep.data))  # type: ignore
 
     df = pd.read_csv(BytesIO(data), sep=sep, encoding=enc)
 
@@ -204,8 +198,8 @@ def __get_df_from_form(form: FormUploadCSV):
 
 
 def __handle_choice_tabela(form: FormUploadCSV, df: pd.DataFrame):
-    choice = int(form.tabela.data)
-    emp_princ = int(form.cod_emp_princ.data)
+    choice = int(form.tabela.data)  # type: ignore
+    emp_princ = int(form.cod_emp_princ.data)  # type: ignore
 
     match choice:
         case 1:
@@ -215,17 +209,20 @@ def __handle_choice_tabela(form: FormUploadCSV, df: pd.DataFrame):
 
 
 def __atualizar_cargos(cod_emp_princ: int, df: pd.DataFrame):
-    df: pd.DataFrame = RTC.tratar_df_rtc_cargos(cod_emp_princ=int(cod_emp_princ), df=df)
+    df = RTC.tratar_df_rtc_cargos(cod_emp_princ=int(cod_emp_princ), df=df)
 
-    database.session.execute(delete(RTCCargos))
-    database.session.commit()
+    db.session.execute(delete(RTCCargos))  # type: ignore
+    db.session.commit()  # type: ignore
 
     df = df[["cod_cargo", "id_rtc"]]
 
     qtd = df.to_sql(
-        name="RTCCargos", con=database.session.bind, if_exists="append", index=False
+        name="RTCCargos",
+        con=db.session.bind,  # type: ignore
+        if_exists="append",
+        index=False,
     )
-    database.session.commit()
+    db.session.commit()  # type: ignore
 
     flash(
         f"Tabela RTC X Cargos atualizada com sucesso! Linhas afetadas: {qtd}",
