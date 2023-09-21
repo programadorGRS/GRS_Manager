@@ -126,7 +126,7 @@ class Pedido(db.Model, CarregarPedidos):
     @classmethod
     def buscar_pedidos(
         cls,
-        id_grupos: int | list[int],
+        id_grupos: int | list[int] | None = None,
         cod_emp_princ: int | None = None,
         data_inicio: date | None = None,
         data_fim: date | None = None,
