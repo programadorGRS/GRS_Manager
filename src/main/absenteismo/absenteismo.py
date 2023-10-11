@@ -388,7 +388,6 @@ class Absenteismo(db.Model):
             "data_inicio_licenca",
             "data_fim_licenca",
             "data_inclusao_licenca",
-            "afast_horas",
         )
 
         for col in DATE_COLS:
