@@ -1,0 +1,83 @@
+{% extends 'base/base_default.html' %}
+
+{% from 'macros.html' import render_form_field %}
+
+{% block body %}
+<div class="mx-5 my-2">
+    <form method="POST" id="formASO">
+        <div class="border p-4">
+            <div class="d-flex">
+                <legend>Atualizar Status - SOCNET</legend>
+                <img src="{{ url_for('static', filename='logos/logo_socnet.png') }}"
+                    alt="Logo SOCNET" height="25px" width="100px">
+            </div>
+
+            {{ form.csrf_token }}
+
+            <fieldset id="formFields">
+                <div class="d-flex justify-content-between">
+                    <div class="w-49">{{ render_form_field(form.status_aso) }}</div>
+                    <div class="w-49">{{ render_form_field(form.status_rac) }}</div>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <div class="w-49">{{ render_form_field(form.data_recebido) }}</div>
+                    <div class="w-49">{{ render_form_field(form.data_comparecimento) }}</div>
+                </div>
+                {{ render_form_field(form.obs) }}
+            </fieldset>
+
+            <div class="d-flex mt-3 justify-content-between">
+                <a href="{{ url_for('pedido-socnet.buscar_pedidos') }}">
+                    <button type="button" class="btn btn-info text-white text-nowrap"
+                        style="width: fit-content;">
+                        <span class="material-icons align-middle">arrow_back</span> Voltar
+                    </button>
+                </a>
+                <button type="button" class="btn btn-secondary text-nowrap" 
+                    style="width: fit-content;" onclick="limpar()">
+                    <span class="material-icons align-middle">close</span> Limpar
+                </button>
+                <button type="submit" class="btn btn-primary text-nowrap"
+                    style="width: fit-content;">
+                    <span class="material-icons align-middle">save</span> Salvar
+                </button>
+            </div>
+        </div>
+
+        {% include "pedido_socnet/tab_pedidos.html" %}
+    </form>
+</div>
+
+<div onclick="scrollToTop()" id="scroll-top" style="right: 5px; padding: 5px">
+    <span class="material-icons">arrow_upward</span>
+</div>
+
+<script>
+    function toggleCheckBoxes(source, checkItemName) {
+        checkboxes = document.getElementsByName(checkItemName);
+        for(var i=0, n=checkboxes.length; i<n; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+    }
+
+    function limpar() {
+        const formFields = [
+            "status_aso",
+            "status_rac",
+            "data_recebido",
+            "data_comparecimento",
+            "obs"
+        ]
+
+        for (let i = 0; i < formFields.length; i++) {
+            let field = document.getElementById(formFields[i]);
+
+            if (field.tagName.toLowerCase() == "select") {
+                field.selectedIndex = 0;
+            } else {
+                field.value = null;
+            }
+        }
+    }
+</script>
+{% endblock %}

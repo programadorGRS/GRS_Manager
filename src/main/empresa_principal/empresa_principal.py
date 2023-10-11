@@ -21,6 +21,9 @@ class EmpresaPrincipal(db.Model):
     pedidos = db.relationship(
         "Pedido", backref="empresa_principal", lazy=True
     )  # one to many
+    pedidos_socnet = db.relationship(
+        "PedidoSOCNET", backref="empresa_principal", lazy=True
+    )  # one to many
     exames = db.relationship(
         "Exame", backref="empresa_principal", lazy=True
     )  # one to many

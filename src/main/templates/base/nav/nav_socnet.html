@@ -5,7 +5,7 @@
     </a>
     <ul class="dropdown-menu">
         <li>
-            <a class="dropdown-item" href="{{ url_for('busca_socnet') }}">
+            <a class="dropdown-item" href="{{ url_for('pedido-socnet.buscar_pedidos') }}">
                 <span class="material-icons align-middle">manage_search</span> Buscar ASO
             </a>
         </li>
@@ -23,12 +23,12 @@
                     </a>
                 </li>
                 <li>
-                    <a class="dropdown-item" href="{{ url_for('upload_pedidos_socnet') }}">
+                    <a class="dropdown-item" href="{{ url_for('pedido-socnet.upload_csv') }}">
                         <span class="material-icons align-middle">upload</span> Upload CSV
                     </a>
                 </li>
                 <li>
-                    <a class="dropdown-item" href="{{ url_for('carregar_pedidos_socnet') }}">
+                    <a class="dropdown-item" href="{{ url_for('pedido-socnet.carregar_pedidos_socnet') }}">
                         <span class="material-icons align-middle">refresh</span> Carregar ASOs
                     </a>
                 </li>

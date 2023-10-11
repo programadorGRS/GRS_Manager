@@ -22,7 +22,7 @@ from src.main.log_acoes.routes import log_acoes_bp
 from src.main.login.routes import user_auth
 from src.main.manual.routes import manual_bp
 from src.main.pedido.routes import pedido_bp
-from src.main.pedido_socnet import routes
+from src.main.pedido_socnet.routes import pedido_socnet_bp
 from src.main.prestador import prestador_bp
 from src.main.relatorios_agendados.routes import rel_agendados_bp
 from src.main.rtc.routes import rtc
@@ -56,7 +56,8 @@ def register_blueprints(app: Flask):
         grupo_bp,
         importacao_bp,
         internal_api_bp_v2,
-        pedido_bp
+        pedido_bp,
+        pedido_socnet_bp,
     ]
 
     for bp in BPS:

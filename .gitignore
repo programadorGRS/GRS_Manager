@@ -15,6 +15,7 @@ keys/
 documents/
 configs/
 src/soc_web_service/xml/
+test/test_files
 
 # Flask
 venv
