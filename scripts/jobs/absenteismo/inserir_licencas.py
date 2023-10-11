@@ -21,7 +21,8 @@ if __name__ == "__main__":
 
         for empresa in empresas:
             print(
-                f"Cod: {empresa.cod_empresa} | Nome: {empresa.razao_social[:20]}",
+                f"Cod: {str(empresa.cod_empresa).zfill(8)} | "
+                f"Nome: {empresa.razao_social.strip()[:20].ljust(20, ' ')}",
                 end=" | ",
             )
 
@@ -35,12 +36,9 @@ if __name__ == "__main__":
                 app.logger.error(e, exc_info=True)
                 continue
 
-            infos_geral = res.get("geral")
+            stt: str = res["status"]
+            qtd: int = res["qtd"]
 
-            if infos_geral:
-                stt = infos_geral.get("status")
-                qtd = infos_geral.get("qtd")
-
-                print(f"Status: {stt} | Qtd: {qtd}")
+            print(f"Status: {stt.ljust(20)} | Qtd: {qtd}")
 
     print("Done!")

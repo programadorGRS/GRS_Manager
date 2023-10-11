@@ -7,9 +7,10 @@ from flask_sqlalchemy import BaseQuery
 from pptx import Presentation
 from pptx.chart.data import ChartData
 from pptx.util import Pt
+from sqlalchemy.exc import DatabaseError, SQLAlchemyError
 from werkzeug.utils import secure_filename
 
-from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER
+from src import TIMEZONE_SAO_PAULO, UPLOAD_FOLDER, app
 from src.email_connect import EmailConnect
 from src.exporta_dados import ExportaDadosWS
 from src.extensions import database as db
@@ -147,104 +148,86 @@ class Absenteismo(db.Model):
     @classmethod
     def inserir_licenca(
         cls, id_empresa: int, dataInicio: datetime, dataFim: datetime
-    ) -> dict[str, dict[str, Any]]:
-        """Invoca os exporta dados Licenca (SOCIND) e Licença Médica \
-        - Informações Básicas e insere linhas na tabela.
+    ):
+        """Invoca os exporta dados Licenca (SOCIND) e Licença Médica -
+        Informações Básicas e insere linhas na tabela.
 
-        Remove licencas duplicadas baseando em 'id_funcionario', \
+        Remove licencas duplicadas baseando em 'id_funcionario',
         'tipo_licenca', 'data_inicio_licenca', 'data_fim_licenca'
 
         Args:
             dataInicio - dataFim: data da ficha
 
         Returns:
-        Retorna os dicionarios das duas funcoes usadas
-            dict[dict]: {
-                'geral': geral,
-                'socind': licenca_socind,
-                'licenca_med': licenca_med
-            }
+            dict: {'status': str, 'qtd': int}
         """
-
         empresa: Empresa = Empresa.query.get(id_empresa)
-        empresa_principal: EmpresaPrincipal = EmpresaPrincipal.query.get(
-            empresa.cod_empresa_principal
-        )
 
-        licenca_socind: dict = cls.carregar_licenca_socind(
+        df_socind = cls.carregar_licenca_socind(
             id_empresa=id_empresa, dataInicio=dataInicio, dataFim=dataFim
         )
 
-        licenca_med: dict = cls.carregar_licenca_medica(
+        df_licenca_med = cls.carregar_licenca_medica(
             id_empresa=id_empresa, dataInicio=dataInicio, dataFim=dataFim
         )
 
-        df_socind: pd.DataFrame = licenca_socind["df"]
-        df_licenca_med: pd.DataFrame = licenca_med["df"]
+        infos = {
+            "status": "OK",
+            "qtd": 0,
+        }
 
-        if not df_socind.empty and not df_licenca_med.empty:
-            df = df_socind.merge(
-                df_licenca_med,
-                how="left",
-                on=["id_funcionario", "data_ficha"],
-            )
+        if df_socind is None or df_licenca_med is None:
+            infos["status"] = "erro nos dfs"
+            return infos
 
-            # remover duplicados
-            df_db = pd.read_sql(
-                sql=(
-                    db.session.query(  # type: ignore
-                        Absenteismo.id,
-                        Absenteismo.id_funcionario,
-                        Absenteismo.tipo_licenca,
-                        Absenteismo.data_inicio_licenca,
-                        Absenteismo.data_fim_licenca,
-                    )
-                ).statement,
-                con=db.session.bind,  # type: ignore
-            )
+        if df_socind.empty or df_licenca_med.empty:
+            infos["status"] = "dfs vazios"
+            return infos
 
-            df = df.merge(
-                df_db,
-                how="left",
-                on=[
-                    "id_funcionario",
-                    "tipo_licenca",
-                    "data_inicio_licenca",
-                    "data_fim_licenca",
-                ],
-            )
+        df = df_socind.merge(
+            df_licenca_med,
+            how="left",
+            on=["id_funcionario", "data_ficha"],
+        )
 
-            df = df[df["id"].isna()]
+        df = cls.__get_infos_licenca(df=df)
 
-            df = df[
-                [
-                    "id_funcionario",
-                    "id_empresa",
-                    "id_unidade",
-                    "tipo_licenca",
-                    "cod_medico",
-                    "nome_medico",
-                    "data_ficha",
-                    "data_inicio_licenca",
-                    "data_fim_licenca",
-                    "afast_horas",
-                    "hora_inicio_licenca",
-                    "hora_fim_licenca",
-                    "motivo_licenca",
-                    "cid_contestado",
-                    "cod_cid",
-                    "tipo_cid",
-                    "solicitante",
-                    "data_inclusao_licenca",
-                    "dias_afastado",
-                    "periodo_afastado",
-                    "abonado",
-                    "cid",
-                ]
-            ]
+        df = df[df["id"].isna()]
 
-            df["cod_empresa_principal"] = empresa.cod_empresa_principal
+        if df.empty:
+            infos["status"] = "Sem licencas novas"
+            return infos
 
+        FINAL_COLS = [
+            "id_funcionario",
+            "id_empresa",
+            "id_unidade",
+            "tipo_licenca",
+            "cod_medico",
+            "nome_medico",
+            "data_ficha",
+            "data_inicio_licenca",
+            "data_fim_licenca",
+            "afast_horas",
+            "hora_inicio_licenca",
+            "hora_fim_licenca",
+            "motivo_licenca",
+            "cid_contestado",
+            "cod_cid",
+            "tipo_cid",
+            "solicitante",
+            "data_inclusao_licenca",
+            "dias_afastado",
+            "periodo_afastado",
+            "abonado",
+            "cid",
+        ]
+
+        df = df[FINAL_COLS]
+
+        df["cod_empresa_principal"] = empresa.cod_empresa_principal
+
+        try:
             qtd = df.to_sql(
                 Absenteismo.__tablename__,
                 con=db.session.bind,  # type: ignore
@@ -252,68 +235,59 @@ class Absenteismo(db.Model):
                 if_exists="append",
             )
             db.session.commit()  # type: ignore
+        except (SQLAlchemyError, DatabaseError) as err:
+            db.session.rollback()  # type: ignore
+            app.logger.error(msg=err, exc_info=True)
+            infos["status"] = "Erro ao inserir na db"
+            return infos
 
-            geral = {
-                "cod_empresa_principal": empresa_principal.cod,
-                "nome_empresa_principal": empresa_principal.nome,
-                "id_empresa": empresa.id_empresa,
-                "nome_empresa": empresa.razao_social,
-                "status": "ok",
-                "df_licenca_med": len(df_licenca_med),
-                "df_socind": len(df_socind),
-                "qtd": qtd,
-            }
-            licenca_socind["df"] = len(licenca_socind["df"])
-            licenca_med["df"] = len(licenca_med["df"])
-            return {
-                "geral": geral,
-                "socind": licenca_socind,
-                "licenca_med": licenca_med,
-            }
-        else:
-            geral = {
-                "cod_empresa_principal": empresa_principal.cod,
-                "nome_empresa_principal": empresa_principal.nome,
-                "id_empresa": empresa.id_empresa,
-                "nome_empresa": empresa.razao_social,
-                "status": "erro/vazio",
-                "df_licenca_med": len(df_licenca_med),
-                "df_socind": len(df_socind),
-                "qtd": 0,
-            }
-            licenca_socind["df"] = len(licenca_socind["df"])
-            licenca_med["df"] = len(licenca_med["df"])
-            return {
-                "geral": geral,
-                "socind": licenca_socind,
-                "licenca_med": licenca_med,
-            }
+        infos["qtd"] = qtd
+
+        return infos
+
+    @classmethod
+    def __get_infos_licenca(cls, df: pd.DataFrame):
+        df = df.copy()
+
+        query = db.session.query(  # type: ignore
+            Absenteismo.id,
+            Absenteismo.id_funcionario,
+            Absenteismo.tipo_licenca,
+            Absenteismo.data_inicio_licenca,
+            Absenteismo.data_fim_licenca,
+        )
+        df_db = pd.read_sql(sql=query.statement, con=db.session.bind)  # type: ignore
+
+        # NOTE: make sure date cols are of same type in both dfs
+        for col in ("data_inicio_licenca", "data_fim_licenca"):
+            df[col] = pd.to_datetime(df[col], errors="coerce", dayfirst=True)
+            df_db[col] = pd.to_datetime(df_db[col], errors="coerce", dayfirst=True)
+
+        df = df.merge(
+            df_db,
+            how="left",
+            on=[
+                "id_funcionario",
+                "tipo_licenca",
+                "data_inicio_licenca",
+                "data_fim_licenca",
+            ],
+        )
+
+        return df
 
     @classmethod
     def carregar_licenca_socind(
         cls, id_empresa: int, dataInicio: datetime, dataFim: datetime
     ):
-        """Realiza request para o Exporta Dados Licença (SOCIND). \
+        """Realiza request para o Exporta Dados Licença (SOCIND).
         Se houver dados na Response, trata o df e retorna os dados
-
-        Returns:
-            dict[str, any]: {
-                'cod_empresa_principal': int,
-                'nome_empresa_principal': str,
-                'id_empresa': int,
-                'nome_empresa': str,
-                'status': str,
-                'erro_soc': bool,
-                'erro_request': bool,
-                'df': pd.DataFrame
-            }
         """
-
         empresa: Empresa = Empresa.query.get(id_empresa)
-        empresa_principal: EmpresaPrincipal = EmpresaPrincipal.query.get(
-            empresa.cod_empresa_principal
+
+        credenciais: dict = get_json_configs(
+            empresa.empresa_principal.configs_exporta_dados
         )
-        credenciais: dict = get_json_configs(empresa_principal.configs_exporta_dados)
 
         par: dict = ExportaDadosWS.licenca_socind(
             cod_empresa_principal=empresa.cod_empresa_principal,
@@ -326,182 +300,132 @@ class Absenteismo(db.Model):
 
         response: dict = ExportaDadosWS.request_exporta_dados_ws(parametro=par)
 
-        if response["response"].status_code == 200:
-            if not response["erro_soc"]:
-                response_text: str = response["response"].text
-                df = ExportaDadosWS.xml_to_dataframe(xml_string=response_text)
-                if not df.empty:
-                    df = df.replace({"": None})
+        if response["response"].status_code != 200:
+            return None
 
-                    df["CODIGOFUNCIONARIO"] = df["CODIGOFUNCIONARIO"].astype(int)
+        erro_soc = response["erro_soc"]
+        if erro_soc:
+            return None
 
-                    # buscar ids
-                    df_database = pd.read_sql(
-                        sql=(
-                            db.session.query(  # type: ignore
-                                Funcionario.id_funcionario,
-                                Funcionario.cod_funcionario,
-                                Funcionario.id_empresa,
-                                Funcionario.id_unidade,
-                            )
-                            .filter(
-                                Funcionario.cod_empresa_principal
-                                == empresa.cod_empresa_principal  # noqa
-                            )
-                            .filter(Funcionario.id_empresa == empresa.id_empresa)
-                        ).statement,
-                        con=db.session.bind,  # type: ignore
-                    )
+        response_text: str = response["response"].text
+        df = ExportaDadosWS.xml_to_dataframe(xml_string=response_text)
 
-                    df = pd.merge(
-                        df,
-                        df_database,
-                        how="left",
-                        left_on="CODIGOFUNCIONARIO",
-                        right_on="cod_funcionario",
-                    )
+        if df.empty:
+            return df
 
-                    df.dropna(axis=0, subset="id_funcionario", inplace=True)
+        df = cls.__tto_df_socind(df=df)
 
-                    if not df.empty:
-                        # tratar colunas
-                        for col in [
-                            "DATA_FICHA",
-                            "DATA_INICIO_LICENCA",
-                            "DATA_FIM_LICENCAO",
-                            "DTINCLUSAOLICENCA",
-                        ]:
-                            df[col] = pd.to_datetime(df[col], dayfirst=True).dt.date
+        df = cls.__get_infos_funcionario(df=df, id_empresa=empresa.id_empresa)
 
-                        df["AFASTAMENTO_EM_HORAS"] = df["AFASTAMENTO_EM_HORAS"].astype(
-                            int
-                        )
-                        df["AFASTAMENTO_EM_HORAS"] = df["AFASTAMENTO_EM_HORAS"].replace(
-                            to_replace={1: True, 0: False}
-                        )
+        df.dropna(axis=0, subset="id_funcionario", inplace=True)
 
-                        df.rename(
-                            columns={
-                                "TIPO_LICENCA": "tipo_licenca",
-                                "CODIGO_MEDICO": "cod_medico",
-                                "MEDICO": "nome_medico",
-                                "DATA_FICHA": "data_ficha",
-                                "DATA_INICIO_LICENCA": "data_inicio_licenca",
-                                "DATA_FIM_LICENCAO": "data_fim_licenca",
-                                "AFASTAMENTO_EM_HORAS": "afast_horas",
-                                "HORA_INICIO": "hora_inicio_licenca",
-                                "HORA_FIM": "hora_fim_licenca",
-                                "MOTIVO_LICENCA": "motivo_licenca",
-                                "CID_CONTESTADO": "cid_contestado",
-                                "CODCID": "cod_cid",
-                                "TIPO_CID": "tipo_cid",
-                                "SOLICITANTE": "solicitante",
-                                "DTINCLUSAOLICENCA": "data_inclusao_licenca",
-                            },
-                            inplace=True,
-                        )
+        if df.empty:
+            return df
 
-                        df = df[
-                            [
-                                "id_empresa",
-                                "id_unidade",
-                                "id_funcionario",
-                                "tipo_licenca",
-                                "cod_medico",
-                                "nome_medico",
-                                "data_ficha",
-                                "data_inicio_licenca",
-                                "data_fim_licenca",
-                                "afast_horas",
-                                "hora_inicio_licenca",
-                                "hora_fim_licenca",
-                                "motivo_licenca",
-                                "cid_contestado",
-                                "cod_cid",
-                                "tipo_cid",
-                                "solicitante",
-                                "data_inclusao_licenca",
-                            ]
-                        ]
-                        return {
-                            "cod_empresa_principal": empresa_principal.cod,
-                            "nome_empresa_principal": empresa_principal.nome,
-                            "id_empresa": empresa.id_empresa,
-                            "nome_empresa": empresa.razao_social,
-                            "status": "ok",
-                            "erro_soc": False,
-                            "erro_request": False,
-                            "df": df,
-                        }
-                    else:
-                        return {
-                            "cod_empresa_principal": empresa_principal.cod,
-                            "nome_empresa_principal": empresa_principal.nome,
-                            "id_empresa": empresa.id_empresa,
-                            "nome_empresa": empresa.razao_social,
-                            "status": "vazio",
-                            "erro_soc": False,
-                            "erro_request": False,
-                            "df": pd.DataFrame(),
-                        }
-                else:
-                    return {
-                        "cod_empresa_principal": empresa_principal.cod,
-                        "nome_empresa_principal": empresa_principal.nome,
-                        "id_empresa": empresa.id_empresa,
-                        "nome_empresa": empresa.razao_social,
-                        "status": "vazio",
-                        "erro_soc": False,
-                        "erro_request": False,
-                        "df": pd.DataFrame(),
-                    }
-            else:
-                return {
-                    "cod_empresa_principal": empresa_principal.cod,
-                    "nome_empresa_principal": empresa_principal.nome,
-                    "id_empresa": empresa.id_empresa,
-                    "nome_empresa": empresa.razao_social,
-                    "status": f"erro soc: {response['msg_erro']}",
-                    "erro_soc": True,
-                    "erro_request": False,
-                    "df": pd.DataFrame(),
-                }
-        else:
-            return {
-                "cod_empresa_principal": empresa_principal.cod,
-                "nome_empresa_principal": empresa_principal.nome,
-                "id_empresa": empresa.id_empresa,
-                "nome_empresa": empresa.razao_social,
-                "status": "erro no request",
-                "erro_soc": False,
-                "erro_request": True,
-                "df": pd.DataFrame(),
-            }
+        COLS_FINAIS = [
+            "id_empresa",
+            "id_unidade",
+            "id_funcionario",
+            "tipo_licenca",
+            "cod_medico",
+            "nome_medico",
+            "data_ficha",
+            "data_inicio_licenca",
+            "data_fim_licenca",
+            "afast_horas",
+            "hora_inicio_licenca",
+            "hora_fim_licenca",
+            "motivo_licenca",
+            "cid_contestado",
+            "cod_cid",
+            "tipo_cid",
+            "solicitante",
+            "data_inclusao_licenca",
+        ]
+
+        df = df[COLS_FINAIS]
+
+        return df
+
+    @staticmethod
+    def __tto_df_socind(df: pd.DataFrame):
+        df = df.copy()
+
+        COLS = {
+            "CODIGOFUNCIONARIO": "cod_funcionario",
+            "TIPO_LICENCA": "tipo_licenca",
+            "CODIGO_MEDICO": "cod_medico",
+            "MEDICO": "nome_medico",
+            "DATA_FICHA": "data_ficha",
+            "DATA_INICIO_LICENCA": "data_inicio_licenca",
+            "DATA_FIM_LICENCAO": "data_fim_licenca",
+            "AFASTAMENTO_EM_HORAS": "afast_horas",
+            "HORA_INICIO": "hora_inicio_licenca",
+            "HORA_FIM": "hora_fim_licenca",
+            "MOTIVO_LICENCA": "motivo_licenca",
+            "CID_CONTESTADO": "cid_contestado",
+            "CODCID": "cod_cid",
+            "TIPO_CID": "tipo_cid",
+            "SOLICITANTE": "solicitante",
+            "DTINCLUSAOLICENCA": "data_inclusao_licenca",
+        }
+
+        df = df[list(COLS.keys())]
+        df = df.rename(columns=COLS)
+
+        df = df.replace({"": None})
+
+        INT_COLS = (
+            "cod_funcionario",
+            "afast_horas",
+        )
+
+        for col in INT_COLS:
+            df[col] = df[col].astype(int)
+
+        DATE_COLS = (
+            "data_ficha",
+            "data_inicio_licenca",
+            "data_fim_licenca",
+            "data_inclusao_licenca",
+            "afast_horas",
+        )
+
+        for col in DATE_COLS:
+            df[col] = pd.to_datetime(df[col], dayfirst=True).dt.date
+
+        df["afast_horas"] = df["afast_horas"].replace(to_replace={1: True, 0: False})
+
+        return df
+
+    @classmethod
+    def __get_infos_funcionario(cls, df: pd.DataFrame, id_empresa: int):
+        df = df.copy()
+
+        query = db.session.query(  # type: ignore
+            Funcionario.id_funcionario,
+            Funcionario.cod_funcionario,
+            Funcionario.id_empresa,
+            Funcionario.id_unidade,
+        ).filter(Funcionario.id_empresa == id_empresa)
+        df_db = pd.read_sql(sql=query.statement, con=db.session.bind)  # type: ignore
+
+        df = df.merge(df_db, how="left", on="cod_funcionario")
+
+        return df
 
     @classmethod
     def carregar_licenca_medica(
         cls, id_empresa: int, dataInicio: datetime, dataFim: datetime
     ):
-        """Realiza request para o Exporta Dados Licença Médica - Informações Básicas \
+        """Realiza request para o Exporta Dados Licença Médica - Informações Básicas.
         Se houver dados na Response, trata o df e retorna os dados
-
-        Returns:
-            dict[str, any]: {
-                'cod_empresa_principal': int,
-                'nome_empresa_principal': str,
-                'id_empresa': int,
-                'nome_empresa': str,
-                'status': str,
-                'erro_soc': bool,
-                'erro_request': bool,
-                'df': pd.DataFrame
-            }
         """
         empresa: Empresa = Empresa.query.get(id_empresa)
-        empresa_principal: EmpresaPrincipal = EmpresaPrincipal.query.get(
-            empresa.cod_empresa_principal
+
+        credenciais: dict = get_json_configs(
+            empresa.empresa_principal.configs_exporta_dados
         )
-        credenciais: dict = get_json_configs(empresa_principal.configs_exporta_dados)
 
         par: dict = ExportaDadosWS.licenca_medica(
             cod_exporta_dados=credenciais["LICENCA_MED_COD"],
@@ -513,136 +437,72 @@ class Absenteismo(db.Model):
 
         response: dict = ExportaDadosWS.request_exporta_dados_ws(parametro=par)
 
-        if response["response"].status_code == 200:
-            if not response["erro_soc"]:
-                response_text: str = response["response"].text
-                df = ExportaDadosWS.xml_to_dataframe(xml_string=response_text)
-                if not df.empty:
-                    df = df.replace({"": None})
+        if response["response"].status_code != 200:
+            return None
 
-                    df["FUNCIONARIO"] = df["FUNCIONARIO"].astype(int)
+        erro_soc = response["erro_soc"]
+        if erro_soc:
+            return None
 
-                    # buscar ids
-                    df_database = pd.read_sql(
-                        sql=(
-                            db.session.query(  # type: ignore
-                                Funcionario.id_funcionario,
-                                Funcionario.cod_funcionario,
-                                Funcionario.id_empresa,
-                                Funcionario.id_unidade,
-                            )
-                            .filter(
-                                Funcionario.cod_empresa_principal
-                                == empresa.cod_empresa_principal  # noqa
-                            )
-                            .filter(Funcionario.id_empresa == empresa.id_empresa)
-                        ).statement,
-                        con=db.session.bind,  # type: ignore
-                    )
+        response_text: str = response["response"].text
+        df = ExportaDadosWS.xml_to_dataframe(xml_string=response_text)
 
-                    df = pd.merge(
-                        df,
-                        df_database,
-                        how="left",
-                        left_on="FUNCIONARIO",
-                        right_on="cod_funcionario",
-                    )
+        if df.empty:
+            return df
 
-                    df.dropna(axis=0, subset="id_funcionario", inplace=True)
-                    if not df.empty:
-                        # tratar colunas
-                        df["DATAFICHA"] = pd.to_datetime(
-                            df["DATAFICHA"], dayfirst=True
-                        ).dt.date
-                        df["ABONADO"] = df["ABONADO"].astype(int)
-                        df["ABONADO"] = df["ABONADO"].replace(
-                            to_replace={1: True, 2: False}
-                        )
+        df = cls.__tto_df_licenca_med(df=df)
 
-                        df["chave"] = df["id_funcionario"].astype(str) + df[
-                            "DATAFICHA"
-                        ].astype(str)
+        df = cls.__get_infos_funcionario(df=df, id_empresa=empresa.id_empresa)
 
-                        df.drop_duplicates(
-                            subset="chave", inplace=True, ignore_index=True
-                        )
+        df.dropna(axis=0, subset="id_funcionario", inplace=True)
 
-                        df.rename(
-                            columns={
-                                "DATAFICHA": "data_ficha",
-                                "DIASAFASTADOS": "dias_afastado",
-                                "PEIODOAFASTADO": "periodo_afastado",
-                                "ABONADO": "abonado",
-                                "CID": "cid",
-                            },
-                            inplace=True,
-                        )
+        if df.empty:
+            return df
 
-                        df = df[
-                            [
-                                "id_funcionario",
-                                "data_ficha",
-                                "dias_afastado",
-                                "periodo_afastado",
-                                "abonado",
-                                "cid",
-                            ]
-                        ]
+        # remover licencas duplicadas
+        df["chave"] = df["id_funcionario"].astype(str) + df["data_ficha"].astype(str)
+        df.drop_duplicates(subset="chave", inplace=True, ignore_index=True)
+        df.drop(columns="chave", inplace=True)
 
-                        return {
-                            "cod_empresa_principal": empresa_principal.cod,
-                            "nome_empresa_principal": empresa_principal.nome,
-                            "id_empresa": empresa.id_empresa,
-                            "nome_empresa": empresa.razao_social,
-                            "status": "ok",
-                            "erro_soc": False,
-                            "erro_request": False,
-                            "df": df,
-                        }
-                    else:
-                        return {
-                            "cod_empresa_principal": empresa_principal.cod,
-                            "nome_empresa_principal": empresa_principal.nome,
-                            "id_empresa": empresa.id_empresa,
-                            "nome_empresa": empresa.razao_social,
-                            "status": "vazio",
-                            "erro_soc": False,
-                            "erro_request": False,
-                            "df": pd.DataFrame(),
-                        }
-                else:
-                    return {
-                        "cod_empresa_principal": empresa_principal.cod,
-                        "nome_empresa_principal": empresa_principal.nome,
-                        "id_empresa": empresa.id_empresa,
-                        "nome_empresa": empresa.razao_social,
-                        "status": "vazio",
-                        "erro_soc": False,
-                        "erro_request": False,
-                        "df": pd.DataFrame(),
-                    }
-            else:
-                return {
-                    "cod_empresa_principal": empresa_principal.cod,
-                    "nome_empresa_principal": empresa_principal.nome,
-                    "id_empresa": empresa.id_empresa,
-                    "nome_empresa": empresa.razao_social,
-                    "status": f"erro soc: {response['msg_erro']}",
-                    "erro_soc": True,
-                    "erro_request": False,
-                    "df": pd.DataFrame(),
-                }
-        else:
-            return {
-                "cod_empresa_principal": empresa_principal.cod,
-                "nome_empresa_principal": empresa_principal.nome,
-                "id_empresa": empresa.id_empresa,
-                "nome_empresa": empresa.razao_social,
-                "status": "erro no request",
-                "erro_soc": False,
-                "erro_request": True,
-                "df": pd.DataFrame(),
-            }
+        FINAL_COLS = [
+            "id_funcionario",
+            "data_ficha",
+            "dias_afastado",
+            "periodo_afastado",
+            "abonado",
+            "cid",
+        ]
+
+        df = df[FINAL_COLS]
+
+        return df
+
+    @staticmethod
+    def __tto_df_licenca_med(df: pd.DataFrame):
+        df = df.copy()
+
+        COLS = {
+            "FUNCIONARIO": "cod_funcionario",
+            "DATAFICHA": "data_ficha",
+            "DIASAFASTADOS": "dias_afastado",
+            "PEIODOAFASTADO": "periodo_afastado",
+            "ABONADO": "abonado",
+            "CID": "cid",
+        }
+
+        df = df.replace({"": None})
+
+        df = df[list(COLS.keys())]
+        df = df.rename(columns=COLS)
+
+        for col in ("cod_funcionario", "dias_afastado", "abonado"):
+            df[col] = df[col].astype(int)
+
+        df["data_ficha"] = pd.to_datetime(df["data_ficha"], dayfirst=True).dt.date
+
+        df["abonado"] = df["abonado"].replace(to_replace={1: True, 2: False})
+
+        return df
 
     @classmethod
     def rotina_absenteismo(
