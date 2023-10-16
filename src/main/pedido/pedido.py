@@ -3,13 +3,12 @@ from typing import Literal
 
 from flask_login import current_user
 from flask_sqlalchemy import BaseQuery
-from sqlalchemy import and_
 
 from src import TIMEZONE_SAO_PAULO
 from src.extensions import database as db
 
 from ..empresa.empresa import Empresa
-from ..grupo.grupo import Grupo, grupo_empresa_prestador
+from ..grupo.grupo import Grupo, grupo_empresa, grupo_prestador
 from ..prestador.prestador import Prestador
 from ..status.status import Status
 from ..status.status_lib import StatusLiberacao
@@ -141,6 +140,9 @@ class Pedido(db.Model, CarregarPedidos):
         nome_funcionario: str | None = None,
         obs: str | None = None,
     ) -> BaseQuery:
+        """Realiza busca na tabela de Pedidos usando LEFT JOIN com Grupo
+
+        Obs: Não inclui colunas de Grupo, usar add_entity(Grupo) para obtelas"""
         PARAMS = (
             (cod_emp_princ, (cls.cod_empresa_principal == cod_emp_princ)),
             (id_empresa, (cls.id_empresa == id_empresa)),
@@ -176,18 +178,18 @@ class Pedido(db.Model, CarregarPedidos):
             else:
                 filtros.append(cls.id_prestador == id_prestador)
 
+        # NOTE: os joins não adicionam as colunas de grupo na tabela do resultado
         joins = [
+            (grupo_empresa, grupo_empresa.c.id_empresa == cls.id_empresa),
+            (grupo_prestador, grupo_prestador.c.id_prestador == cls.id_prestador),
             (
-                grupo_empresa_prestador,
-                and_(
-                    cls.id_empresa == grupo_empresa_prestador.c.id_empresa,
-                    cls.id_prestador == grupo_empresa_prestador.c.id_prestador,
-                ),
+                Grupo,
+                (Grupo.id_grupo == grupo_empresa.c.id_grupo)
+                & (Grupo.id_grupo == grupo_prestador.c.id_grupo),  # noqa
             ),
-            (Grupo, grupo_empresa_prestador.c.id_grupo == Grupo.id_grupo),
         ]
 
-        query = (
+        query: BaseQuery = (
             db.session.query(cls)  # type: ignore
             .outerjoin(*joins)
             .filter(*filtros)

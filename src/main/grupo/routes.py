@@ -2,7 +2,7 @@ import os
 from datetime import datetime
 
 import pandas as pd
-from flask import (Blueprint, flash, redirect, render_template, request,
+from flask import (Blueprint, abort, flash, redirect, render_template, request,
                    send_from_directory, url_for)
 from flask_login import current_user, login_required
 from sqlalchemy.exc import DatabaseError, SQLAlchemyError
@@ -16,7 +16,7 @@ from ..empresa_socnet.empresa_socnet import EmpresaSOCNET
 from ..log_acoes.log_acoes import LogAcoes
 from ..prestador.prestador import Prestador
 from ..usuario.usuario import Usuario
-from .forms import FormCriarGrupo, FormGrupoPrestadores
+from .forms import FormGrupo, FormGrupoMembros
 from .grupo import (Grupo, grupo_empresa, grupo_empresa_socnet,
                     grupo_prestador, grupo_usuario)
 
@@ -30,45 +30,52 @@ grupo_bp = Blueprint(
 
 @grupo_bp.route("/")
 @login_required
-def grupos():
+def get_grupos():
     lista_grupos = Grupo.query.order_by(Grupo.nome_grupo).all()
     return render_template("grupo/listar.html", lista_grupos=lista_grupos)
 
 
 @grupo_bp.route("/criar", methods=["GET", "POST"])
 @login_required
-def grupos_criar():
-    form = FormCriarGrupo()
+def create_grupo():
+    form = FormGrupo()
 
     if form.validate_on_submit():
-        grupo = Grupo(
-            nome_grupo=form.nome_grupo.data,
-            data_inclusao=datetime.now(TIMEZONE_SAO_PAULO),
-            incluido_por=current_user.username,  # type: ignore
-        )
-        db.session.add(grupo)  # type: ignore
-        db.session.commit()  # type: ignore
-
-        grupo_criado = Grupo.query.filter_by(nome_grupo=form.nome_grupo.data).first()
+        try:
+            grupo = Grupo(
+                nome_grupo=form.nome_grupo.data,
+                data_inclusao=datetime.now(TIMEZONE_SAO_PAULO),
+                incluido_por=current_user.username,  # type: ignore
+            )
+            db.session.add(grupo)  # type: ignore
+            db.session.commit()  # type: ignore
+        except (SQLAlchemyError, DatabaseError) as err:
+            db.session.rollback()  # type: ignore
+            app.logger.error(msg=err, exc_info=True)
+            flash("Erro interno ao criar Grupo", "alert-danger")
+            return redirect(url_for("grupo.get_grupos"))
 
         LogAcoes.registrar_acao(
             nome_tabela="Grupo",
             tipo_acao="Inclusão",
-            id_registro=grupo_criado.id_grupo,
-            nome_registro=grupo_criado.nome_grupo,
+            id_registro=grupo.id_grupo,
+            nome_registro=grupo.nome_grupo,
         )
 
         flash("Grupo criado com sucesso!", "alert-success")
-        return redirect(url_for("grupo.grupos"))
+        return redirect(url_for("grupo.get_grupos"))
     return render_template("grupo/criar.html", form=form)
 
 
 @grupo_bp.route("/<int:id_grupo>", methods=["GET", "POST"])
 @login_required
-def grupos_editar(id_grupo):
+def update_grupo(id_grupo):
     grupo = Grupo.query.get(id_grupo)
 
-    form = FormCriarGrupo(
+    if not grupo:
+        return abort(404)
+
+    form = FormGrupo(
         nome_grupo=grupo.nome_grupo,
         data_inclusao=grupo.data_inclusao,
         data_alteracao=grupo.data_alteracao,
@@ -77,54 +84,59 @@ def grupos_editar(id_grupo):
     )
 
     if form.validate_on_submit():
-        grupo.nome_grupo = form.nome_grupo.data
+        try:
+            grupo.nome_grupo = form.nome_grupo.data
 
-        grupo.data_alteracao = datetime.now(TIMEZONE_SAO_PAULO)
-        grupo.alterado_por = current_user.username  # type: ignore
+            grupo.data_alteracao = datetime.now(TIMEZONE_SAO_PAULO)
+            grupo.alterado_por = current_user.username  # type: ignore
 
-        db.session.commit()  # type: ignore
+            db.session.commit()  # type: ignore
+        except (SQLAlchemyError, DatabaseError) as err:
+            db.session.rollback()  # type: ignore
+            app.logger.error(msg=err, exc_info=True)
+            flash("Erro interno ao editar Grupo", "alert-danger")
+            return redirect(url_for("grupo.get_grupos"))
 
         LogAcoes.registrar_acao(
             nome_tabela="Grupo",
             tipo_acao="Alteração",
             id_registro=grupo.id_grupo,
-            nome_registro=form.nome_grupo.data,
+            nome_registro=form.nome_grupo.data,  # type: ignore
         )
 
         flash("Grupo editado com sucesso!", "alert-success")
-        return redirect(url_for("grupo.grupos"))
+        return redirect(url_for("grupo.get_grupos"))
 
     return render_template("grupo/editar.html", grupo=grupo, form=form)
 
 
 @grupo_bp.route("/<int:id_grupo>/usuarios", methods=["GET", "POST"])
 @login_required
-def grupos_usuarios(id_grupo):
+def update_usuarios(id_grupo):
     grupo: Grupo = Grupo.query.get(id_grupo)
 
-    FORM_LEGEND = "Editar Usuários"
+    if not grupo:
+        return abort(404)
 
     # already in group
     pre_selected = [i.id_usuario for i in grupo.usuarios]
+    form = FormGrupoMembros(select=pre_selected)
+    form.load_usuarios_choices()
 
-    # create form with pre selected values
-    form = FormGrupoPrestadores(select=pre_selected)
-    form.select.choices = [(i.id_usuario, i.username) for i in Usuario.query.all()]
-    # sort choices by name, ascending
-    form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
+    FORM_LEGEND = "Editar Usuários"
 
     if form.validate_on_submit():
         try:
-            Grupo.update_grupo_usuario(
+            Grupo.set_usuarios(
                 id_grupo=grupo.id_grupo,
                 id_usuarios=request.form.getlist(key="select", type=int),
                 alterado_por=current_user.username,  # type: ignore
             )
         except (SQLAlchemyError, DatabaseError) as e:
-            app.logger.error(msg=e, exc_info=True)
             db.session.rollback()  # type: ignore
+            app.logger.error(msg=e, exc_info=True)
             flash("Erro interno ao atualizar o Grupo", "alert-danger")
-            return redirect(url_for("grupo.grupos"))
+            return redirect(url_for("grupo.get_grupos"))
 
         LogAcoes.registrar_acao(
             nome_tabela="Grupo",
@@ -133,7 +145,7 @@ def grupos_usuarios(id_grupo):
             nome_registro=grupo.nome_grupo,
         )
 
-        return redirect(url_for("grupo.grupos"))
+        return redirect(url_for("grupo.get_grupos"))
 
     return render_template(
         "grupo/editar_membros.html", form=form, form_legend=FORM_LEGEND, grupo=grupo
@@ -142,25 +154,22 @@ def grupos_usuarios(id_grupo):
 
 @grupo_bp.route("/<int:id_grupo>/prestadores", methods=["GET", "POST"])
 @login_required
-def grupos_prestadores(id_grupo):
+def update_prestadores(id_grupo):
     grupo: Grupo = Grupo.query.get(id_grupo)
+
+    if not grupo:
+        return abort(404)
 
     FORM_LEGEND = "Editar Prestadores"
 
     #  already in group
     pre_selected = [i.id_prestador for i in grupo.prestadores]
-
-    # create form with pre selected values
-    form = FormGrupoPrestadores(select=pre_selected)
-    form.select.choices = [
-        (i.id_prestador, i.nome_prestador) for i in Prestador.query.all()
-    ]
-    # sort choices by name, ascending
-    form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
+    form = FormGrupoMembros(select=pre_selected)
+    form.load_prestador_choices()
 
     if form.validate_on_submit():
         try:
-            Grupo.update_grupo_prestador(
+            Grupo.set_prestadores(
                 id_grupo=grupo.id_grupo,
                 id_prestadores=request.form.getlist(key="select", type=int),
                 alterado_por=current_user.username,  # type: ignore
@@ -169,7 +178,7 @@ def grupos_prestadores(id_grupo):
             app.logger.error(msg=e, exc_info=True)
             db.session.rollback()  # type: ignore
             flash("Erro interno ao atualizar o Grupo", "alert-danger")
-            return redirect(url_for("grupo.grupos"))
+            return redirect(url_for("grupo.get_grupos"))
 
         LogAcoes.registrar_acao(
             nome_tabela="Grupo",
@@ -178,7 +187,7 @@ def grupos_prestadores(id_grupo):
             nome_registro=grupo.nome_grupo,
         )
 
-        return redirect(url_for("grupo.grupos"))
+        return redirect(url_for("grupo.get_grupos"))
 
     return render_template(
         "grupo/editar_membros.html", form=form, form_legend=FORM_LEGEND, grupo=grupo
@@ -187,23 +196,22 @@ def grupos_prestadores(id_grupo):
 
 @grupo_bp.route("/<int:id_grupo>/empresas", methods=["GET", "POST"])
 @login_required
-def grupos_empresas(id_grupo):
+def update_empresas(id_grupo):
     grupo: Grupo = Grupo.query.get(id_grupo)
+
+    if not grupo:
+        return abort(404)
 
     FORM_LEGEND = "Editar Empresas"
 
     # already in group
     pre_selected = [i.id_empresa for i in grupo.empresas]
-
-    # create form with pre selected values
-    form = FormGrupoPrestadores(select=pre_selected)
-    form.select.choices = [(i.id_empresa, i.razao_social) for i in Empresa.query.all()]
-    # sort choices by name, ascending
-    form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
+    form = FormGrupoMembros(select=pre_selected)
+    form.load_empresas_choices()
 
     if form.validate_on_submit():
         try:
-            Grupo.update_grupo_empresa(
+            Grupo.set_empresas(
                 id_grupo=grupo.id_grupo,
                 id_empresas=request.form.getlist(key="select", type=int),
                 alterado_por=current_user.username,  # type: ignore
@@ -212,7 +220,7 @@ def grupos_empresas(id_grupo):
             app.logger.error(msg=e, exc_info=True)
             db.session.rollback()  # type: ignore
             flash("Erro interno ao atualizar o Grupo", "alert-danger")
-            return redirect(url_for("grupo.grupos"))
+            return redirect(url_for("grupo.get_grupos"))
 
         LogAcoes.registrar_acao(
             nome_tabela="Grupo",
@@ -221,7 +229,7 @@ def grupos_empresas(id_grupo):
             nome_registro=grupo.nome_grupo,
         )
 
-        return redirect(url_for("grupo.grupos"))
+        return redirect(url_for("grupo.get_grupos"))
 
     return render_template(
         "grupo/editar_membros.html", form=form, form_legend=FORM_LEGEND, grupo=grupo
@@ -230,25 +238,22 @@ def grupos_empresas(id_grupo):
 
 @grupo_bp.route("/<int:id_grupo>/empresas-socnet", methods=["GET", "POST"])
 @login_required
-def grupos_empresas_socnet(id_grupo):
+def update_empresas_socnet(id_grupo):
     grupo: Grupo = Grupo.query.get(id_grupo)
+
+    if not grupo:
+        return abort(404)
 
     FORM_LEGEND = "Editar Empresas SOCNET"
 
     # already in group
     pre_selected = [i.id_empresa for i in grupo.empresas_socnet]
-
-    # create form with pre selected values
-    form = FormGrupoPrestadores(select=pre_selected)
-    form.select.choices = [
-        (i.id_empresa, i.nome_empresa) for i in EmpresaSOCNET.query.all()
-    ]
-    # sort choices by name, ascending
-    form.select.choices.sort(key=lambda tup: tup[1], reverse=False)
+    form = FormGrupoMembros(select=pre_selected)
+    form.load_empresas_socnet_choices()
 
     if form.validate_on_submit():
         try:
-            Grupo.update_grupo_empresa_socnet(
+            Grupo.set_empresas_socnet(
                 id_grupo=grupo.id_grupo,
                 id_empresas=request.form.getlist(key="select", type=int),
                 alterado_por=current_user.username,  # type: ignore
@@ -257,7 +262,7 @@ def grupos_empresas_socnet(id_grupo):
             app.logger.error(msg=e, exc_info=True)
             db.session.rollback()  # type: ignore
             flash("Erro interno ao atualizar o Grupo", "alert-danger")
-            return redirect(url_for("grupo.grupos"))
+            return redirect(url_for("grupo.get_grupos"))
 
         LogAcoes.registrar_acao(
             nome_tabela="Grupo",
@@ -266,7 +271,7 @@ def grupos_empresas_socnet(id_grupo):
             nome_registro=grupo.nome_grupo,
         )
 
-        return redirect(url_for("grupo.grupos"))
+        return redirect(url_for("grupo.get_grupos"))
 
     return render_template(
         "grupo/editar_membros.html", form=form, form_legend=FORM_LEGEND, grupo=grupo
@@ -275,7 +280,7 @@ def grupos_empresas_socnet(id_grupo):
 
 @grupo_bp.route("/csv")
 @login_required
-def grupos_csv():
+def get_grupos_csv():
     timestamp = int(datetime.now().timestamp())
 
     # empresas
@@ -392,16 +397,20 @@ def grupos_csv():
 
 @grupo_bp.route("/<int:id_grupo>/excluir", methods=["GET", "POST"])
 @login_required
-def grupos_excluir(id_grupo):
+def delete_grupo(id_grupo):
     grupo = Grupo.query.get(id_grupo)
 
+    if not grupo:
+        return abort(404)
+
     try:
-        Grupo.delete_grupo(id_grupo=grupo.id_grupo)
+        db.session.delete(grupo)  # type: ignore
+        db.session.commit()  # type: ignore
     except (SQLAlchemyError, DatabaseError) as e:
-        app.logger.error(msg=e, exc_info=True)
         db.session.rollback()  # type: ignore
+        app.logger.error(msg=e, exc_info=True)
         flash("Erro interno ao excluir o Grupo", "alert-danger")
-        return redirect(url_for("grupo.grupos"))
+        return redirect(url_for("grupo.get_grupos"))
 
     LogAcoes.registrar_acao(
         nome_tabela="Grupo",
@@ -411,4 +420,4 @@ def grupos_excluir(id_grupo):
     )
 
     flash("Grupo excluído!", "alert-danger")
-    return redirect(url_for("grupo.grupos"))
+    return redirect(url_for("grupo.get_grupos"))
