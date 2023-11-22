@@ -1,0 +1,19 @@
+TODO: adicionar coluna de auditoria SOCGED, status
+
+Status Auditoria:
+- Pendente
+- OK
+
+Pendencias:
+- Falta ASO
+- Fata RAC/RTC
+- Falta Ficha Clinica
+- Falta Exames Complementares
+
+TODO: incluir exames e valores dos exames no relatorio de buscar aso
+
+TODO: email em massa pra solicitar componentes que faltam do prontuario (ASO, rtc, FC, EC)
+
+TODO: RPA carregamento SOCNET
+
+TODO: robo para verificar ASO, FC EC nos SOCGEDs (é possivel?)
