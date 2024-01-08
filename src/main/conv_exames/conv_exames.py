@@ -345,7 +345,7 @@ class ConvExames(db.Model):
             df2.to_excel(nome_csv, index=False, freeze_panes=(1, 0))
 
             arquivos_zipar = [nome_csv]
-
+            gerar_ppt = False
             # gerar ppt apenas se houver mais de 50 exames para refazer
             if gerar_ppt and len(df["refazer"].dropna()) >= 50:
                 nome_ppt = f"{pasta}/{nome_arquivos}_{timestamp}.pptx"
