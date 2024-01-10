@@ -1,0 +1,51 @@
+
+    "DATABASE_USER": "root",
+    "DATABASE_PASSWORD": "Super-Crates-Tuesday-Diamond47",
+    "SQLALCHEMY_DATABASE_URI": "mysql+pymysql://root:Super-Crates-Tuesday-Diamond47@localhost/manager_db2",
+    "SQLALCHEMY_TRACK_MODIFICATIONS": false,
+    "SQLALCHEMY_ECHO": false,
+
+
+
+
+mysql+pymysql://root:Super-Crates-Tuesday-Diamond47@localhost/manager_db2
+
+
+{
+    "MAIL_SUPPRESS_SEND": false,
+    "MAIL_DEBUG": false,
+    "MAIL_SERVER": "smtp.office365.com",
+    "MAIL_PORT": 587,
+    "MAIL_USERNAME": "aso.manager@grsnucleo.com.br",
+    "MAIL_DEFAULT_SENDER" : "aso.manager@grsnucleo.com.br",
+    "MAIL_PASSWORD": "Check-Clinton-Bank-Support-Removal-Destiny-Despair",
+    "MAIL_USE_TLS": true,
+    "MAIL_USE_SSL": false,
+
+    "SENDER_NAME": "GRS+Connect Bot",
+    "IMG_ASSINATURA": "src/static/images/ass_bot2.png",
+    "TEMPLATES_FOLDER": "src/email_connect/templates",
+
+    "SEND_RETRIES": 3,
+    "RETRY_DELAY": 30
+}
+
+
+{
+    "MAIL_SUPPRESS_SEND": false,
+    "MAIL_DEBUG": false,
+    "MAIL_SERVER": "smtp.office365.com",
+    "MAIL_PORT": 587,
+    "MAIL_USERNAME": "programador@grsnucleo.com.br",
+    "MAIL_DEFAULT_SENDER" : "programador@grsnucleo.com.br",
+    "MAIL_PASSWORD": "Gax18899",
+    "MAIL_USE_TLS": true,
+    "MAIL_USE_SSL": false,
+
+    "SENDER_NAME": "GRS+Connect Bot",
+    "IMG_ASSINATURA": "src/static/images/ass_bot2.png",
+    "TEMPLATES_FOLDER": "src/email_connect/templates",
+
+    "SEND_RETRIES": 3,
+    "RETRY_DELAY": 30
+}
