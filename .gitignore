@@ -1,4 +1,4 @@
-# My files
+# My filesxlsx
 *.zip
 *.csv
 *.xlsx
@@ -24,7 +24,7 @@ venv
 .env
 .flaskenv
 *.ipynb
-*.sql
+#*.sql
 
 # Pycharm
 .idea
