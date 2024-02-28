@@ -6,7 +6,7 @@
 #*.pdf
 #*.json
 #*.pem
-*.Identifier
+#*.Identifier
 
 # My folders
 #db/
@@ -18,12 +18,12 @@ documents/
 test/test_files
 
 # Flask
-venv
+#venv
 .vscode
-*.db
-.env
-.flaskenv
-*.ipynb
+#*.db
+#.env
+#.flaskenv
+#*.ipynb
 #*.sql
 
 # Pycharm
@@ -146,13 +146,13 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+#.env
+#.venv
+#env/
+#venv/
+#ENV/
+#env.bak/
+#venv.bak/
 
 # Spyder project settings
 .spyderproject
