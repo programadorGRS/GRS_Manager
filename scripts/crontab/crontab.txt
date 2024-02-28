@@ -1,0 +1,40 @@
+# Edit this file to introduce tasks to be run by cron. 
+# m h  dom mon dow   command
+
+# crontabs deste usuario rodam a partir de /home/ubuntu ou ~/
+# permissoes de execucao: configurar git para filemode = true, para manter os direitos de execucao iguais a origem
+# fuso horario sao paulo = GMT -3
+
+# renovar certificado
+0 0 1 * * sudo certbot renew --quiet > /dev/null 2>&1
+
+# backup database
+0 21 * * * bash GRS_Manager/scripts/jobs/job_backup.sh > /dev/null 2>&1
+
+# limpar pastas
+0 21 * * * rm -f GRS_Manager/src/uploads/* > /dev/null 2>&1
+0 21 * * * rm -f GRS_Manager/src/downloads/* > /dev/null 2>&1
+
+# limpar log files (supervisor)
+0 21 */3 * * sudo rm /var/log/grsmanager/grsmanager.err.log && sudo touch /var/log/grsmanager/grsmanager.err.log > /dev/null 2>&1
+0 21 */3 * * sudo rm /var/log/grsmanager/grsmanager.out.log && sudo touch /var/log/grsmanager/grsmanager.out.log > /dev/null 2>&1
+
+
+# JOBS-------------------------------
+# inserir
+0 */4 * * * cd GRS_Manager && venv/bin/python3 scripts/jobs/main/job_inserir_exames.py > /dev/null 2>&1
+
+# atualizar
+0 */5 * * * cd GRS_Manager && venv/bin/python3 scripts/jobs/main/job_atualizar_exames.py > /dev/null 2>&1
+
+0 2 * * * cd GRS_Manager && venv/bin/python3 scripts/jobs/main/job_atualizar_tags.py > /dev/null 2>&1
+
+
+20 20 * * * cd GRS_Manager && venv/bin/python3 scripts/jobs/main/job_carregar_usuarios_soc.py > /dev/null 2>&1
+
+# commands
+0 */4 * * * cd GRS_Manager && venv/bin/flask carregar-empresas > /dev/null 2>&1
+0 */4 * * * cd GRS_Manager && venv/bin/flask carregar-unidades > /dev/null 2>&1
+0 */4 * * * cd GRS_Manager && venv/bin/flask carregar-cargos > /dev/null 2>&1
+0 */4 * * * cd GRS_Manager && venv/bin/flask carregar-pedidos > /dev/null 2>&1
+0 */4 * * * cd GRS_Manager && venv/bin/flask prestador carregar-prestadores > /dev/null 2>&1
