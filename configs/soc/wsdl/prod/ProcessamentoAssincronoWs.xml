@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:tns="http://services.soc.age.com/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="ProcessamentoAssincronoWsService" targetNamespace="http://services.soc.age.com/">
+    <wsdl:types>
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="http://services.soc.age.com/" elementFormDefault="unqualified" targetNamespace="http://services.soc.age.com/" version="1.0">
+
+            <xs:element name="incluirSolicitacao" type="tns:incluirSolicitacao"/>
+
+            <xs:element name="incluirSolicitacaoResponse" type="tns:incluirSolicitacaoResponse"/>
+
+            <xs:complexType name="incluirSolicitacao">
+                <xs:sequence>
+                    <xs:element name="ProcessamentoAssincronoWsVo" type="tns:processamentoAssincronoWsVo"/>
+                </xs:sequence>
+            </xs:complexType>
+
+            <xs:complexType name="processamentoAssincronoWsVo">
+                <xs:sequence>
+                    <xs:element name="identificacaoWsVo" type="tns:identificacaoUsuarioWsVo"/>
+                    <xs:element name="codigoEmpresa" type="xs:string"/>
+                    <xs:element name="tipoProcessamento" type="xs:string"/>
+                    <xs:element name="parametros" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+
+            <xs:complexType name="identificacaoUsuarioWsVo">
+                <xs:sequence>
+                    <xs:element name="codigoEmpresaPrincipal" type="xs:string"/>
+                    <xs:element name="codigoResponsavel" type="xs:string"/>
+                    <xs:element name="codigoUsuario" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+
+            <xs:complexType name="incluirSolicitacaoResponse">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="ProcessamentoAssincronoRetorno" type="tns:processoAssincronoRetornoWsVo"/>
+                </xs:sequence>
+            </xs:complexType>
+
+            <xs:complexType name="processoAssincronoRetornoWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="informacaoGeral" type="tns:webServiceInfoGeralVo"/>
+                    <xs:element minOccurs="0" name="codigoSolicitacao" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+
+            <xs:complexType name="webServiceInfoGeralVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="codigoMensagem" type="xs:string"/>
+                    <xs:element minOccurs="0" name="mensagem" type="xs:string"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="mensagemOperacaoDetalheList" nillable="true" type="tns:webServiceInfoOperacaoDetalheVo"/>
+                    <xs:element name="numeroErros" type="xs:int"/>
+                </xs:sequence>
+            </xs:complexType>
+
+            <xs:complexType name="webServiceInfoOperacaoDetalheVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="mensagem" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="incluirSolicitacaoResponse">
+        <wsdl:part element="tns:incluirSolicitacaoResponse" name="parameters">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="incluirSolicitacao">
+        <wsdl:part element="tns:incluirSolicitacao" name="parameters">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:portType name="ProcessamentoAssincronoWs">
+        <wsdl:operation name="incluirSolicitacao">
+            <wsdl:input message="tns:incluirSolicitacao" name="incluirSolicitacao">
+            </wsdl:input>
+            <wsdl:output message="tns:incluirSolicitacaoResponse" name="incluirSolicitacaoResponse">
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="ProcessamentoAssincronoWsServiceSoapBinding" type="tns:ProcessamentoAssincronoWs">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="incluirSolicitacao">
+            <soap:operation soapAction="" style="document"/>
+            <wsdl:input name="incluirSolicitacao">
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output name="incluirSolicitacaoResponse">
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="ProcessamentoAssincronoWsService">
+        <wsdl:port binding="tns:ProcessamentoAssincronoWsServiceSoapBinding" name="ProcessamentoAssincronoWsPort">
+            <soap:address location="https://ws1.soc.com.br/WSSoc/ProcessamentoAssincronoWs"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

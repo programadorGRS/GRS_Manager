@@ -5,7 +5,7 @@ from flask import Flask
 from pytz import timezone
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from .extensions import initialize_extensions
+from .extensions import initialize_extensions, database
 from .loggers import setup_loggers
 
 app = Flask(
@@ -31,6 +31,7 @@ app = setup_loggers(app=app)
 
 app = initialize_extensions(app=app)
 
+database = database
 
 UPLOAD_FOLDER = os.path.join(app.root_path, app.config["UPLOAD_FOLDER"])
 DOWNLOAD_FOLDER = os.path.join(app.root_path, app.config["DOWNLOAD_FOLDER"])

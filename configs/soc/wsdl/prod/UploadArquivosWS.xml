@@ -1,0 +1,246 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:tns="http://services.soc.age.com/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="UploadArquivosWsService" targetNamespace="http://services.soc.age.com/">
+    <wsdl:types>
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="http://services.soc.age.com/" attributeFormDefault="unqualified" elementFormDefault="unqualified" targetNamespace="http://services.soc.age.com/">
+            <xs:element name="updateGed" type="tns:updateGed"/>
+            <xs:element name="updateGedResponse" type="tns:updateGedResponse"/>
+            <xs:element name="uploadArquivo" type="tns:uploadArquivo"/>
+            <xs:element name="uploadArquivoResponse" type="tns:uploadArquivoResponse"/>
+            <xs:complexType name="uploadArquivo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="arg0" type="tns:uploadArquivosWsVo"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="uploadArquivosWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="arquivo" type="xs:base64Binary"/>
+                    <xs:element minOccurs="0" name="classificacao" type="tns:tipoClassificacaoUploadArquivoGedWs"/>
+                    <xs:element minOccurs="0" name="codigoEmpresa" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoFuncionario" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoGed" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoSequencialFicha" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoTipoGed" type="xs:string"/>
+                    <xs:element minOccurs="0" name="extensaoArquivo" type="tns:regrasArquivosGed"/>
+                    <xs:element minOccurs="0" name="identificacaoVo" type="tns:identificacaoUsuarioWsVo"/>
+                    <xs:element minOccurs="0" name="nomeArquivo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nomeGed" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nomeTipoGed" type="xs:string"/>
+                    <xs:element name="sobreescreveArquivo" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="codigoUnidadeGed" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataValidadeGed" type="xs:string"/>
+                    <xs:element minOccurs="0" name="revisaoGed" type="xs:string"/>
+                    <xs:element minOccurs="0" name="string01" type="xs:string"/>
+                    <xs:element minOccurs="0" name="observacao" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="identificacaoUsuarioWsVo">
+                <xs:complexContent>
+                    <xs:extension base="tns:identificacaoWsVo">
+                        <xs:sequence>
+                            <xs:element minOccurs="0" name="codigoUsuario" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="identificacaoWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="chaveAcesso" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoEmpresaPrincipal" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoResponsavel" type="xs:string"/>
+                    <xs:element name="homologacao" type="xs:boolean"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="uploadArquivoResponse">
+                <xs:sequence>
+                    <xs:element name="return" type="xs:boolean"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="updateGed">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="socged" type="tns:webServiceGedVo"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="webServiceGedVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="gedWsVo" type="tns:gedWsVo"/>
+                    <xs:element minOccurs="0" name="identificacaoWsVo" type="tns:identificacaoUsuarioWsVo"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="gedWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="codigoEmpresa" type="xs:string"/>
+                    <xs:element minOccurs="0" name="tipoBuscaEmpresa" type="tns:tipoBuscaEmpresaEnum"/>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nome" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoTipo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoUnidade" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataCriacao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataValidade" type="xs:string"/>
+                    <xs:element minOccurs="0" name="observacao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="revisao" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="updateGedResponse">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="return" type="tns:gedWsRetornoVo"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="gedWsRetornoVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="gedWsVo" type="tns:gedWsVo"/>
+                    <xs:element minOccurs="0" name="informacaoGeral" type="tns:webServiceInfoGeralVo"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="webServiceInfoGeralVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="codigoMensagem" type="xs:string"/>
+                    <xs:element minOccurs="0" name="mensagem" type="xs:string"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="mensagemOperacaoDetalheList" nillable="true" type="tns:webServiceInfoOperacaoDetalheVo"/>
+                    <xs:element name="numeroErros" type="xs:int"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="webServiceInfoOperacaoDetalheVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="mensagem" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:simpleType name="tipoClassificacaoUploadArquivoGedWs">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="GED"/>
+                    <xs:enumeration value="ASO"/>
+                    <xs:enumeration value="ASO_BRANCO"/>
+                    <xs:enumeration value="FICHA_CLINICA"/>
+                    <xs:enumeration value="FICHA_CLINICA_BRANCO"/>
+                    <xs:enumeration value="PEDIDO_EXAME"/>
+                    <xs:enumeration value="RESULTADO_EXAME"/>
+                    <xs:enumeration value="ENFERMAGEM"/>
+                    <xs:enumeration value="CONSULTA_ASSISTENCIAL"/>
+                    <xs:enumeration value="LICENCA_MEDICA"/>
+                    <xs:enumeration value="FICHA_PERSONALIZADA"/>
+                    <xs:enumeration value="RECEITA_MEDICA"/>
+                    <xs:enumeration value="ATESTADO"/>
+                    <xs:enumeration value="GESTAO_FAP"/>
+                    <xs:enumeration value="ACIDENTE"/>
+                    <xs:enumeration value="ENCAMINHAMENTO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="regrasArquivosGed">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="XLS"/>
+                    <xs:enumeration value="RTF"/>
+                    <xs:enumeration value="PDF"/>
+                    <xs:enumeration value="RPT"/>
+                    <xs:enumeration value="TXT"/>
+                    <xs:enumeration value="CSV"/>
+                    <xs:enumeration value="ZIP"/>
+                    <xs:enumeration value="HTML"/>
+                    <xs:enumeration value="XML"/>
+                    <xs:enumeration value="REM"/>
+                    <xs:enumeration value="DAT"/>
+                    <xs:enumeration value="XLX"/>
+                    <xs:enumeration value="XLSX"/>
+                    <xs:enumeration value="JPEG"/>
+                    <xs:enumeration value="BMP"/>
+                    <xs:enumeration value="GIF"/>
+                    <xs:enumeration value="JPG"/>
+                    <xs:enumeration value="WMF"/>
+                    <xs:enumeration value="PNG"/>
+                    <xs:enumeration value="TIFF"/>
+                    <xs:enumeration value="RAR"/>
+                    <xs:enumeration value="DOC"/>
+                    <xs:enumeration value="DOCX"/>
+                    <xs:enumeration value="PPS"/>
+                    <xs:enumeration value="PPT"/>
+                    <xs:enumeration value="PPSX"/>
+                    <xs:enumeration value="PBIX"/>
+                    <xs:enumeration value="TIF"/>
+                    <xs:enumeration value="MP4"/>
+                    <xs:enumeration value="SETE_ZIP"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoBuscaEmpresaEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CODIGO_SOC"/>
+                    <xs:enumeration value="CODIGO_CLIENTE"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:element name="WSException" type="tns:WSException"/>
+            <xs:complexType name="WSException">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="message" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="uploadArquivo">
+        <wsdl:part element="tns:uploadArquivo" name="parameters">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="updateGedResponse">
+        <wsdl:part element="tns:updateGedResponse" name="parameters">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="uploadArquivoResponse">
+        <wsdl:part element="tns:uploadArquivoResponse" name="parameters">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="WSException">
+        <wsdl:part element="tns:WSException" name="WSException">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="updateGed">
+        <wsdl:part element="tns:updateGed" name="parameters">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:portType name="UploadArquivosWs">
+        <wsdl:operation name="uploadArquivo">
+            <wsdl:input message="tns:uploadArquivo" name="uploadArquivo">
+            </wsdl:input>
+            <wsdl:output message="tns:uploadArquivoResponse" name="uploadArquivoResponse">
+            </wsdl:output>
+            <wsdl:fault message="tns:WSException" name="WSException">
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="updateGed">
+            <wsdl:input message="tns:updateGed" name="updateGed">
+            </wsdl:input>
+            <wsdl:output message="tns:updateGedResponse" name="updateGedResponse">
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="UploadArquivosWsServiceSoapBinding" type="tns:UploadArquivosWs">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="uploadArquivo">
+            <soap:operation soapAction="" style="document"/>
+            <wsdl:input name="uploadArquivo">
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output name="uploadArquivoResponse">
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="WSException">
+                <soap:fault name="WSException" use="literal"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="updateGed">
+            <soap:operation soapAction="" style="document"/>
+            <wsdl:input name="updateGed">
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output name="updateGedResponse">
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="UploadArquivosWsService">
+        <wsdl:port binding="tns:UploadArquivosWsServiceSoapBinding" name="UploadArquivosWsPort">
+            <soap:address location="https://ws1.soc.com.br/WSSoc/services/UploadArquivosWs"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

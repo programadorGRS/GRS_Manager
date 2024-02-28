@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:tns="http://services.soc.age.com/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="ExportaDadosWsService" targetNamespace="http://services.soc.age.com/">
+    <wsdl:types>
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="http://services.soc.age.com/" attributeFormDefault="unqualified" elementFormDefault="unqualified" targetNamespace="http://services.soc.age.com/">
+            <xs:element name="exportaDadosWs" type="tns:exportaDadosWs"/>
+            <xs:element name="exportaDadosWsResponse" type="tns:exportaDadosWsResponse"/>
+            <xs:complexType name="exportaDadosWs">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="arg0" type="tns:exportaDadosWsVo"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="exportaDadosWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="arquivo" type="xs:base64Binary"/>
+                    <xs:element minOccurs="0" name="campoLivre1" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoLivre2" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoLivre3" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoLivre4" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoLivre5" type="xs:string"/>
+                    <xs:element name="erro" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="mensagemErro" type="xs:string"/>
+                    <xs:element minOccurs="0" name="parametros" type="xs:string"/>
+                    <xs:element minOccurs="0" name="retorno" type="xs:string"/>
+                    <xs:element minOccurs="0" name="tipoArquivoRetorno" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="exportaDadosWsResponse">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="return" type="tns:exportaDadosWsVo"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:element name="WSException" type="tns:WSException"/>
+            <xs:complexType name="WSException">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="message" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="exportaDadosWs">
+        <wsdl:part element="tns:exportaDadosWs" name="parameters">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="WSException">
+        <wsdl:part element="tns:WSException" name="WSException">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="exportaDadosWsResponse">
+        <wsdl:part element="tns:exportaDadosWsResponse" name="parameters">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:portType name="ExportaDadosWs">
+        <wsdl:operation name="exportaDadosWs">
+            <wsdl:input message="tns:exportaDadosWs" name="exportaDadosWs">
+            </wsdl:input>
+            <wsdl:output message="tns:exportaDadosWsResponse" name="exportaDadosWsResponse">
+            </wsdl:output>
+            <wsdl:fault message="tns:WSException" name="WSException">
+            </wsdl:fault>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="ExportaDadosWsServiceSoapBinding" type="tns:ExportaDadosWs">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="exportaDadosWs">
+            <soap:operation soapAction="" style="document"/>
+            <wsdl:input name="exportaDadosWs">
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output name="exportaDadosWsResponse">
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="WSException">
+                <soap:fault name="WSException" use="literal"/>
+            </wsdl:fault>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="ExportaDadosWsService">
+        <wsdl:port binding="tns:ExportaDadosWsServiceSoapBinding" name="ExportaDadosWsPort">
+            <soap:address location="https://ws1.soc.com.br/WSSoc/services/ExportaDadosWs"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

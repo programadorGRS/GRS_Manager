@@ -584,8 +584,8 @@ class ConvExames(db.Model):
         slide = presentation.slides[1]
         shapes = slide.shapes
 
-        # total exames
-        shapes[3].shapes[1].text_frame.paragraphs[0].runs[0].text = str(len(df))
+        # total exames clínicos
+        shapes[3].shapes[1].text_frame.paragraphs[0].runs[0].text = str(len(df.query('nome_exame == "Exame Clínico"')))
 
         # total funcionarios
         shapes[4].shapes[1].text_frame.paragraphs[0].runs[0].text = str(
@@ -597,30 +597,8 @@ class ConvExames(db.Model):
             len(df) / len(df["id_funcionario"].drop_duplicates())
         )
 
-        qtds = df[["id_funcionario", "id_exame"]].groupby("id_funcionario").count()
-
-        # max exames/funcionario
-        maximo = qtds.max(skipna=True).values[0]
-        shapes[6].shapes[1].text_frame.paragraphs[0].runs[0].text = str(maximo)
-
-        # min exames/funcionario
-        minimo = qtds.min(skipna=True).values[0]
-        shapes[7].shapes[1].text_frame.paragraphs[0].runs[0].text = str(minimo)
-
-        # media exames/unidade
-        shapes[8].shapes[1].text_frame.paragraphs[0].runs[0].text = "{:.2f}".format(
-            len(df) / len(df["id_unidade"].drop_duplicates())
-        )
-
-        # media exames/setor
-        shapes[9].shapes[1].text_frame.paragraphs[0].runs[0].text = "{:.2f}".format(
-            len(df) / len(df["cod_setor"].drop_duplicates())
-        )
-
-        # media exames/cargo
-        shapes[10].shapes[1].text_frame.paragraphs[0].runs[0].text = "{:.2f}".format(
-            len(df) / len(df["cod_cargo"].drop_duplicates())
-        )
+        # total exames complementares
+        shapes[6].shapes[1].text_frame.paragraphs[0].runs[0].text = str(len(df.query('nome_exame != "Exame Clínico"')))
 
         # SLIDE 3 exames por mesAno ----------------------------------------------------
         slide = presentation.slides[2]
@@ -628,21 +606,7 @@ class ConvExames(db.Model):
 
         df["mesAno"] = df["refazer"].dt.strftime("%m/%Y")
 
-        qtds = df[["mesAno", "id_exame"]].groupby(by="mesAno").count()
-
-        # media exames/mes
-        media = qtds.mean(skipna=True).values[0]
-        shapes[3].shapes[1].text_frame.paragraphs[0].runs[0].text = "{:.2f}".format(
-            media
-        )
-
-        # min exames/mes
-        minimo = qtds.min(skipna=True).values[0]
-        shapes[4].shapes[1].text_frame.paragraphs[0].runs[0].text = str(minimo)
-
-        # max exames/mes
-        maximo = qtds.max(skipna=True).values[0]
-        shapes[5].shapes[1].text_frame.paragraphs[0].runs[0].text = str(maximo)
+        # qtds = df[["mesAno", "id_exame"]].groupby(by="mesAno").count()
 
         df["mes"] = df["refazer"].dt.month
         df["ano"] = df["refazer"].dt.year
@@ -665,7 +629,7 @@ class ConvExames(db.Model):
         dados.drop(labels=["Total"], axis=0, inplace=True)
 
         cls.editar_grafico(  # barras empilhadas
-            chart=slide.shapes[6].chart,
+            chart=slide.shapes[2].chart,
             categorias=list(dados.index),
             series={col: list(dados[col].values) for col in dados.columns},
         )
@@ -674,28 +638,33 @@ class ConvExames(db.Model):
         slide = presentation.slides[3]
         shapes = slide.shapes
 
-        qtds = df[["status", "id_exame"]].groupby(by="status").count()
+        # qtds = df[["status", "id_exame"]].groupby(by="status").count()
 
-        # media
-        media = qtds.mean(skipna=True).values[0]
-        shapes[3].shapes[1].text_frame.paragraphs[0].runs[0].text = "{:.2f}".format(
-            media
-        )
+        # Exames em dia
+        shapes[3].shapes[1].text_frame.paragraphs[0].runs[0].text = str(len(df.query('status == "Em dia"')))
 
-        # min
-        minimo = qtds.min(skipna=True).values[0]
-        shapes[4].shapes[1].text_frame.paragraphs[0].runs[0].text = str(minimo)
+        # Exames a vencer
+        shapes[4].shapes[1].text_frame.paragraphs[0].runs[0].text = str(len(df.query('status == "A vencer"')))
 
-        # max
-        maximo = qtds.max(skipna=True).values[0]
-        shapes[5].shapes[1].text_frame.paragraphs[0].runs[0].text = str(maximo)
+        # Exames Vencidos
+        shapes[5].shapes[1].text_frame.paragraphs[0].runs[0].text = str(len(df.query('status == "Vencido"')))
 
-        dados = df[["status", "id_exame"]].groupby("status").count()
-        dados["id_exame"] = dados["id_exame"] / dados["id_exame"].sum()
-        dados = dados.sort_values("id_exame", axis=0, ascending=False)
+        # Sem histórico de Exames
+        shapes[6].shapes[1].text_frame.paragraphs[0].runs[0].text = str(len(df.query('status == "Sem histórico"')))
+
+        df['exame_complementar'] = 'Exame Complementar'
+        df.loc[df['nome_exame'] == 'Exame Clínico', 'exame_complementar'] = 'Exame Clínico'
+
+        dados = df[df['exame_complementar'].isin(['Exame Complementar', 'Exame Clínico'])]
+
+        print(dados.index)
+
+        # dados = df[["status", "id_exame"]].groupby("status").count()
+        # dados["id_exame"] = dados["id_exame"] / dados["id_exame"].sum()
+        # dados = dados.sort_values("id_exame", axis=0, ascending=False)
 
         cls.editar_grafico(
-            chart=slide.shapes[6].chart,
+            chart=slide.shapes[7].chart,
             categorias=list(dados.index),
             series={"qtd": list(dados["id_exame"].values)},
         )

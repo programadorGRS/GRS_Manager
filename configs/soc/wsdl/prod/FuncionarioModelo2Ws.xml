@@ -1,0 +1,821 @@
+<?xml version='1.0' encoding='ISO-8859-1'?>
+<wsdl:definitions xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:tns="http://services.soc.age.com/"
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:ns1="http://schemas.xmlsoap.org/soap/http" name="FuncionarioModelo2WsService" targetNamespace="http://services.soc.age.com/">
+    <wsdl:types>
+        <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:tns="http://services.soc.age.com/" attributeFormDefault="unqualified" elementFormDefault="unqualified" targetNamespace="http://services.soc.age.com/">
+            <xs:element name="importacaoFuncionario" type="tns:importacaoFuncionario"/>
+            <xs:element name="importacaoFuncionarioResponse" type="tns:importacaoFuncionarioResponse"/>
+            <xs:complexType name="importacaoFuncionario">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="Funcionario" type="tns:Funcionario"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="Funcionario">
+                <xs:sequence>
+                    <xs:element name="atualizarCargo" type="xs:boolean"/>
+                    <xs:element name="atualizarCentroCusto" type="xs:boolean"/>
+                    <xs:element name="atualizarFuncionario" type="xs:boolean"/>
+                    <xs:element name="atualizarMotivoLicenca" type="xs:boolean"/>
+                    <xs:element name="atualizarSetor" type="xs:boolean"/>
+                    <xs:element name="atualizarTurno" type="xs:boolean"/>
+                    <xs:element name="atualizarUnidade" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="cargoWsVo" type="tns:funcionarioCargoWsVo"/>
+                    <xs:element minOccurs="0" name="centroCustoWsVo" type="tns:funcionarioCentroCustoWsVo"/>
+                    <xs:element name="criarCargo" type="xs:boolean"/>
+                    <xs:element name="criarCentroCusto" type="xs:boolean"/>
+                    <xs:element name="criarFuncionario" type="xs:boolean"/>
+                    <xs:element name="criarHistorico" type="xs:boolean"/>
+                    <xs:element name="criarMotivoLicenca" type="xs:boolean"/>
+                    <xs:element name="criarSetor" type="xs:boolean"/>
+                    <xs:element name="criarTurno" type="xs:boolean"/>
+                    <xs:element name="criarUnidade" type="xs:boolean"/>
+                    <xs:element name="criarUnidadeContratante" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="deficienciaWsVo" type="tns:deficienciaWsVo"/>
+                    <xs:element name="destravarFuncionarioBloqueado" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="funcionarioWsVo" type="tns:funcionarioWsVo"/>
+                    <xs:element minOccurs="0" name="identificacaoWsVo" type="tns:identificacaoUsuarioWsVo"/>
+                    <xs:element minOccurs="0" name="motivoLicencaWsVo" type="tns:funcionarioMotivoLicencaWsVo"/>
+                    <xs:element name="naoImportarFuncionarioSemHierarquia" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="setorWsVo" type="tns:setorWsVo"/>
+                    <xs:element minOccurs="0" name="turnoWsVo" type="tns:funcionarioTurnoWsVo"/>
+                    <xs:element minOccurs="0" name="unidadeContratanteWsVo" type="tns:funcionarioUnidadeWsVo"/>
+                    <xs:element minOccurs="0" name="unidadeWsVo" type="tns:funcionarioUnidadeWsVo"/>
+                    <xs:element name="transferirFuncionario" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="transferencia" type="tns:transferencia"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="funcionarioCargoWsVo">
+                <xs:sequence>
+                    <xs:element name="atualizaDescricaoRequisitosCargoPeloCbo" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="cbo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoRh" type="xs:string"/>
+                    <xs:element minOccurs="0" name="descricaoDetalhada" type="xs:string"/>
+                    <xs:element minOccurs="0" name="descricaoLocal" type="xs:string"/>
+                    <xs:element minOccurs="0" name="educacao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="experiencia" type="xs:string"/>
+                    <xs:element minOccurs="0" name="funcao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="gfip" type="xs:int"/>
+                    <xs:element minOccurs="0" name="habilidades" type="xs:string"/>
+                    <xs:element minOccurs="0" name="localTrabalho" type="xs:string"/>
+                    <xs:element minOccurs="0" name="materialUtilizado" type="xs:string"/>
+                    <xs:element minOccurs="0" name="mobiliarioUtilizado" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nome" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nomeLegal" type="xs:string"/>
+                    <xs:element minOccurs="0" name="orientacaoAso" type="xs:string"/>
+                    <xs:element minOccurs="0" name="requisitosFuncao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="status" type="tns:situacao"/>
+                    <xs:element minOccurs="0" name="tipoBusca" type="tns:tipoBuscaCargoEnum"/>
+                    <xs:element minOccurs="0" name="treinamento" type="xs:string"/>
+                    <xs:element minOccurs="0" name="atividadesPerigosasWsVo" type="tns:atividadesPerigosasWsVo"/>
+                    <xs:element name="criarHistoricoDescricao" type="xs:boolean"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="atividadesPerigosasWsVo">
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="codigoAtividadePerigosa" nillable="true" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="funcionarioCentroCustoWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoRh" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nome" type="xs:string"/>
+                    <xs:element minOccurs="0" name="tipoBusca" type="tns:tipoBuscaCentroCustoEnum"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="deficienciaWsVo">
+                <xs:sequence>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="cids" nillable="true" type="xs:string"/>
+                    <xs:element maxOccurs="unbounded" minOccurs="0" name="classificacaoDeficiencia" nillable="true" type="tns:funcionarioClassificacaoDeficienciaWsVo"/>
+                    <xs:element minOccurs="0" name="codigoLegislacaoReferencia" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoMedico" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataEmissaoLaudo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="deficiencia" type="xs:string"/>
+                    <xs:element minOccurs="0" name="deficiente" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="gravarHistorico" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="nomeLegislacaoReferencia" type="xs:string"/>
+                    <xs:element minOccurs="0" name="observacao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="origemDeficiencia" type="tns:origemDeficienciaEnum"/>
+                    <xs:element minOccurs="0" name="parecerLaudo" type="tns:parecerLaudoEnum"/>
+                    <xs:element minOccurs="0" name="reabilitado" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="tipoBuscaLegislacaoReferencia" type="tns:tipoBuscaEnum"/>
+                    <xs:element minOccurs="0" name="dataReabilitacao" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="funcionarioClassificacaoDeficienciaWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="classificacao" type="tns:classificacaoDeficienciaEnum"/>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nome" type="xs:string"/>
+                    <xs:element minOccurs="0" name="tipoBusca" type="tns:tipoBuscaEnum"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="funcionarioWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="autorizadoMensagemSms" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="bairro" type="xs:string"/>
+                    <xs:element name="campoInteiro01" type="xs:int"/>
+                    <xs:element name="campoInteiro02" type="xs:int"/>
+                    <xs:element name="campoInteiro03" type="xs:int"/>
+                    <xs:element name="campoInteiro04" type="xs:int"/>
+                    <xs:element name="campoInteiro05" type="xs:int"/>
+                    <xs:element name="campoInteiro06" type="xs:int"/>
+                    <xs:element name="campoInteiro07" type="xs:int"/>
+                    <xs:element name="campoInteiro08" type="xs:int"/>
+                    <xs:element name="campoInteiro09" type="xs:int"/>
+                    <xs:element name="campoInteiro10" type="xs:int"/>
+                    <xs:element minOccurs="0" name="campoString01" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString02" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString03" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString04" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString05" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString06" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString07" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString08" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString09" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString10" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString11" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString12" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString13" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString14" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString15" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString16" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString17" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString18" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString19" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString20" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString21" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString22" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString23" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString24" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString25" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString26" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString27" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString28" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString29" type="xs:string"/>
+                    <xs:element minOccurs="0" name="campoString30" type="xs:string"/>
+                    <xs:element minOccurs="0" name="carteiraNacionalSaude" type="xs:string"/>
+                    <xs:element minOccurs="0" name="categoria" type="tns:tipoCategoriaEnum"/>
+                    <xs:element minOccurs="0" name="cep" type="xs:string"/>
+                    <xs:element minOccurs="0" name="chaveProcuraFuncionario" type="tns:chaveProcura"/>
+                    <xs:element minOccurs="0" name="cidade" type="xs:string"/>
+                    <xs:element minOccurs="0" name="cipa" type="tns:tipoCipaEnum"/>
+                    <xs:element minOccurs="0" name="cipaDataFimMandato" type="xs:string"/>
+                    <xs:element minOccurs="0" name="cipaDataInicioMandato" type="xs:string"/>
+                    <xs:element minOccurs="0" name="cnpjEmpresaFuncionario" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoEmpresa" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoMunicipio" type="xs:string"/>
+                    <xs:element minOccurs="0" name="complementoEndereco" type="xs:string"/>
+                    <xs:element minOccurs="0" name="contatoEmergencia" type="xs:string"/>
+                    <xs:element minOccurs="0" name="cor" type="tns:corEnum"/>
+                    <xs:element minOccurs="0" name="cpf" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataAdmissao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataAfastamento" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataDemissao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataDemissionalCarta" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataEmissaoCtps" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataFinalEstabilidade" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataNascimento" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataUltimaMovimentacao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="desabilitarRisco" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="descricaoAtividade" type="xs:string"/>
+                    <xs:element minOccurs="0" name="email" type="xs:string"/>
+                    <xs:element minOccurs="0" name="endereco" type="xs:string"/>
+                    <xs:element minOccurs="0" name="enderecoEmergencia" type="xs:string"/>
+                    <xs:element minOccurs="0" name="escolaridade" type="tns:tipoEscolaridadeEnum"/>
+                    <xs:element minOccurs="0" name="estado" type="tns:estadosEnum"/>
+                    <xs:element minOccurs="0" name="estadoCivil" type="tns:estadoCivilEnum"/>
+                    <xs:element minOccurs="0" name="funcao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="funcaoBrigadaIncendio" type="tns:tipoFuncaoBrigadaEnum"/>
+                    <xs:element minOccurs="0" name="gfip" type="xs:int"/>
+                    <xs:element minOccurs="0" name="historicoPPP" type="tns:historicoPPP"/>
+                    <xs:element minOccurs="0" name="matricula" type="xs:string"/>
+                    <xs:element minOccurs="0" name="naoPossuiCpf" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="naoPossuiCtps" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="naoPossuiMatricula" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="naoPossuiPis" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="naturalidade" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nomeCooperativa" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nomeFuncionario" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nomeMae" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nrCtps" type="xs:string"/>
+                    <xs:element minOccurs="0" name="numeroEndereco" type="xs:string"/>
+                    <xs:element minOccurs="0" name="observacaoAso" type="xs:string"/>
+                    <xs:element minOccurs="0" name="observacaoEstabilidade" type="xs:string"/>
+                    <xs:element minOccurs="0" name="observacaoPpp" type="xs:string"/>
+                    <xs:element minOccurs="0" name="parentescoContatoEmergencia" type="xs:string"/>
+                    <xs:element minOccurs="0" name="pis" type="xs:string"/>
+                    <xs:element minOccurs="0" name="ramal" type="xs:string"/>
+                    <xs:element minOccurs="0" name="ramalTelefoneEmergencia" type="xs:string"/>
+                    <xs:element minOccurs="0" name="razaoSocialEmpresaFuncionario" type="xs:string"/>
+                    <xs:element minOccurs="0" name="regimeRevezamento" type="xs:string"/>
+                    <xs:element minOccurs="0" name="regimeTrabalho" type="tns:regimeTrabalhoEnum"/>
+                    <xs:element minOccurs="0" name="remuneracaoMensal" type="xs:decimal"/>
+                    <xs:element minOccurs="0" name="requisitosFuncao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="rg" type="xs:string"/>
+                    <xs:element minOccurs="0" name="rgDataEmissao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="rgOrgaoEmissor" type="xs:string"/>
+                    <xs:element minOccurs="0" name="rgUf" type="tns:estadosEnum"/>
+                    <xs:element minOccurs="0" name="serieCtps" type="xs:string"/>
+                    <xs:element minOccurs="0" name="sexo" type="tns:sexoEnum"/>
+                    <xs:element minOccurs="0" name="situacao" type="tns:situacaoFuncionario"/>
+                    <xs:element minOccurs="0" name="telefoneCelular" type="xs:string"/>
+                    <xs:element minOccurs="0" name="telefoneComercial" type="xs:string"/>
+                    <xs:element minOccurs="0" name="telefoneEmergencia" type="xs:string"/>
+                    <xs:element minOccurs="0" name="telefoneResidencial" type="xs:string"/>
+                    <xs:element minOccurs="0" name="telefoneSms" type="xs:string"/>
+                    <xs:element minOccurs="0" name="tipoBuscaEmpresa" type="tns:tipoBuscaEmpresaEnum"/>
+                    <xs:element minOccurs="0" name="tipoContratacao" type="tns:tipoContratacaoEnum"/>
+                    <xs:element minOccurs="0" name="ufCtps" type="tns:estadosEnum"/>
+                    <xs:element minOccurs="0" name="utilizarDescricaoRequisitoCargo" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="observacaoFuncionario" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoPaisNascimento" type="xs:string"/>
+                    <xs:element minOccurs="0" name="emailPessoal" type="xs:string"/>
+                    <xs:element minOccurs="0" name="matriculaRh" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoCategoriaESocial" type="xs:int"/>
+                    <xs:element minOccurs="0" name="genero" type="tns:generoEnum"/>
+                    <xs:element minOccurs="0" name="nomeSocial" type="xs:string"/>
+                    <xs:element minOccurs="0" name="tipoVinculo" type="tns:tipoVinculoEnum"/>
+                    <xs:element minOccurs="0" name="tipoAdmissao" type="tns:tipoAdmissaoEnum"/>
+                    <xs:element minOccurs="0" name="nomePai" type="xs:string"/>
+                    <xs:element minOccurs="0" name="atividadesPerigosasWsVo" type="tns:atividadesPerigosasWsVo"/>
+                    <xs:element minOccurs="0" name="tipoSanguineo" type="tns:tipoSanguineoEnum"/>
+                    <xs:element minOccurs="0" name="corDosOlhos" type="tns:corOlhoNorma13Enum"/>
+                    <xs:element minOccurs="0" name="grauInstrucao" type="tns:funcionarioGrauInstrucaoEnum"/>
+                    <xs:element minOccurs="0" name="cns" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataInicioPeriodoAquisitivo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataFimPeriodoAquisitivo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoRh" type="xs:string"/>
+                    <xs:element minOccurs="0" name="desconsiderarEsocial" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="codigoGenero" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataValidadeRg" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="identificacaoUsuarioWsVo">
+                <xs:complexContent>
+                    <xs:extension base="tns:identificacaoWsVo">
+                        <xs:sequence>
+                            <xs:element minOccurs="0" name="codigoUsuario" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:extension>
+                </xs:complexContent>
+            </xs:complexType>
+            <xs:complexType name="identificacaoWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="chaveAcesso" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoEmpresaPrincipal" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoResponsavel" type="xs:string"/>
+                    <xs:element name="homologacao" type="xs:boolean"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="funcionarioMotivoLicencaWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoDeIntegracao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nome" type="xs:string"/>
+                    <xs:element minOccurs="0" name="tipoBusca" type="tns:tipoBuscaMotivoLicencaEnum"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="setorWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoRh" type="xs:string"/>
+                    <xs:element minOccurs="0" name="descricao" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nome" type="xs:string"/>
+                    <xs:element minOccurs="0" name="observacaoAso" type="xs:string"/>
+                    <xs:element minOccurs="0" name="status" type="tns:situacao"/>
+                    <xs:element minOccurs="0" name="tipoBusca" type="tns:tipoBuscaSetorEnum"/>
+                    <xs:element name="criarHistoricoDescricao" type="xs:boolean"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="funcionarioTurnoWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="cargaHorariaSemanal" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nome" type="xs:string"/>
+                    <xs:element minOccurs="0" name="tipoBusca" type="tns:tipoBuscaTurnoEnum"/>
+                    <xs:element minOccurs="0" name="codigoRh" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="funcionarioUnidadeWsVo">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="bairro" type="xs:string"/>
+                    <xs:element minOccurs="0" name="bairroCobranca" type="xs:string"/>
+                    <xs:element minOccurs="0" name="cep" type="xs:string"/>
+                    <xs:element minOccurs="0" name="cepCobranca" type="xs:string"/>
+                    <xs:element minOccurs="0" name="cidade" type="xs:string"/>
+                    <xs:element minOccurs="0" name="cidadeCobranca" type="xs:string"/>
+                    <xs:element minOccurs="0" name="cnpj_cei" type="tns:cnpjCei"/>
+                    <xs:element minOccurs="0" name="codigo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoArquivo" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoCnae" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoCnpjCei" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoMunicipio" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoMunicipioCobranca" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoRh" type="xs:string"/>
+                    <xs:element minOccurs="0" name="complemento" type="xs:string"/>
+                    <xs:element minOccurs="0" name="complementoCobranca" type="xs:string"/>
+                    <xs:element minOccurs="0" name="dataAssinaturaContrato" type="xs:string"/>
+                    <xs:element minOccurs="0" name="descricaoCnae" type="xs:string"/>
+                    <xs:element minOccurs="0" name="endereco" type="xs:string"/>
+                    <xs:element minOccurs="0" name="enderecoCobranca" type="xs:string"/>
+                    <xs:element minOccurs="0" name="estado" type="xs:string"/>
+                    <xs:element minOccurs="0" name="estadoCobranca" type="xs:string"/>
+                    <xs:element minOccurs="0" name="grauRisco" type="xs:int"/>
+                    <xs:element minOccurs="0" name="inscricaoEstadual" type="xs:string"/>
+                    <xs:element minOccurs="0" name="inscricaoMunicipal" type="xs:string"/>
+                    <xs:element minOccurs="0" name="nome" type="xs:string"/>
+                    <xs:element minOccurs="0" name="numero" type="xs:string"/>
+                    <xs:element minOccurs="0" name="numeroCobranca" type="xs:string"/>
+                    <xs:element minOccurs="0" name="observacaoASO" type="xs:string"/>
+                    <xs:element minOccurs="0" name="observacaoContrato" type="xs:string"/>
+                    <xs:element minOccurs="0" name="observacaoPPP" type="xs:string"/>
+                    <xs:element minOccurs="0" name="percentualCalculoBrigada" type="xs:string"/>
+                    <xs:element minOccurs="0" name="razaoSocial" type="xs:string"/>
+                    <xs:element minOccurs="0" name="status" type="tns:situacao"/>
+                    <xs:element minOccurs="0" name="telefoneCat" type="xs:string"/>
+                    <xs:element minOccurs="0" name="tipoBusca" type="tns:tipoBuscaUnidadeEnum"/>
+                    <xs:element minOccurs="0" name="tipoCnae" type="tns:tipoCnae"/>
+                    <xs:element minOccurs="0" name="unidadeContratante" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="codigoCpf" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoCaepf" type="xs:string"/>
+                    <xs:element minOccurs="0" name="caracterizacaoProcessosAmbientesTrabalho" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoCno" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="transferencia">
+                <xs:sequence>
+                    <xs:element name="copiaFichaClinica" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="tipoFichaCopia" type="tns:tiposFichaClinicaWsVo"/>
+                    <xs:element name="copiaSocGed" type="xs:boolean"/>
+                    <xs:element name="valorizarExamesNaoCobradoNoDestino" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="dataTransferencia" type="xs:string"/>
+                    <xs:element name="copiaHistoricoLaboral" type="xs:boolean"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="tiposFichaClinicaWsVo">
+                <xs:sequence>
+                    <xs:element name="acidente" type="xs:boolean"/>
+                    <xs:element name="admissional" type="xs:boolean"/>
+                    <xs:element name="avaliacaoFisica" type="xs:boolean"/>
+                    <xs:element name="checkup" type="xs:boolean"/>
+                    <xs:element name="consulta" type="xs:boolean"/>
+                    <xs:element name="consultaAssist" type="xs:boolean"/>
+                    <xs:element name="demissional" type="xs:boolean"/>
+                    <xs:element name="enfermagem" type="xs:boolean"/>
+                    <xs:element name="especial" type="xs:boolean"/>
+                    <xs:element name="licencaMedica" type="xs:boolean"/>
+                    <xs:element name="mudancaFuncao" type="xs:boolean"/>
+                    <xs:element name="periodico" type="xs:boolean"/>
+                    <xs:element name="qualidadeVida" type="xs:boolean"/>
+                    <xs:element name="retornoConsulta" type="xs:boolean"/>
+                    <xs:element name="retornoTrabalho" type="xs:boolean"/>
+                    <xs:element name="terceiros" type="xs:boolean"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="importacaoFuncionarioResponse">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="FuncionarioRetorno" type="tns:retornoWsVo"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:complexType name="retornoWsVo">
+                <xs:sequence>
+                    <xs:element name="atualizouCargo" type="xs:boolean"/>
+                    <xs:element name="atualizouCentroCusto" type="xs:boolean"/>
+                    <xs:element name="atualizouFuncionario" type="xs:boolean"/>
+                    <xs:element name="atualizouRegistro" type="xs:boolean"/>
+                    <xs:element name="atualizouSetor" type="xs:boolean"/>
+                    <xs:element name="atualizouUnidade" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="codigoEmpresa" type="xs:string"/>
+                    <xs:element minOccurs="0" name="codigoFuncionario" type="xs:string"/>
+                    <xs:element minOccurs="0" name="descricaoErro" type="xs:string"/>
+                    <xs:element name="encontrouCargo" type="xs:boolean"/>
+                    <xs:element name="encontrouCentroCusto" type="xs:boolean"/>
+                    <xs:element name="encontrouErro" type="xs:boolean"/>
+                    <xs:element name="encontrouFuncionario" type="xs:boolean"/>
+                    <xs:element name="encontrouRegistro" type="xs:boolean"/>
+                    <xs:element name="encontrouSetor" type="xs:boolean"/>
+                    <xs:element name="encontrouUnidade" type="xs:boolean"/>
+                    <xs:element name="incluiuCargo" type="xs:boolean"/>
+                    <xs:element name="incluiuCentroCusto" type="xs:boolean"/>
+                    <xs:element name="incluiuFuncionario" type="xs:boolean"/>
+                    <xs:element name="incluiuRegistro" type="xs:boolean"/>
+                    <xs:element name="incluiuSetor" type="xs:boolean"/>
+                    <xs:element name="incluiuUnidade" type="xs:boolean"/>
+                    <xs:element minOccurs="0" name="observacao" type="xs:string"/>
+                    <xs:element name="atualizouMotivoLicenca" type="xs:boolean"/>
+                    <xs:element name="atualizouTurno" type="xs:boolean"/>
+                    <xs:element name="encontrouUnidadeContratante" type="xs:boolean"/>
+                    <xs:element name="encontrouMotivoLicenca" type="xs:boolean"/>
+                    <xs:element name="encontrouTurno" type="xs:boolean"/>
+                    <xs:element name="incluiuUnidadeContratante" type="xs:boolean"/>
+                    <xs:element name="incluiuMotivoLicenca" type="xs:boolean"/>
+                    <xs:element name="incluiuTurno" type="xs:boolean"/>
+                    <xs:element name="transferiuFuncionario" type="xs:boolean"/>
+                </xs:sequence>
+            </xs:complexType>
+            <xs:simpleType name="situacao">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="ATIVO"/>
+                    <xs:enumeration value="INATIVO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoBuscaCargoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CODIGO"/>
+                    <xs:enumeration value="CODIGO_RH"/>
+                    <xs:enumeration value="NOME"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoBuscaCentroCustoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CODIGO"/>
+                    <xs:enumeration value="CODIGO_RH"/>
+                    <xs:enumeration value="NOME"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="classificacaoDeficienciaEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="DEFICIENCIA_FISICA"/>
+                    <xs:enumeration value="DEFICIENCIA_AUDITIVA"/>
+                    <xs:enumeration value="DEFICIENCIA_VISUAL"/>
+                    <xs:enumeration value="DEFICIENCIA_MENTAL"/>
+                    <xs:enumeration value="DEFICIENCIA_MULTIPLA"/>
+                    <xs:enumeration value="REABILITACAO"/>
+                    <xs:enumeration value="DEFICIENCIA_INTELECTUAL"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoBuscaEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CODIGO"/>
+                    <xs:enumeration value="NOME"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="origemDeficienciaEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="ACIDENTE_DE_TRABALHO"/>
+                    <xs:enumeration value="CONGENITA"/>
+                    <xs:enumeration value="ACIDENTE_COMUM"/>
+                    <xs:enumeration value="DOENCA"/>
+                    <xs:enumeration value="ADQUIRIDA_EM_POS_OPERATORIO"/>
+                    <xs:enumeration value="DESCONHECIDA"/>
+                    <xs:enumeration value="OUTRAS"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="parecerLaudoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="APTO_PARA_FUNCAO"/>
+                    <xs:enumeration value="INAPTO_PARA_FUNCAO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoCategoriaEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="CONTRIB_INDIVIDUAL_AUTONOMO_CONTRATADO_EMPRESAS_GERAL"/>
+                    <xs:enumeration value="CONTRIB_INDIVIDUAL_AUTONOMO_CONTRATADO_CONTRIB_INDIVIDUAL_PESSOA_FISICA_OU_MISSAO_DIPLOMATICA_E_REPARTICAO_CONSULAR_ESTRANGEIRAS"/>
+                    <xs:enumeration value="CONTRIB_INDIVIDUAL_AUTONOMO_CONTRATADO_ENTIDADE_BENEFICENTE_ISENTA_COTA_PATRONAL"/>
+                    <xs:enumeration value="EXCLUIDO"/>
+                    <xs:enumeration value="CONTRIB_INDIVIDUAL_TRANSPORTADOR_AUTONOMO_CONTRATADO_EMPRESAS_GERAL"/>
+                    <xs:enumeration value="CONTRIB_INDIVIDUAL_TRANSPORTADOR_AUTONOMO_CONTRATADO_CONTRIB_INDIVIDUAL_PESSOA_FISICA_OU_MISSAO_DIPLOMATICA_E_REPARTICAO_CONSULAR_ESTRANGEIRAS"/>
+                    <xs:enumeration value="CONTRIB_INDIVIDUAL_TRANSPORTADOR_AUTONOMO_CONTRATADO_ENTIDADE_BENEFICENTE_ISENTA_COTA_PATRONAL"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="chaveProcura">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CODIGO"/>
+                    <xs:enumeration value="MATRICULA"/>
+                    <xs:enumeration value="MATRICULA_RH"/>
+                    <xs:enumeration value="CPF"/>
+                    <xs:enumeration value="DATA_NASCIMENTO"/>
+                    <xs:enumeration value="CPF_PENDENTE"/>
+                    <xs:enumeration value="CPF_ATIVO"/>
+                    <xs:enumeration value="CPF_DATA_ADMISSAO"/>
+                    <xs:enumeration value="CPF_DATA_ADMISSAO_PERIODO"/>
+                    <xs:enumeration value="CODIGO_RH"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoCipaEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="EFETIVO"/>
+                    <xs:enumeration value="SUPLENTE"/>
+                    <xs:enumeration value="RESPONSAVEL"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="corEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="BRANCO"/>
+                    <xs:enumeration value="NEGRO"/>
+                    <xs:enumeration value="AMARELO"/>
+                    <xs:enumeration value="PARDO"/>
+                    <xs:enumeration value="INDIGENA"/>
+                    <xs:enumeration value="MULATO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoEscolaridadeEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="ENSINO_FUNDAMENTAL_INCOMPLETO"/>
+                    <xs:enumeration value="ENSINO_FUNDAMENTAL_COMPLETO"/>
+                    <xs:enumeration value="ENSINO_MEDIO_INCOMPLETO"/>
+                    <xs:enumeration value="ENSINO_MEDIO_COMPLETO"/>
+                    <xs:enumeration value="ENSINO_SUPERIOR_INCOMPLETO"/>
+                    <xs:enumeration value="ENSINO_SUPERIOR_COMPLETO"/>
+                    <xs:enumeration value="PROFISSIONALIZANTE"/>
+                    <xs:enumeration value="TECNICO_INCOMPLETO"/>
+                    <xs:enumeration value="TECNICO_COMPLETO"/>
+                    <xs:enumeration value="TECNOLOGO_INCOMPLETO"/>
+                    <xs:enumeration value="TECNOLOGO_COMPLETO"/>
+                    <xs:enumeration value="POS_GRADUACAO_INCOMPLETA"/>
+                    <xs:enumeration value="POS_GRADUACAO_COMPLETA"/>
+                    <xs:enumeration value="MESTRADO_INCOMPLETO"/>
+                    <xs:enumeration value="MESTRADO_COMPLETO"/>
+                    <xs:enumeration value="DOUTORADO_INCOMPLETO"/>
+                    <xs:enumeration value="DOUTORADO_COMPLETO"/>
+                    <xs:enumeration value="PHD_INCOMPLETO"/>
+                    <xs:enumeration value="PHD_COMPLETO"/>
+                    <xs:enumeration value="NAO_INFORMADO"/>
+                    <xs:enumeration value="ANALFABETO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="estadosEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="AC"/>
+                    <xs:enumeration value="AL"/>
+                    <xs:enumeration value="AM"/>
+                    <xs:enumeration value="AP"/>
+                    <xs:enumeration value="BA"/>
+                    <xs:enumeration value="CE"/>
+                    <xs:enumeration value="DF"/>
+                    <xs:enumeration value="ES"/>
+                    <xs:enumeration value="GO"/>
+                    <xs:enumeration value="MA"/>
+                    <xs:enumeration value="MG"/>
+                    <xs:enumeration value="MS"/>
+                    <xs:enumeration value="MT"/>
+                    <xs:enumeration value="PA"/>
+                    <xs:enumeration value="PB"/>
+                    <xs:enumeration value="PE"/>
+                    <xs:enumeration value="PI"/>
+                    <xs:enumeration value="PR"/>
+                    <xs:enumeration value="RJ"/>
+                    <xs:enumeration value="RN"/>
+                    <xs:enumeration value="RO"/>
+                    <xs:enumeration value="RR"/>
+                    <xs:enumeration value="RS"/>
+                    <xs:enumeration value="SC"/>
+                    <xs:enumeration value="SE"/>
+                    <xs:enumeration value="SP"/>
+                    <xs:enumeration value="TO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="estadoCivilEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="SOLTEIRO"/>
+                    <xs:enumeration value="CASADO"/>
+                    <xs:enumeration value="SEPARADO"/>
+                    <xs:enumeration value="DIVORCIADO"/>
+                    <xs:enumeration value="VIUVO"/>
+                    <xs:enumeration value="OUTROS"/>
+                    <xs:enumeration value="DESQUITADO"/>
+                    <xs:enumeration value="UNIAO_ESTAVEL"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoFuncaoBrigadaEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="COORDENADOR_GERAL"/>
+                    <xs:enumeration value="LIDER"/>
+                    <xs:enumeration value="CHEFE_DE_BRIGADA"/>
+                    <xs:enumeration value="BRIGADISTA"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="historicoPPP">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EXIBIR"/>
+                    <xs:enumeration value="NAO_EXIBIR"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="regimeTrabalhoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="NORMAL"/>
+                    <xs:enumeration value="TURNO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="sexoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="MASCULINO"/>
+                    <xs:enumeration value="FEMININO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="situacaoFuncionario">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="ATIVO"/>
+                    <xs:enumeration value="AFASTADO"/>
+                    <xs:enumeration value="PENDENTE"/>
+                    <xs:enumeration value="FERIAS"/>
+                    <xs:enumeration value="INATIVO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoBuscaEmpresaEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CODIGO_SOC"/>
+                    <xs:enumeration value="CODIGO_CLIENTE"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoContratacaoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CLT"/>
+                    <xs:enumeration value="COOPERADO"/>
+                    <xs:enumeration value="TERCERIZADO"/>
+                    <xs:enumeration value="AUTONOMO"/>
+                    <xs:enumeration value="TEMPORARIO"/>
+                    <xs:enumeration value="PESSOA_JURIDICA"/>
+                    <xs:enumeration value="ESTAGIARIO"/>
+                    <xs:enumeration value="MENOR_APRENDIZ"/>
+                    <xs:enumeration value="ESTATUTARIO"/>
+                    <xs:enumeration value="COMISSIONADO_INTERNO"/>
+                    <xs:enumeration value="COMISSIONADO_EXTERNO"/>
+                    <xs:enumeration value="APOSENTADO"/>
+                    <xs:enumeration value="APOSENTADO_INATIVO_PREFEITURA"/>
+                    <xs:enumeration value="PENSIONISTA"/>
+                    <xs:enumeration value="SERVIDOR_PUBLICO_EFETIVO"/>
+                    <xs:enumeration value="EXTRANUMERARIO"/>
+                    <xs:enumeration value="AUTARQUICO"/>
+                    <xs:enumeration value="INATIVO"/>
+                    <xs:enumeration value="TITULO_PRECARIO"/>
+                    <xs:enumeration value="SERVIDOR_ADM_CENTRALIZADA_OU_DESCENTRALIZADA"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="generoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="TRAVESTI"/>
+                    <xs:enumeration value="TRANSEXUAL"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoVinculoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="EMPREGATICIO"/>
+                    <xs:enumeration value="ASSOCIATIVO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoAdmissaoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="ADMISSAO"/>
+                    <xs:enumeration value="TRANSFERENCIA_EMPRESA_MESMO_GRUPO"/>
+                    <xs:enumeration value="TRANSFERENCIA_EMPRESA_CONSORCIADA"/>
+                    <xs:enumeration value="TRANSFERENCIA_MOTIVO_SUCESSAO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoSanguineoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="NENHUM"/>
+                    <xs:enumeration value="O_POSITIVO"/>
+                    <xs:enumeration value="A_POSITIVO"/>
+                    <xs:enumeration value="AB_POSITIVO"/>
+                    <xs:enumeration value="B_POSITIVO"/>
+                    <xs:enumeration value="O_NEGATIVO"/>
+                    <xs:enumeration value="A_NEGATIVO"/>
+                    <xs:enumeration value="AB_NEGATIVO"/>
+                    <xs:enumeration value="B_NEGATIVO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="corOlhoNorma13Enum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="AZUL"/>
+                    <xs:enumeration value="AZUL_ESVERDEADO"/>
+                    <xs:enumeration value="CASTANHO"/>
+                    <xs:enumeration value="CINZA"/>
+                    <xs:enumeration value="VERDE"/>
+                    <xs:enumeration value="AVELA"/>
+                    <xs:enumeration value="AMBAR"/>
+                    <xs:enumeration value="VERMELHO"/>
+                    <xs:enumeration value="VIOLETA"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="funcionarioGrauInstrucaoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="EM_BRANCO"/>
+                    <xs:enumeration value="ANALFABETO"/>
+                    <xs:enumeration value="QUINTO_INCOMPLETO"/>
+                    <xs:enumeration value="QUINTO_COMPLETO"/>
+                    <xs:enumeration value="FUNDAMENTAL_INCOMPLETO"/>
+                    <xs:enumeration value="FUNDAMENTAL_COMPLETO"/>
+                    <xs:enumeration value="MEDIO_INCOMPLETO"/>
+                    <xs:enumeration value="MEDIO_COMPLETO"/>
+                    <xs:enumeration value="SUPERIOR_INCOMPLETO"/>
+                    <xs:enumeration value="SUPERIOR_COMPLETO"/>
+                    <xs:enumeration value="POS_GRADUACAO_COMPLETA"/>
+                    <xs:enumeration value="MESTRADO_COMPLETO"/>
+                    <xs:enumeration value="DOUTORADO_COMPLETO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoBuscaMotivoLicencaEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CODIGO"/>
+                    <xs:enumeration value="CODIGO_INTEGRACAO"/>
+                    <xs:enumeration value="NOME"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoBuscaSetorEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CODIGO"/>
+                    <xs:enumeration value="CODIGO_RH"/>
+                    <xs:enumeration value="NOME"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoBuscaTurnoEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CODIGO"/>
+                    <xs:enumeration value="NOME"/>
+                    <xs:enumeration value="CODIGO_RH"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="cnpjCei">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CNPJ"/>
+                    <xs:enumeration value="CEI"/>
+                    <xs:enumeration value="CPF"/>
+                    <xs:enumeration value="CAEPF"/>
+                    <xs:enumeration value="CNO"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoBuscaUnidadeEnum">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CODIGO"/>
+                    <xs:enumeration value="CODIGO_RH"/>
+                    <xs:enumeration value="NOME"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:simpleType name="tipoCnae">
+                <xs:restriction base="xs:string">
+                    <xs:enumeration value="CNAE"/>
+                    <xs:enumeration value="CNAE_2"/>
+                    <xs:enumeration value="CNAE_7"/>
+                    <xs:enumeration value="CNAE_LIVRE"/>
+                </xs:restriction>
+            </xs:simpleType>
+            <xs:element name="WSException" type="tns:WSException"/>
+            <xs:complexType name="WSException">
+                <xs:sequence>
+                    <xs:element minOccurs="0" name="message" type="xs:string"/>
+                </xs:sequence>
+            </xs:complexType>
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="importacaoFuncionarioResponse">
+        <wsdl:part element="tns:importacaoFuncionarioResponse" name="parameters">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="WSException">
+        <wsdl:part element="tns:WSException" name="WSException">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:message name="importacaoFuncionario">
+        <wsdl:part element="tns:importacaoFuncionario" name="parameters">
+        </wsdl:part>
+    </wsdl:message>
+    <wsdl:portType name="FuncionarioModelo2Ws">
+        <wsdl:operation name="importacaoFuncionario">
+            <wsdl:input message="tns:importacaoFuncionario" name="importacaoFuncionario">
+            </wsdl:input>
+            <wsdl:output message="tns:importacaoFuncionarioResponse" name="importacaoFuncionarioResponse">
+            </wsdl:output>
+            <wsdl:fault message="tns:WSException" name="WSException">
+            </wsdl:fault>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="FuncionarioModelo2WsServiceSoapBinding" type="tns:FuncionarioModelo2Ws">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="importacaoFuncionario">
+            <soap:operation soapAction="" style="document"/>
+            <wsdl:input name="importacaoFuncionario">
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output name="importacaoFuncionarioResponse">
+                <soap:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="WSException">
+                <soap:fault name="WSException" use="literal"/>
+            </wsdl:fault>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="FuncionarioModelo2WsService">
+        <wsdl:port binding="tns:FuncionarioModelo2WsServiceSoapBinding" name="FuncionarioModelo2WsPort">
+            <soap:address location="https://ws1.soc.com.br/WSSoc/FuncionarioModelo2Ws"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

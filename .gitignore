@@ -1,20 +1,20 @@
 # My filesxlsx
 #*.zip
-*.csv
-*.xlsx
-*.xls
-*.pdf
-*.json
-*.pem
+#*.csv
+#*.xlsx
+#*.xls
+#*.pdf
+#*.json
+#*.pem
 *.Identifier
 
 # My folders
-db/
-aws/
-keys/
+#db/
+#aws/
+#keys/
 documents/
-configs/
-src/soc_web_service/xml/
+#configs/
+#src/soc_web_service/xml/
 test/test_files
 
 # Flask
