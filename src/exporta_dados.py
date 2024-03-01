@@ -716,6 +716,7 @@ class ExportaDadosWS(database.Model):
             'empresaTrabalho':cod_empresa_trab,
             'codigoSolicitacao':cod_sol
         }
+        print(parametro)
         return parametro
 
     @staticmethod

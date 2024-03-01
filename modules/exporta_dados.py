@@ -38,6 +38,7 @@ def request(parametro: str, encoding: str='ISO-8859-1') -> str:
      </ser:exportaDadosWs>
      </soapenv:Body>
     </soapenv:Envelope>"""
+    print(body)
     # print('Enviando request...')
     resposta = requests.post(url, data=body, headers=headers)
     conteudo = resposta.content

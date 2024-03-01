@@ -69,7 +69,7 @@ def criar_ped_proc(id_empresa: list[int] | int | None):
     return None
 
 
-def __get_proc_assinc_configs():
+def s__get_proc_assinc_configs():
     wsdl = os.path.join(
         "configs", "soc", "wsdl", "prod", "ProcessamentoAssincronoWs.xml"
     )

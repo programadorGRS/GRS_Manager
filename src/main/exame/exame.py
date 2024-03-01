@@ -140,6 +140,7 @@ class Exame(database.Model):
         df = exporta_dados(parametro=par)
 
         if not df.empty:
+            #print(df)
             exames_db = pd.read_sql(
                 sql=(
                     database.session.query(
@@ -151,7 +152,7 @@ class Exame(database.Model):
                 con=database.session.bind
             )
 
-            if not exames_db.empty:
+            if not exames_db.empty:                
                 df = pd.merge(
                     df,
                     exames_db,

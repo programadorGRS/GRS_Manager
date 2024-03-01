@@ -22,6 +22,7 @@ if __name__ == "__main__":
 
         for empresa_principal in EMPRESAS_PRINCIPAIS:
             for i in range(TENTATIVAS):
+                print(empresa_principal)
                 print(
                     f"{empresa_principal.nome} - {ACAO} {NOME_TABELA} - tentativa: {i + 1}/{TENTATIVAS}",
                     end=" - ",

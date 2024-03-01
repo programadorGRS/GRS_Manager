@@ -521,6 +521,7 @@ class ExportaDados(SOCWebService):
             'empresaTrabalho':cod_empresa_trab,
             'codigoSolicitacao':cod_sol
         }
+        print(parametro)
         return parametro
 
     def cadastro_pessoas_usuarios(

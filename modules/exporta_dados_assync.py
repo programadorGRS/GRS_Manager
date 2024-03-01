@@ -189,4 +189,5 @@ def param_consulta_conv_exames_assync(
         'empresaTrabalho':cod_empresa_trab,
         'codigoSolicitacao':cod_sol
     }
+    print(parametro)
     return parametro
