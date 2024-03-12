@@ -17,13 +17,18 @@ app = Flask(
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 
 # carregar configs universais
-
-app.config.from_file("../configs/email.json", load=json.load) #LINUX
+try:
+    app.config.from_file("../configs/email.json", load=json.load)
+except:
+    app.config.from_file("..\configs\email.json", load=json.load)
 
 env = app.config.get("ENV")
 if env == "production":
     # using mysql    
-    app.config.from_file("../configs/prod.json", load=json.load) #LINUX    
+    try:
+        app.config.from_file("../configs/prod.json", load=json.load)
+    except:
+        app.config.from_file("..\configs\prod.json", load=json.load) 
     #app.config.from_file("../configs/hml.json", load=json.load) #Windows
 else:
     # using sqlite

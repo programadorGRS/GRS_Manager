@@ -71,7 +71,7 @@ def login():
         pwd_hash = usuario.senha.encode("utf-8")
         pwd_input = form.senha.data
         if bcrypt.check_password_hash(pw_hash=pwd_hash, password=pwd_input):
-            ''''' #Remover para autenticacao de 2 fatores
+            '''''
             # gerar otp
             otp = base64.b32encode(os.urandom(10)).decode("utf-8")
             usuario.otp = bcrypt.generate_password_hash(otp).decode("utf-8")
@@ -116,11 +116,11 @@ def login():
             flash("A chave temporária foi enviada para o seu email", "alert-info")
             return redirect(url_for("user_auth.login_otp"))
             '''''
-            '''''
+            
             #Remover ate o final do return redirect(url_for("home.home")) para habilitar os 2 fatores
-            '''''
+            
             # remover username da sessao
-            del session["username"]
+            #del session["username"]
 
             login_user(usuario)
 
@@ -138,6 +138,7 @@ def login():
 
             flash(f"Logado com sucesso em: {usuario.username}", "alert-success")
             return redirect(url_for("home.home"))
+            
         else:
             Login.log_attempt(
                 username=username,
