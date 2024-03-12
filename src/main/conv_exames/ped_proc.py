@@ -105,11 +105,12 @@ class PedidoProcessamento(db.Model):
 
         try:
             proc_assinc = cls.__setup_proc_assinc(wsdl=wsdl, ws_keys=ws_keys)
+            
         except Exception as e:
             infos.ok = False
             infos.add_error(str(e))
             return infos
-
+        
         par = cls._setup_param(
             id_empresa=empresa.id_empresa, proc_assinc=proc_assinc
         )
@@ -121,10 +122,12 @@ class PedidoProcessamento(db.Model):
         body = cls.__setup_request_body(
             cod_empresa=empresa.cod_empresa, proc_assinc=proc_assinc, param=par
         )
-
+        #print(body)
         try:
             proc_assinc.set_client_username_token()
             resp = proc_assinc.call_service(request_body=body)
+            print(f'BODY{body}')
+            print(f'RESPOSTA{resp}')
         except Exception as e:
             infos.ok = False
             infos.add_error(f"Erro no request: {str(e)}")

@@ -12,7 +12,7 @@ class ProcessamentoAssincrono(SOCWebServiceV2):
 
     def call_service(self, request_body: dict) -> object | Response:
         self.attribute_required("client")
-        resp = self.client.service.incluirSolicitacao(request_body)  # type: ignore
+        resp = self.client.service.incluirSolicitacao(request_body)  # type: ignore        
         return resp
 
     def build_request_body(

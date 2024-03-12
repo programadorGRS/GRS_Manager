@@ -67,20 +67,20 @@ class SOCWebServiceV2:
         if add_timestamp_token:
             username_token.timestamp_token = self.__generate_timestamp_token()
 
-        self.client.wsse = username_token  # type: ignore
-
+        self.client.wsse = username_token  # type: ignore        
         return None
 
     def __generate_timestamp_token(self):
         """Gera Timestamp Token em UTC-0 de acordo com WSSE."""
         timestamp_token = WSU.Timestamp()
         today_datetime = datetime.utcnow()
-        expires_datetime = today_datetime + timedelta(minutes=10)
+        expires_datetime = today_datetime + timedelta(minutes=60)
         timestamp_elements = [
             WSU.Created(today_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")),
             WSU.Expires(expires_datetime.strftime("%Y-%m-%dT%H:%M:%SZ")),
         ]
         timestamp_token.extend(timestamp_elements)
+        
         return timestamp_token
 
     def generate_identificacaoUsuarioWsVo(self, homologacao: bool = False):

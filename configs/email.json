@@ -3,9 +3,9 @@
     "MAIL_DEBUG": false,
     "MAIL_SERVER": "smtp.office365.com",
     "MAIL_PORT": 587,
-    "MAIL_USERNAME": "programador@grsnucleo.com.br",
-    "MAIL_DEFAULT_SENDER" : "programador@grsnucleo.com.br",
-    "MAIL_PASSWORD": "bbtrzgqrydhhckyc",
+    "MAIL_USERNAME": "aso.manager@grsnucleo.com.br",
+    "MAIL_DEFAULT_SENDER" : "aso.manager@grsnucleo.com.br",
+    "MAIL_PASSWORD": "Robot-Spammer-Clinton-Driver-Suite-Mountain",
     "MAIL_USE_TLS": true,
     "MAIL_USE_SSL": false,
 

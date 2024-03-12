@@ -33,8 +33,6 @@ if __name__ == '__main__':
         )
         
         for empresa in empresas:
-            print(empresa)
-
             # buscar ped proc mais recente
             ped_proc: PedidoProcessamento = (
                 database.session.query(PedidoProcessamento)

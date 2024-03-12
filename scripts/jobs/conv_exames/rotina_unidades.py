@@ -33,8 +33,7 @@ if __name__ == '__main__':
             .all()
         )
         
-        for unidade in unidades:
-            print(unidade)
+        for unidade in unidades:            
             empresa: Empresa = Empresa.query.get(unidade.id_empresa)
 
             # buscar ped proc mais recente
