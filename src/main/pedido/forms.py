@@ -3,7 +3,8 @@ from flask_wtf.file import FileAllowed, FileField, FileRequired
 from wtforms import (DateField, IntegerField, SelectField, StringField,
                      SubmitField, TextAreaField)
 from wtforms.validators import DataRequired, Length, Optional, ValidationError
-
+from wtforms import (BooleanField, DateField, IntegerField, SelectField,
+                     StringField)
 from ..empresa_principal.empresa_principal import EmpresaPrincipal
 from ..grupo.grupo import Grupo
 from ..status.status import Status
@@ -39,6 +40,7 @@ class FormBuscarASO(FlaskForm):
     nome_funcionario = StringField(
         "Nome Funcionário", validators=[Optional(), Length(0, 255)]
     )
+    
 
     def validate_data_inicio(self, data_inicio):
         if data_inicio.data and self.data_fim.data:
@@ -87,6 +89,7 @@ class FormAtualizarStatus(FlaskForm):
     obs = TextAreaField(
         "Observação (Max 255 caracteres)", validators=[Optional(), Length(0, 255)]
     )
+    prontuario_conferido = BooleanField("Prontuário completo conferido", validators=[Optional()])
 
     def load_choices(self):
         default_choice = [("", "Selecione")]

@@ -1,5 +1,5 @@
 {
-    "ENV": "hml",
+    "ENV": "production",
     "FLASK_DEBUG": false,
     "DEBUG": false,
     "TESTING": false,
@@ -15,8 +15,8 @@
     "SECRET_KEY": "b6fbb3d69ae8bf9649ae465b24ef4e5f82da668fd8a79891bbe4a7fd2f7d8957",
     
     "DATABASE_USER": "root",
-    "DATABASE_PASSWORD": "root",
-    "SQLALCHEMY_DATABASE_URI": "mysql+pymysql://root:root@localhost/manager_db2",
+    "DATABASE_PASSWORD": "Super-Crates-Tuesday-Diamond47",
+    "SQLALCHEMY_DATABASE_URI": "mysql+pymysql://root:Super-Crates-Tuesday-Diamond47@localhost/manager_dbHml",
     "SQLALCHEMY_TRACK_MODIFICATIONS": false,
     "SQLALCHEMY_ECHO": false,
     
@@ -36,6 +36,6 @@
     "STD_LOG_FILE": "stdlog.log",
     "ERR_LOG_FILE": "errlog.log",
 
-    "RATELIMIT_ENABLED": true,
+    "RATELIMIT_ENABLED": false,
     "RATELIMIT_STORAGE_URI": "redis://:Useless-Torque-July-Frog-Temptation-Character-Hell-Steel-Bravery-Host-Satan@localhost:6379"
 }

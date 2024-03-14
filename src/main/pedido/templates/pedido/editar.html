@@ -1,6 +1,6 @@
 {% extends 'base/base_default.html' %}
 
-{% from "macros.html" import render_form_field %}
+{% from 'macros.html' import render_form_field, render_checkbox_field %}
 
 {% block body %}
 
@@ -75,6 +75,12 @@
                     <div class="w-49">{{ render_form_field(form.data_comparecimento) }}</div>
                 </div>
                 {{ render_form_field(form.obs) }}
+                {% if pedido.prontuario_conferido %}
+                    <div class="form-check">{{ render_checkbox_field(form.prontuario_conferido, kwargs={'checked': True}) }}</div>
+                {% else %}
+                    <div class="form-check">{{ render_checkbox_field(form.prontuario_conferido, kwargs={'checked': False}) }}</div>
+                {% endif %}
+                
             </fieldset>
 
             <hr>
