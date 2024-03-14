@@ -1,0 +1,18 @@
+{
+    "MAIL_SUPPRESS_SEND": false,
+    "MAIL_DEBUG": false,
+    "MAIL_SERVER": "smtp.office365.com",
+    "MAIL_PORT": 587,
+    "MAIL_USERNAME": "aso.manager@grsnucleo.com.br",
+    "MAIL_DEFAULT_SENDER" : "aso.manager@grsnucleo.com.br",
+    "MAIL_PASSWORD": "Naw37703",
+    "MAIL_USE_TLS": true,
+    "MAIL_USE_SSL": false,
+
+    "SENDER_NAME": "GRS+Connect Bot",
+    "IMG_ASSINATURA": "src/static/images/ass_bot2.png",
+    "TEMPLATES_FOLDER": "src/email_connect/templates",
+
+    "SEND_RETRIES": 3,
+    "RETRY_DELAY": 30
+}

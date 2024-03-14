@@ -1,0 +1,9 @@
+{
+    "URL": "https://ws1.soc.com.br/WSSoc/services/ExportaDadosWs",
+    "URL_POST":"https://ws1.soc.com.br/WebSoc/exportadados?parametro=",
+    "REQUEST_XML_PATH": "src/exporta_dados/exporta_dados.xml",
+
+    "PROC_ASSYNC_WSDL_URL": "https://ws1.soc.com.br/WSSoc/ProcessamentoAssincronoWs?wsdl",
+    "PROC_ASSYNC_SERVICE_URL": "https://ws1.soc.com.br/WSSoc/ProcessamentoAssincronoWs"
+}
+

@@ -1,0 +1,5 @@
+{
+    "EXPORTA_DADOS_URL": "https://ws1.soc.com.br/WSSoc/services/ExportaDadosWs?wsdl",
+    "MODELO_2_PROD_URL": "https://ws1.soc.com.br/WSSoc/FuncionarioModelo2Ws?wsdl",
+    "MODELO_2_TESTE": "https://www.p-soc.com.br/WSSoc/FuncionarioModelo2Ws?wsdl"
+}

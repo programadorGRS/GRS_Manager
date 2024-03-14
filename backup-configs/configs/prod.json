@@ -1,0 +1,33 @@
+{
+    "ENV": "production",
+    "FLASK_DEBUG": false,
+    "DEBUG": false,
+    "TESTING": false,
+
+    "UPLOAD_FOLDER": "uploads",
+    "MAX_UPLOAD_SIZE_MB": 10,
+    "DOWNLOAD_FOLDER": "downloads",
+
+    "TIMEZONE": "America/Sao_Paulo",
+    
+    "SECRET_KEY": "b6fbb3d69ae8bf9649ae465b24ef4e5f82da668fd8a79891bbe4a7fd2f7d8957",
+
+    "DATABASE_USER": "root",
+    "DATABASE_PASSWORD": "GolfBravoSierra_479",
+    "SQLALCHEMY_DATABASE_URI": "mysql+pymysql://root:GolfBravoSierra_479@localhost/manager_db2",
+    "SQLALCHEMY_TRACK_MODIFICATIONS": false,
+    "SQLALCHEMY_ECHO": false,
+    
+    "SESSION_PROTECTION": "strong",
+    "SESSION_PERMANENT": false,
+    "PERMANENT_SESSION_LIFETIME": 21600,
+    "SESSION_COOKIE_HTTPONLY": true,
+    "SESSION_COOKIE_SECURE": true,
+    "SESSION_COOKIE_SAMESITE": "Lax",
+
+    "JSON_SORT_KEYS": false,
+
+    "WKHTMLTOPDF_PATH": "/usr/local/bin/wkhtmltopdf",
+
+    "HOME_DASHBOARD_URL": "https://app.powerbi.com/view?r=eyJrIjoiZTk5ZDg2NzctYWNjNy00YTg3LTkzN2QtZmQyY2ZkZDA5OGY1IiwidCI6IjZhNTk3Y2M5LTk2Y2ItNDM3Yi05MmE4LTFmMjcwMGI4M2NkMSJ9"
+}
