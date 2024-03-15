@@ -125,7 +125,7 @@ class PedidoProcessamento(db.Model):
         #print(body)
         try:
             proc_assinc.set_client_username_token()
-            resp = proc_assinc.call_service(request_body=body)
+            resp = proc_assinc.call_service(request_body=body)            
             print(f'BODY{body}')
             print(f'RESPOSTA{resp}')
         except Exception as e:
@@ -206,6 +206,8 @@ class PedidoProcessamento(db.Model):
     @staticmethod
     def __get_errors(resp: Any):
         info_geral = getattr(resp, "informacaoGeral", None)
+
+        print(f'Inforgerar {info_geral}')
 
         num_erros = getattr(info_geral, "numeroErros", 0)
         if not num_erros:
