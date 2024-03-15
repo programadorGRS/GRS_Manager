@@ -89,7 +89,7 @@ class FormAtualizarStatus(FlaskForm):
     obs = TextAreaField(
         "Observação (Max 255 caracteres)", validators=[Optional(), Length(0, 255)]
     )
-    prontuario_conferido = BooleanField("Prontuário completo conferido", validators=[Optional()])
+    #prontuario_conferido = BooleanField("Prontuário completo conferido", validators=[Optional()])
 
     def load_choices(self):
         default_choice = [("", "Selecione")]
