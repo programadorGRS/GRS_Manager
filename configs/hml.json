@@ -16,7 +16,7 @@
     
     "DATABASE_USER": "root",
     "DATABASE_PASSWORD": "Super-Crates-Tuesday-Diamond47",
-    "SQLALCHEMY_DATABASE_URI": "mysql+pymysql://root:Super-Crates-Tuesday-Diamond47@localhost/manager_dbHml",
+    "SQLALCHEMY_DATABASE_URI": "mysql+pymysql://root:Super-Crates-Tuesday-Diamond47@localhost/manager_db2Hml",
     "SQLALCHEMY_TRACK_MODIFICATIONS": false,
     "SQLALCHEMY_ECHO": false,
     
