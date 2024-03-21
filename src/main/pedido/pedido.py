@@ -84,7 +84,7 @@ class Pedido(db.Model, CarregarPedidos):
     alterado_por = db.Column(db.String(50))
 
     last_server_update = db.Column(db.DateTime)
-    #prontuario_conferido = db.Column(db.Boolean, nullable=False, default=True)
+    prontuario_conferido = db.Column(db.Boolean, nullable=False, default=True)
 
     # colunas para a planilha de pedidos
     COLS_CSV = [
