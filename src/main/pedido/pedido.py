@@ -72,6 +72,7 @@ class Pedido(db.Model, CarregarPedidos):
     data_recebido = db.Column(db.Date)
     data_comparecimento = db.Column(db.Date)
     obs = db.Column(db.String(255))
+    prontuario_conferido = db.Column(db.Integer)
 
     data_inclusao = db.Column(
         db.DateTime,
@@ -110,6 +111,7 @@ class Pedido(db.Model, CarregarPedidos):
         "data_recebido",
         "data_comparecimento",
         "obs",
+        "prontuario_conferido",
     ]
 
     COLS_EMAIL = {
@@ -140,6 +142,7 @@ class Pedido(db.Model, CarregarPedidos):
         seq_ficha: int | None = None,
         nome_funcionario: str | None = None,
         obs: str | None = None,
+        prontuario_conferido: int | None = None,
     ) -> BaseQuery:
         """Realiza busca na tabela de Pedidos usando LEFT JOIN com Grupo
 
@@ -157,6 +160,7 @@ class Pedido(db.Model, CarregarPedidos):
             (seq_ficha, (cls.seq_ficha == seq_ficha)),
             (nome_funcionario, (cls.nome_funcionario.like(f"%{nome_funcionario}%"))),
             (obs, (cls.obs.like(f"%{obs}%"))),
+            (prontuario_conferido, (cls.prontuario_conferido == prontuario_conferido)),
         )
 
         filtros = []
