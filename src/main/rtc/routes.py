@@ -32,6 +32,7 @@ rtc = Blueprint(
 
 MODELOS_RTC = os.path.join(rtc.root_path, rtc.template_folder, "rtc", "modelos")  # type: ignore
 RTC_DEFAULT = os.path.join(rtc.root_path, rtc.template_folder, "rtc", "modelos", "rtc_default.html")  # type: ignore
+RTCREGRASVIDA_DEFAULT = os.path.join(rtc.root_path, rtc.template_folder, "rtc", "modelos", "rtc_regrasvida.html")  # type: ignore
 
 LOGOS_EMPRESAS = os.path.join(app.static_folder, "logos", "empresas")  # type: ignore
 LOGO_DEFAULT = os.path.join(LOGOS_EMPRESAS, "grs.png")
@@ -60,7 +61,7 @@ def gerar_rtcs():
     query = Pedido.buscar_pedidos(**data)
 
     total = Pedido.get_total_busca(query=query)
-
+    #Ao clicar no botao de GERAR
     if form.validate_on_submit():
         gera_rtc = GerarRTC()
 
@@ -79,6 +80,8 @@ def gerar_rtcs():
                 temp_body = __get_company_rtc_template(
                     temp_path=os.path.join(MODELOS_RTC, infos.empresa.modelo_rtc)
                 )
+                print(RTCREGRASVIDA_DEFAULT)
+                temp_bodyRegrasVida = __get_company_rtc_template(temp_path=RTCREGRASVIDA_DEFAULT)                
             except (FileNotFoundError, TypeError):
                 temp_body = __get_company_rtc_template(temp_path=RTC_DEFAULT)
 
@@ -100,14 +103,27 @@ def gerar_rtcs():
                 qr_code=qr_code.decode() if qr_code else None,
                 render_tipo_sang=form.tipo_sang.data,
             )
+            html_strRegrasVida = gera_rtc.render_rtc_htmlRegrasVida(
+                infos=infos,
+                template_body=temp_bodyRegrasVida,
+                logo_empresa=logo_data.decode() if logo_data else None,
+                qr_code=qr_code.decode() if qr_code else None,
+                render_tipo_sang=form.tipo_sang.data,
+            )
 
             file_path = gera_rtc.gerar_pdf(
                 html=html_str,
                 nome_funcionario=infos.funcionario.nome_funcionario,
                 qtd_exames=len(infos.exames),
             )
+            file_pathRegrasVida = gera_rtc.gerar_pdf(
+                html=html_strRegrasVida,
+                nome_funcionario=infos.funcionario.nome_funcionario,
+                qtd_exames=len(infos.exames),
+            )
 
             lista_pdfs.append(file_path)
+            lista_pdfs.append(file_pathRegrasVida)
 
         if erros:
             df_erros = gera_rtc.gerar_df_erros(erros=erros)
@@ -116,6 +132,8 @@ def gerar_rtcs():
 
         nome_zip = gera_rtc.gerar_zip(arquivos=lista_pdfs)
 
+
+        
         return send_from_directory(directory=UPLOAD_FOLDER, path="/", filename=nome_zip)
 
     return render_template(

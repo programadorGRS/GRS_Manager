@@ -28,8 +28,8 @@
     "SESSION_COOKIE_SAMESITE": "Lax",
     
     "JSON_SORT_KEYS": false,
-
-    "WKHTMLTOPDF_PATH": "/usr/local/bin/wkhtmltopdf",
+    "__WKHTMLTOPDF_PATH__": "/usr/local/bin/wkhtmltopdf",
+    "WKHTMLTOPDF_PATH": "C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe",
 
     "HOME_DASHBOARD_URL": "https://app.powerbi.com/view?r=eyJrIjoiZTk5ZDg2NzctYWNjNy00YTg3LTkzN2QtZmQyY2ZkZDA5OGY1IiwidCI6IjZhNTk3Y2M5LTk2Y2ItNDM3Yi05MmE4LTFmMjcwMGI4M2NkMSJ9",
 

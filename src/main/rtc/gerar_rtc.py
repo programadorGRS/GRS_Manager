@@ -15,8 +15,8 @@ from src.main.pedido.pedido import Pedido
 from src.utils import zipar_arquivos
 
 from .exceptions import RTCGeneratioError
-from .infos_rtc import InfosRtc
-from .models import RTC, RTCCargos, RTCExames
+from .infos_rtc import InfosRtc, InfosRtcRegrasVida
+from .models import RTC, RTCCargos, RTCExames, RTCRegrasVida
 
 
 class GerarRTC:
@@ -146,6 +146,50 @@ class GerarRTC:
 
         return output_text
 
+    def render_rtc_htmlRegrasVida(
+        self,
+        infos: InfosRtcRegrasVida,
+        template_body: str,
+        logo_empresa: str | None = None,
+        qr_code: str | None = None,
+        render_tipo_sang: bool = True,
+    ) -> str:
+        template_data: dict[str, Any] = {}
+
+        template_data["funcionario"] = infos.funcionario
+
+        if infos.funcionario.cpf_funcionario:
+            template_data["cpf_formatado"] = self.__format_cpf(
+                cpf=infos.funcionario.cpf_funcionario
+            )
+
+        template_data["render_tipo_sang"] = render_tipo_sang
+
+        # RTCs
+        template_data["rtcRegrasVida_checkboxes"] = self.__get_rtc_checkboxesRegrasVida(
+            ids_rtc=[RTCRegrasVida.id_rtc for RTCRegrasVida in infos.rtcs]
+        )
+        # criar duas colunas de RTC
+        cols = self.list_to_columns(item_list=template_data["rtcRegrasVida_checkboxes"])
+        template_data["rtcRegrasVida_col_a"] = cols[0]
+        template_data["rtcRegrasVida_col_b"] = cols[1]
+
+        # EXAMES
+        # criar duas colunas de exames
+        cols = self.list_to_columns(item_list=infos.exames)
+        template_data["exames_col_a"] = cols[0]
+        template_data["exames_col_b"] = cols[1]
+
+        # images
+        template_data["logo_empresa"] = logo_empresa
+        template_data["qr_code"] = qr_code
+
+        # render template as string
+        template = Template(source=template_body)
+        output_text = template.render(template_data)
+
+        return output_text
+
     def gerar_pdf(self, html: str, nome_funcionario: str, qtd_exames: int):
         nome = secure_filename(nome_funcionario).upper()
         timestamp = int(datetime.now().timestamp())
@@ -182,6 +226,19 @@ class GerarRTC:
                 res.append((False, rtc.nome_rtc))
 
         return res
+
+    def __get_rtc_checkboxesRegrasVida(self, ids_rtc: list[int]) -> list[tuple[bool, str]]:
+        query: list[RTC] = RTCRegrasVida.query.all()
+        res = []
+
+        for rtc in query:
+            if rtc.id_rtc in ids_rtc:
+                res.append((True, rtc.nome_rtc))
+            else:
+                res.append((False, rtc.nome_rtc))
+
+        return res
+
 
     @staticmethod
     def list_to_columns(item_list: list[Any]) -> tuple[list[Any], list[Any]]:

@@ -29,7 +29,7 @@ if env == "production":
         app.config.from_file("../configs/prod.json", load=json.load)
     except:
         app.config.from_file("..\configs\prod.json", load=json.load) 
-    #app.config.from_file("../configs/hml.json", load=json.load) #Windows
+    app.config.from_file("../configs/hml.json", load=json.load) #Windows
 else:
     # using sqlite
     app.config.from_file("../configs/dev.json", load=json.load)

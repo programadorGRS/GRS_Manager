@@ -1,6 +1,6 @@
 from src.extensions import database as db
 
-from .carregar_rtc import CarregarRTC
+from .carregar_rtc import CarregarRTC, CarregarRTCRegrasVida
 
 RTCExames = db.Table(
     "RTCExames",
@@ -23,5 +23,10 @@ RTCCargos = db.Table(
 
 class RTC(db.Model, CarregarRTC):
     __tablename__ = "RTC"
+    id_rtc = db.Column(db.Integer, primary_key=True, autoincrement=False)
+    nome_rtc = db.Column(db.String(255), nullable=False)
+
+class RTCRegrasVida(db.Model, CarregarRTCRegrasVida):
+    __tablename__ = "RTCRegrasVida"
     id_rtc = db.Column(db.Integer, primary_key=True, autoincrement=False)
     nome_rtc = db.Column(db.String(255), nullable=False)

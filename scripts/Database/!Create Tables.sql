@@ -836,3 +836,8 @@ CREATE TABLE `ConvExames` (
   CONSTRAINT `ConvExames_ibfk_5` FOREIGN KEY (`id_funcionario`) REFERENCES `Funcionario` (`id_funcionario`),
   CONSTRAINT `ConvExames_ibfk_6` FOREIGN KEY (`id_exame`) REFERENCES `Exame` (`id_exame`)
 ) ENGINE=InnoDB AUTO_INCREMENT=119074957 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+CREATE TABLE `manager_db2Hml`.`RTCRegrasVida` (
+  `id_rtc` INT NOT NULL,
+  `nome_rtc` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`id_rtc`));
