@@ -5,6 +5,7 @@
 {% block fieldset %}
     <div class="form-check">{{ render_checkbox_field(form.tipo_sang, kwargs={'checked': True}) }}</div>
     <div class="form-check">{{ render_checkbox_field(form.gerar_qrcode, kwargs={'checked': True}) }}</div>
+    <div class="form-check">{{ render_checkbox_field(form.regras_vida, kwargs={'checked': False}) }}</div>
 {% endblock %}
 
 {% block buttons %}

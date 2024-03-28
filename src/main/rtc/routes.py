@@ -123,7 +123,8 @@ def gerar_rtcs():
             )
 
             lista_pdfs.append(file_path)
-            lista_pdfs.append(file_pathRegrasVida)
+            if form.regras_vida.data:
+                lista_pdfs.append(file_pathRegrasVida)
 
         if erros:
             df_erros = gera_rtc.gerar_df_erros(erros=erros)

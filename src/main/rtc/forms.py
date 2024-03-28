@@ -51,6 +51,7 @@ class FormBuscarRTC(FlaskForm):
 class FormGerarRTC(FlaskForm):
     tipo_sang = BooleanField("Incluir Tipo Sanguíneo", validators=[Optional()])
     gerar_qrcode = BooleanField("Incluir QR Code", validators=[Optional()])
+    regras_vida = BooleanField("Regras pela Vida", validators=[Optional()])
 
 
 class FormUploadCSV(FlaskForm):
