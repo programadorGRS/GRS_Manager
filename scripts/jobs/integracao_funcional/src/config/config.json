@@ -1,0 +1,8 @@
+{
+    "diretorioArquivoUsuarioAtivoJson": "C:\\Quaestum\\usuariosAtivos.json",
+    "urlUsuarioAtivo": "https://protheus.funcionalmais.com:9134/rest/FHTGPW06",
+    "headersUsuarioAtivo": {"product": "protheus","companyid": "01","branchid": "00101001"},
+    "loginUsuarioAtivo": "integracao.grs",
+    "senhaUsuarioAtivo": "integracao@grs123",
+    "diretorioArquivoUsuarioJson": "C:\\Quaestum\\usuarios.json"
+}
