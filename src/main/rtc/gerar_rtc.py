@@ -230,8 +230,10 @@ class GerarRTC:
     def __get_rtc_checkboxesRegrasVida(self, ids_rtc: list[int]) -> list[tuple[bool, str]]:
         query: list[RTC] = RTCRegrasVida.query.all()
         res = []
-
+        
+        ids_rtc = ids_rtc.replace('12', '9')
         for rtc in query:
+            print(f'ids_rtc {ids_rtc}  rtc.id_rtc {rtc.id_rtc}')            
             if rtc.id_rtc in ids_rtc:
                 res.append((True, rtc.nome_rtc))
             else:
