@@ -16,8 +16,9 @@ from src.utils import zipar_arquivos
 
 from .exceptions import RTCGeneratioError
 from .infos_rtc import InfosRtc, InfosRtcRegrasVida
-from .models import RTC, RTCCargos, RTCExames, RTCRegrasVida
-
+from .models import RTC, RTCCargos, RTCExames, RTCRegrasVida, RTCRegrasVidaCargos
+from src import app, database
+import json
 
 class GerarRTC:
     def __init__(self) -> None:
@@ -167,7 +168,7 @@ class GerarRTC:
 
         # RTCs
         template_data["rtcRegrasVida_checkboxes"] = self.__get_rtc_checkboxesRegrasVida(
-            ids_rtc=[RTCRegrasVida.id_rtc for RTCRegrasVida in infos.rtcs]
+            cargo = infos.funcionario.cod_cargo
         )
         # criar duas colunas de RTC
         cols = self.list_to_columns(item_list=template_data["rtcRegrasVida_checkboxes"])
@@ -227,18 +228,28 @@ class GerarRTC:
 
         return res
 
-    def __get_rtc_checkboxesRegrasVida(self, ids_rtc: list[int]) -> list[tuple[bool, str]]:
-        query: list[RTC] = RTCRegrasVida.query.all()
-        res = []
-        
-        ids_rtc = ids_rtc.replace('12', '9')
-        for rtc in query:
-            print(f'ids_rtc {ids_rtc}  rtc.id_rtc {rtc.id_rtc}')            
-            if rtc.id_rtc in ids_rtc:
-                res.append((True, rtc.nome_rtc))
-            else:
-                res.append((False, rtc.nome_rtc))
+    def __get_rtc_checkboxesRegrasVida(self, cargo: int) -> list[tuple[bool, str]]:        
+        query = (
+            database.session.query(RTCRegrasVidaCargos.CODIGO_REGRAS_VIDA)
+            .filter(RTCRegrasVidaCargos.CODIGOEMPRESA == '529759') #529759 MANSERV MONTAGEM E MANUTENÇÃO LTDA
+            .filter(RTCRegrasVidaCargos.CODIGOCARGO == cargo)
+        )        
+        df_db = pd.read_sql(query.statement, database.session.bind)
+        RegrasVidaCargo = df_db.to_dict(orient="records")
+        query = (
+            database.session.query(RTCRegrasVida.id_rtc, RTCRegrasVida.nome_rtc)            
+        )        
+        resultRTCRegrasVida = pd.read_sql(query.statement, database.session.bind)
+        dados_json = resultRTCRegrasVida.to_dict(orient="records")
 
+        res = []
+                
+        for rtc in dados_json:            
+            if str(rtc['id_rtc']) in str(RegrasVidaCargo):
+                res.append((True, rtc['nome_rtc']))
+            else:
+                res.append((False, rtc['nome_rtc']))
+        print(f'RES: {res}')
         return res
 
 

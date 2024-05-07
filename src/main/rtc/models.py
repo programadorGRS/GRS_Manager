@@ -21,6 +21,7 @@ RTCCargos = db.Table(
 )
 
 
+
 class RTC(db.Model, CarregarRTC):
     __tablename__ = "RTC"
     id_rtc = db.Column(db.Integer, primary_key=True, autoincrement=False)
@@ -30,3 +31,13 @@ class RTCRegrasVida(db.Model, CarregarRTCRegrasVida):
     __tablename__ = "RTCRegrasVida"
     id_rtc = db.Column(db.Integer, primary_key=True, autoincrement=False)
     nome_rtc = db.Column(db.String(255), nullable=False)
+
+class RTCRegrasVidaCargos(db.Model, CarregarRTCRegrasVida):
+    __tablename__ = "RTCRegrasVidaCargos"
+    idRTCRegrasVidaCargos = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    CODIGOEMPRESA = db.Column(db.String(255), nullable=False)
+    CODIGOCARGO = db.Column(db.String(255), nullable=False)
+    NOMECARGO = db.Column(db.String(255), nullable=False)
+    CODIGO_REGRAS_VIDA = db.Column(db.JSON, nullable=False)
+    DATA_INCLUSAO = db.Column(db.DateTime, nullable=False)
+    

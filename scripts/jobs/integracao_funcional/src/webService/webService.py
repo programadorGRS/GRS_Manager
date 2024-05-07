@@ -1,5 +1,4 @@
 # -*- coding: latin-1 -*-
-
 from zeep import Client
 from zeep.wsse import UsernameToken
 from zeep.transports import Transport
@@ -17,6 +16,13 @@ import zeep
 from zeep.settings import Settings
 from zeep.wsse.username import UsernameToken
 from zeep.wsse.utils import WSU
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+import traceback
 
 wsdl_url = 'https://ws1.soc.com.br/WSSoc/FuncionarioModelo2Ws?wsdl'
 username = 'U1797850'
@@ -57,17 +63,12 @@ factory = client.type_factory(namespace='ns0')
 response = client.service._operations
 print(response)
 
-
-
-
-
 identificacao = factory.identificacaoUsuarioWsVo(
     codigoEmpresaPrincipal=423,
     codigoResponsavel=213,
     codigoUsuario=1797850,
     homologacao=False
 )
-
 
 # Funaao para separar as colunas por regex com ;
 def separar_colunas(texto):
@@ -364,24 +365,11 @@ funcionarioUnidadeWsVo = factory.funcionarioUnidadeWsVo(
     #codigoCno=''
 )
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 try:
     funcionario = factory.Funcionario(    
         atualizarCargo=False,
         atualizarCentroCusto=False,
-        atualizarFuncionario=False,
+        atualizarFuncionario=True,
         atualizarMotivoLicenca=False,
         atualizarSetor=False,
         atualizarTurno=False,
@@ -411,8 +399,7 @@ try:
         #transferencia=transferencia
         identificacaoWsVo=identificacao
     
-)
-    print('OK1')
+)    
 except RuntimeError as error:
         print(error)
         print("The linux_interaction() function wasn't executed.")
@@ -421,6 +408,42 @@ except RuntimeError as error:
 
 
 
+def enviar_email(corpo, anexo_caminho):
+    # Configurações do servidor SMTP do Outlook
+    smtp_servidor = 'smtp-mail.outlook.com'
+    porta = 587  # Porta padrão para SMTP
+    usuario = 'programador@grsnucleo.com.br'  # Insira seu endereço de e-mail do Outlook
+    senha = 'Gax18899'  # Insira sua senha
+    destinatario = 'ellen.pessoa@grsnucleo.com.br'
+    assunto = 'Integracao Torrent'
+
+    # Criando o e-mail
+    mensagem = MIMEMultipart()
+    mensagem['From'] = usuario
+    mensagem['To'] = destinatario
+    mensagem['Subject'] = assunto
+
+    # Adicionando o corpo da mensagem
+    mensagem.attach(MIMEText(corpo, 'plain'))
+
+    # Anexando o arquivo ao e-mail
+    with open(anexo_caminho, 'rb') as anexo:
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(anexo.read())
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f"attachment; filename= {anexo_caminho}")
+        mensagem.attach(part)
+    # Conectando-se ao servidor SMTP
+    servidor_smtp = smtplib.SMTP(smtp_servidor, porta)
+    servidor_smtp.starttls()  # Inicia a conexão TLS
+    servidor_smtp.login(usuario, senha)
+
+    
+    # Enviando o e-mail
+    servidor_smtp.sendmail(usuario, destinatario, mensagem.as_string())
+
+    # Fechando a conexão
+    servidor_smtp.quit()
 
 
 
@@ -437,100 +460,144 @@ except RuntimeError as error:
 
 
 
+if __name__== "__main__":    
+    logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger('zeep').setLevel(logging.DEBUG)
+    logging.getLogger('zeep.transports').setLevel(logging.DEBUG)
+    print('Inicio do Programa')
+    # Chamada da funaao para ler o arquivo
+    diretorio = f"Z:\\"
+    
+    # Lista todos os arquivos no diretório
+    arquivos = os.listdir(diretorio)
 
-if __name__== "__main__":
-    try:
-        logging.basicConfig(level=logging.DEBUG)
-        logging.getLogger('zeep').setLevel(logging.DEBUG)
-        logging.getLogger('zeep.transports').setLevel(logging.DEBUG)
-        print('Inicio do Programa')
-        # Chamada da funaao para ler o arquivo
-        nome_do_arquivo = 'C:\GitHub\GRS_Manager\Modelo1_Torrent_04042024_232423.txt'
+    for nome_do_arquivo in arquivos:        
+        #nome_do_arquivo = 'C:\GitHub\GRS_Manager\Modelo1_Torrent_04042024_232423.txt'
         linhas = ler_arquivo(nome_do_arquivo)
-        for linha in linhas:
-            colunas = separar_colunas(linha)
-            print(colunas)  # Aqui voca pode manipular ou processar as colunas conforme necessario
+        count = 1
+        try:
+            for linha in linhas:
+                
+                    colunas = separar_colunas(linha)
+                    ''' COLUNAS DO ARQUIVO TXT
+
+                    Cod_unid;Nome_unidade;Cod_setor;Nome_setor;Cod_cargo;
+                    Nome_cargo;Matricula;Cod_funcionario;Nome_funcionario;Dt_nascimento;
+                    Sexo;Situacao;Dt_admissao;Dt_demissao;Estado_civil;
+                    Pis_pasep;Contratacao;Rg;Uf_rg;Cpf;
+                    Cpts;Endereco;Bairro;Cidade;Uf;
+                    Cep;Tel;Naturalidade;Cor;Email;
+                    Deficiencia;Cbo;Gfip;Endereco_unidade;Bairro_unidade;
+                    Cidade_unidade;Estado_unidade;Cep_unidade;Cnpj;Inscricao_unidade;
+                    Tel1_unidade;Tel2_unidade;Tel3_unidade;Tel4_unidade;Contato_unidade;
+                    Cnae;Numero_endereco_funcionario;Complemento_endereco_funcionario;Razao_social;Nome_mae_funcionario;
+                    Centro_custo;Dt_ultima_movimentacao;Cod_unidade_contratante;Razao_social_1;Cnpj_1;
+                    Turno;Dt_emissao_cart_porf;Serie_cpts;Cnae_2;Cnae_livre;
+                    Desc_cnae_livre;Cei;Funcao;Cnae_7;Tipo_cnae_utilizado;
+                    Descricao_detalhada_cargo;Numero_end_unidade;Complemento_end_unidade;Regime_revezamento;Org_exp_rg;
+                    Campo_livre1;Campo_livre2;Campo_livre3;Telefone_sms;Grau_riscos;
+                    Uf_cpts;Nome_centro_custo;Autorizacao_sms;Endereco_cobranca_unidade;Numero_cobranca_unidade;
+                    Bairro_cobranca_unidade;Cidade_cobranca_unidade;Uf_cobranca_unidade;Cep_cobranca_unidade;Complemento_cobranca_unidade;
+                    Remuneracao_mensal;Telefone_comercial;Telefone_celular;Data_emissao_rg;Codigo_pais_nascimento;
+                    Origem_desc_detalhada;Unidade_contratante;Escolaridade;Codigo_categoria_esocial;Matricula_rh;
+                    Genero;Nome_social;Tipo_admissao;Grau_instrucao;Nome_pai;
+                    Tipo_vinculo;Nome_turno;Campo_livre;Cpf_unidade;Caepf_unidade;
+                    Tipo_sanguineo;Data_inicio_aquisitivo;Data_fim_aquisitivo;
+
+                    '''
+                    funcionarioWsVo.tipoBuscaEmpresa='CODIGO_SOC'
+                    funcionarioWsVo.codigoEmpresa='562255' #Codigo da EMpresa TORRENT
+                    funcionarioWsVo.chaveProcuraFuncionario='CPF'
+                    funcionarioWsVo.cpf=colunas[19].replace('.', '').replace('-', '') #colunas[19]
+                    funcionarioWsVo.nomeFuncionario=colunas[8]
+                    funcionarioWsVo.matricula=colunas[6]
+                    funcionarioWsVo.rg=colunas[17]
+                    if colunas[16]=='01': funcionarioWsVo.tipoContratacao='CLT'
+                    elif colunas[16]=='02': funcionarioWsVo.tipoContratacao='COOPERADO'
+                    elif colunas[16]=='03': funcionarioWsVo.tipoContratacao='TERCERIZADO'
+                    elif colunas[16]=='04': funcionarioWsVo.tipoContratacao='AUTONOMO'
+                    elif colunas[16]=='05': funcionarioWsVo.tipoContratacao='TEMPORARIO'
+                    elif colunas[16]=='06': funcionarioWsVo.tipoContratacao='PESSOA_JURIDICA'
+                    elif colunas[16]=='07': funcionarioWsVo.tipoContratacao='ESTAGIARIO'
+                    elif colunas[16]=='08': funcionarioWsVo.tipoContratacao='MENOR_APRENDIZ'
+                    elif colunas[16]=='09': funcionarioWsVo.tipoContratacao='ESTATUTARIO'
+                    elif colunas[16]=='10': funcionarioWsVo.tipoContratacao='COMISSIONADO_INTERNO'
+                    elif colunas[16]=='11': funcionarioWsVo.tipoContratacao='COMISSIONADO_EXTERNO'
+                    elif colunas[16]=='12': funcionarioWsVo.tipoContratacao='APOSENTADO'
+                    elif colunas[16]=='13': funcionarioWsVo.tipoContratacao='APOSENTADO_INATIVO_PREFEITURA'
+                    elif colunas[16]=='14': funcionarioWsVo.tipoContratacao='PENSIONISTA'
+                    elif colunas[16]=='15': funcionarioWsVo.tipoContratacao='SERVIDOR_PUBLICO_EFETIVO'
+                    elif colunas[16]=='16': funcionarioWsVo.tipoContratacao='EXTRANUMERARIO'
+                    elif colunas[16]=='17': funcionarioWsVo.tipoContratacao='AUTARQUICO'
+                    elif colunas[16]=='18': funcionarioWsVo.tipoContratacao='INATIVO'
+                    elif colunas[16]=='19': funcionarioWsVo.tipoContratacao='TITULO_PRECARIO'
+                    elif colunas[16]=='20': funcionarioWsVo.tipoContratacao='SERVIDOR_ADM_CENTRALIZADA_OU_DESCENTRALIZADA'
+                    funcionarioWsVo.regimeTrabalho='NORMAL'            
+                    if colunas[10]=='M': funcionarioWsVo.sexo='MASCULINO'
+                    else: funcionarioWsVo.sexo='FEMININO'
+                    funcionarioWsVo.estadoCivil='SOLTEIRO'
+                    funcionarioWsVo.dataNascimento=colunas[9]
+                    funcionarioWsVo.dataAdmissao=colunas[12]
+
+                    if colunas[0] == 1: funcionarioUnidadeWsVo.codigo='002'
+                    else: funcionarioUnidadeWsVo.codigo='001'
+                    funcionarioUnidadeWsVo.tipoBusca='CODIGO'
+                    funcionarioUnidadeWsVo.nome=colunas[1]
+                    funcionarioUnidadeWsVo.dataAssinaturaContrato = colunas[12]
+
+                    setorWsVo.tipoBusca='CODIGO_RH'
+                    setorWsVo.codigoRh=colunas[2]
+                    setorWsVo.nome=colunas[3]
+
+                    funcionarioCargoWsVo.tipoBusca='NOME'
+                    funcionarioCargoWsVo.codigo=colunas[4]
+                    funcionarioCargoWsVo.nome=colunas[5]
+
+                    funcionarioCentroCustoWsVo.tipoBusca='CODIGO_RH'
+                    funcionarioCentroCustoWsVo.codigoRh=colunas[50]
+                    funcionarioCentroCustoWsVo.nome=colunas[76]
+
+                    res = client.service.importacaoFuncionario(Funcionario=funcionario)
+                    count+=1
+                    print(res.status_code)
+            os.remove(diretorio+nome_do_arquivo)
+        except Exception as error:
+            mensagem = f"Erro de execucao do arquivo {nome_do_arquivo} na linha {count}\n"
+            if 'list index out of range' in traceback.format_exc():
+                mensagem += f"Por favor verificar o preenchimento dos campos:\n"
             
-            ''' COLUNAS DO ARQUIVO TXT
-
-            Cod_unid;Nome_unidade;Cod_setor;Nome_setor;Cod_cargo;
-            Nome_cargo;Matricula;Cod_funcionario;Nome_funcionario;Dt_nascimento;
-            Sexo;Situacao;Dt_admissao;Dt_demissao;Estado_civil;
-            Pis_pasep;Contratacao;Rg;Uf_rg;Cpf;
-            Cpts;Endereco;Bairro;Cidade;Uf;
-            Cep;Tel;Naturalidade;Cor;Email;
-            Deficiencia;Cbo;Gfip;Endereco_unidade;Bairro_unidade;
-            Cidade_unidade;Estado_unidade;Cep_unidade;Cnpj;Inscricao_unidade;
-            Tel1_unidade;Tel2_unidade;Tel3_unidade;Tel4_unidade;Contato_unidade;
-            Cnae;Numero_endereco_funcionario;Complemento_endereco_funcionario;Razao_social;Nome_mae_funcionario;
-            Centro_custo;Dt_ultima_movimentacao;Cod_unidade_contratante;Razao_social_1;Cnpj_1;
-            Turno;Dt_emissao_cart_porf;Serie_cpts;Cnae_2;Cnae_livre;
-            Desc_cnae_livre;Cei;Funcao;Cnae_7;Tipo_cnae_utilizado;
-            Descricao_detalhada_cargo;Numero_end_unidade;Complemento_end_unidade;Regime_revezamento;Org_exp_rg;
-            Campo_livre1;Campo_livre2;Campo_livre3;Telefone_sms;Grau_riscos;
-            Uf_cpts;Nome_centro_custo;Autorizacao_sms;Endereco_cobranca_unidade;Numero_cobranca_unidade;
-            Bairro_cobranca_unidade;Cidade_cobranca_unidade;Uf_cobranca_unidade;Cep_cobranca_unidade;Complemento_cobranca_unidade;
-            Remuneracao_mensal;Telefone_comercial;Telefone_celular;Data_emissao_rg;Codigo_pais_nascimento;
-            Origem_desc_detalhada;Unidade_contratante;Escolaridade;Codigo_categoria_esocial;Matricula_rh;
-            Genero;Nome_social;Tipo_admissao;Grau_instrucao;Nome_pai;
-            Tipo_vinculo;Nome_turno;Campo_livre;Cpf_unidade;Caepf_unidade;
-            Tipo_sanguineo;Data_inicio_aquisitivo;Data_fim_aquisitivo;
-            
-            '''
-            funcionarioWsVo.tipoBuscaEmpresa='CODIGO_SOC'
-            funcionarioWsVo.codigoEmpresa='562255' #Codigo da EMpresa TORRENT
-            funcionarioWsVo.chaveProcuraFuncionario='CPF'
-            funcionarioWsVo.cpf='96362137043' #colunas[19].replace('.', '').replace('-', '') #colunas[19]
-            funcionarioWsVo.nomeFuncionario=colunas[8]
-            funcionarioWsVo.matricula=colunas[6]
-            funcionarioWsVo.rg='362260539' #colunas[17]            
-            if colunas[16]=='01': funcionarioWsVo.tipoContratacao='CLT'
-            elif colunas[16]=='02': funcionarioWsVo.tipoContratacao='COOPERADO'
-            elif colunas[16]=='03': funcionarioWsVo.tipoContratacao='TERCERIZADO'
-            elif colunas[16]=='04': funcionarioWsVo.tipoContratacao='AUTONOMO'
-            elif colunas[16]=='05': funcionarioWsVo.tipoContratacao='TEMPORARIO'
-            elif colunas[16]=='06': funcionarioWsVo.tipoContratacao='PESSOA_JURIDICA'
-            elif colunas[16]=='07': funcionarioWsVo.tipoContratacao='ESTAGIARIO'
-            elif colunas[16]=='08': funcionarioWsVo.tipoContratacao='MENOR_APRENDIZ'
-            elif colunas[16]=='09': funcionarioWsVo.tipoContratacao='ESTATUTARIO'
-            elif colunas[16]=='10': funcionarioWsVo.tipoContratacao='COMISSIONADO_INTERNO'
-            elif colunas[16]=='11': funcionarioWsVo.tipoContratacao='COMISSIONADO_EXTERNO'
-            elif colunas[16]=='12': funcionarioWsVo.tipoContratacao='APOSENTADO'
-            elif colunas[16]=='13': funcionarioWsVo.tipoContratacao='APOSENTADO_INATIVO_PREFEITURA'
-            elif colunas[16]=='14': funcionarioWsVo.tipoContratacao='PENSIONISTA'
-            elif colunas[16]=='15': funcionarioWsVo.tipoContratacao='SERVIDOR_PUBLICO_EFETIVO'
-            elif colunas[16]=='16': funcionarioWsVo.tipoContratacao='EXTRANUMERARIO'
-            elif colunas[16]=='17': funcionarioWsVo.tipoContratacao='AUTARQUICO'
-            elif colunas[16]=='18': funcionarioWsVo.tipoContratacao='INATIVO'
-            elif colunas[16]=='19': funcionarioWsVo.tipoContratacao='TITULO_PRECARIO'
-            elif colunas[16]=='20': funcionarioWsVo.tipoContratacao='SERVIDOR_ADM_CENTRALIZADA_OU_DESCENTRALIZADA'
-            funcionarioWsVo.regimeTrabalho='NORMAL'            
-            if colunas[13]=='M': funcionarioWsVo.sexo='MASCULINO'
-            else: funcionarioWsVo.sexo='FEMININO'
-            funcionarioWsVo.estadoCivil='SOLTEIRO'
-            funcionarioWsVo.dataNascimento=colunas[9]
-            funcionarioWsVo.dataAdmissao=colunas[12]
-
-            if colunas[0] == 1: funcionarioUnidadeWsVo.codigo='002'
-            else: funcionarioUnidadeWsVo.codigo='001'
-            funcionarioUnidadeWsVo.tipoBusca='CODIGO'
-            funcionarioUnidadeWsVo.nome=colunas[1]
-            funcionarioUnidadeWsVo.dataAssinaturaContrato = colunas[12]
-
-            setorWsVo.tipoBusca='CODIGO_RH'
-            setorWsVo.codigoRh=colunas[2]
-            setorWsVo.nome=colunas[3]
-
-            funcionarioCargoWsVo.tipoBusca='NOME'
-            funcionarioCargoWsVo.codigo=colunas[4]
-            funcionarioCargoWsVo.nome=colunas[5]
-
-            funcionarioCentroCustoWsVo.tipoBusca='CODIGO_RH'
-            funcionarioCentroCustoWsVo.codigoRh=colunas[50]
-            funcionarioCentroCustoWsVo.nome=colunas[76]
-
-            client.service.importacaoFuncionario(Funcionario=funcionario)
-            break
-    except RuntimeError as error:
-        print(error)
-        print("The linux_interaction() function wasn't executed.")
+            if 'funcionarioWsVo.cpf' in traceback.format_exc():
+                mensagem += f"CPF;"
+            elif 'funcionarioWsVo.nomeFuncionario' in traceback.format_exc():
+                mensagem += f"Nome do Funcionario;"
+            elif 'funcionarioWsVo.matricula' in traceback.format_exc():
+                mensagem += f"Matricula;"
+            elif 'funcionarioWsVo.rg' in traceback.format_exc():
+                mensagem += f"RG do Funcionario;"
+            elif 'funcionarioWsVo.tipoContratacao' in traceback.format_exc():
+                mensagem += f"Tipo de Contratacao;"
+            elif 'funcionarioWsVo.dataNascimento' in traceback.format_exc():
+                mensagem += f"Data de Nascimento;"
+            elif 'funcionarioWsVo.dataAdmissao' in traceback.format_exc():
+                mensagem += f"Data de Adminissao;"
+            elif 'funcionarioUnidadeWsVo.nome' in traceback.format_exc():
+                mensagem += f"Nome da Unidade;"
+            elif 'funcionarioUnidadeWsVo.dataAssinaturaContrato' in traceback.format_exc():
+                mensagem += f"Data de Assinatura do Contrato;"
+            elif 'setorWsVo.codigoRh' in traceback.format_exc():
+                mensagem += f"Codigo do Setor pelo codigo do RH;"
+            elif 'setorWsVo.nome' in traceback.format_exc():
+                mensagem += f"Nome do Setor;"
+            elif 'funcionarioCargoWsVo.codigo' in traceback.format_exc():
+                mensagem += f"Codigo do Cargo;"
+            elif 'funcionarioCargoWsVo.nome' in traceback.format_exc():
+                mensagem += f"Nome do Cargo;"
+            elif 'funcionarioCentroCustoWsVo.codigoRh' in traceback.format_exc():
+                mensagem += f"Codigo RH do Centro de Custo;"
+            elif 'funcionarioCentroCustoWsVo.nome' in traceback.format_exc():
+                mensagem += f"Nome do Centro de Custo;"
+                    
+            mensagem += "\n\n\n"+str(traceback.format_exc())  #Encaminha o erro completo
+            enviar_email(mensagem, diretorio+nome_do_arquivo) #Envia o email
+            os.remove(diretorio+nome_do_arquivo) #Remove o arquivo da pasta
+            print(mensagem)
