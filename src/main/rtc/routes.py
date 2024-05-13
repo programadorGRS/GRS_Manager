@@ -115,11 +115,13 @@ def gerar_rtcs():
                 html=html_str,
                 nome_funcionario=infos.funcionario.nome_funcionario,
                 qtd_exames=len(infos.exames),
+                tipo='RTC',
             )
             file_pathRegrasVida = gera_rtc.gerar_pdf(
                 html=html_strRegrasVida,
                 nome_funcionario=infos.funcionario.nome_funcionario,
                 qtd_exames=len(infos.exames),
+                tipo='RPV',
             )
 
             lista_pdfs.append(file_path)

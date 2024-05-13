@@ -191,12 +191,17 @@ class GerarRTC:
 
         return output_text
 
-    def gerar_pdf(self, html: str, nome_funcionario: str, qtd_exames: int):
+    def gerar_pdf(self, html: str, nome_funcionario: str, qtd_exames: int, tipo:str):
         nome = secure_filename(nome_funcionario).upper()
         timestamp = int(datetime.now().timestamp())
-        filename = f"RTC_{nome}_{timestamp}.pdf"
-        if qtd_exames == 0:
+        if tipo == 'RTC':
+            filename = f"RTC_{nome}_{timestamp}.pdf"
+        else:
+            filename = f"RPV_{nome}_{timestamp}.pdf"
+        if qtd_exames == 0 and tipo == 'RTC':
             filename = f"__VAZIO__RTC_{nome}_{timestamp}.pdf"
+        elif qtd_exames == 0:
+            filename = f"__VAZIO__RPV_{nome}_{timestamp}.pdf"
 
         file_path = os.path.join(UPLOAD_FOLDER, filename)
 
