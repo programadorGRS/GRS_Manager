@@ -29,7 +29,8 @@ def criar_ped_proc(id_empresa: list[int] | int | None):
     erros = 0
 
     EMPRESAS = handle_id_empresa(id_empresa=id_empresa)
-
+    #EMPRESAS = handle_id_empresa(id_empresa=531)
+    click.echo(EMPRESAS)
     click.echo("Criando Pedidos de Processamento...")
 
     try:
@@ -97,22 +98,23 @@ def inserir_conv_exames(data_inicio: datetime | None):
     pedidos_proc = db.session.query(  # type: ignore
         PedidoProcessamento
     ).filter(  # type: ignore
-        PedidoProcessamento.resultado_importado == False  # noqa
+        PedidoProcessamento.resultado_importado == False  # noqa,
+        #PedidoProcessamento.cod_empresa == '655298'
     )
-
-    if data_inicio:
+    #print(data_inicio)
+    if data_inicio:        
         pedidos_proc = pedidos_proc.filter(  # type: ignore
             PedidoProcessamento.data_criacao >= data_inicio.date()
         )
-        click.echo(f"Data Inicio: {data_inicio.strftime(DATE_FORMAT)}")
+        #click.echo(f"Data Inicio: {data_inicio.strftime(DATE_FORMAT)}")
 
     if not pedidos_proc:
         click.echo("Pedidos Processamento não encontrados")
         return None
-
+    #print(pedidos_proc)  #MOSTRA A QUERY EXECUTADA
     proc_list: list[PedidoProcessamento] = pedidos_proc.all()
 
-    total = len(proc_list)
+    total = len(proc_list)    
     erros = 0
 
     for idx, ped_proc in enumerate(proc_list):
