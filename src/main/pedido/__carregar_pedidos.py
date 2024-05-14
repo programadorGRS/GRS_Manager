@@ -171,8 +171,8 @@ class CarregarPedidos:
                 self.id_ficha,
                 self.seq_ficha,
                 self.data_ficha.label('data_ficha_anterior'),
-                self.id_status.label('id_status_anterior')
-                #self.prontuario_conferido.label('prontuario_conferido')
+                self.id_status.label('id_status_anterior'),
+                self.prontuario_conferido.label('prontuario_conferido')
             )
             .filter(self.seq_ficha.in_(SEQ_FICHAS))
         )

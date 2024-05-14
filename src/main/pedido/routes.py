@@ -442,7 +442,7 @@ def editar_pedido(id_ficha: int):
         data_recebido=pedido.data_recebido,
         data_comparecimento=pedido.data_comparecimento,
         obs=pedido.obs,
-        #prontuario_conferido=pedido.prontuario_conferido,
+        prontuario_conferido=pedido.prontuario_conferido,
     )
 
     form.load_choices()
@@ -468,7 +468,7 @@ def editar_pedido(id_ficha: int):
             id_ficha=id_ficha, id_status=int(form.status_aso.data)  # type: ignore
         )
 
-        #pedido.prontuario_conferido = form.prontuario_conferido.data
+        pedido.prontuario_conferido = form.prontuario_conferido.data
 
         pedido.data_alteracao = datetime.now(TIMEZONE_SAO_PAULO)
         pedido.alterado_por = current_user.username  # type: ignore
