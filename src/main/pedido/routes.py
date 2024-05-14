@@ -411,6 +411,8 @@ def pedidos_csv():
 
     df = df[Pedido.COLS_CSV]
 
+    df['prontuario_conferido'] = df['prontuario_conferido'].replace({0: 'Não', 1: 'Sim'})
+
     timestamp = int(datetime.now().timestamp())
     nome_arqv = f"Pedidos_exames_{timestamp}"
     camihno_arqv = os.path.join(UPLOAD_FOLDER, nome_arqv)

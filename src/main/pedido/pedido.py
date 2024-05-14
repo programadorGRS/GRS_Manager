@@ -72,7 +72,7 @@ class Pedido(db.Model, CarregarPedidos):
     data_recebido = db.Column(db.Date)
     data_comparecimento = db.Column(db.Date)
     obs = db.Column(db.String(255))
-    prontuario_conferido = db.Column(db.Integer)
+    prontuario_conferido = db.Column(db.String(255))
 
     data_inclusao = db.Column(
         db.DateTime,
@@ -84,7 +84,7 @@ class Pedido(db.Model, CarregarPedidos):
     alterado_por = db.Column(db.String(50))
 
     last_server_update = db.Column(db.DateTime)
-    prontuario_conferido = db.Column(db.Boolean, nullable=False, default=True)
+    
 
     # colunas para a planilha de pedidos
     COLS_CSV = [
@@ -142,7 +142,7 @@ class Pedido(db.Model, CarregarPedidos):
         seq_ficha: int | None = None,
         nome_funcionario: str | None = None,
         obs: str | None = None,
-        prontuario_conferido: int | None = None,
+        prontuario_conferido: str | None = None,
     ) -> BaseQuery:
         """Realiza busca na tabela de Pedidos usando LEFT JOIN com Grupo
 
