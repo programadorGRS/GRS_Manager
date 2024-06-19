@@ -67,7 +67,7 @@ class CarregarPedidos:
             cod_empresa_principal=EMPRESA_PRINCIPAL.cod,
             id_empresa=EMPRESA.id_empresa,
         )
-
+        #print( PARAMETRO)
         body = ex.build_request_body(param=PARAMETRO)
 
         try:
@@ -351,7 +351,7 @@ class CarregarPedidos:
     def __inserir_pedidos(self, df: pd.DataFrame, infos: JobInfos):
         # manter apenas pedidos sem id (novos)
         df = df[df['id_ficha'].isna()].copy()
-
+        df = df.fillna(0)
         if df.empty:
             infos.qtd_inseridos = 0
             infos.add_error(error='df vazio ao inserir')
@@ -380,6 +380,7 @@ class CarregarPedidos:
     def __atualizar_pedidos(self, df: pd.DataFrame, infos: JobInfos):
         # manter apenas pedidos com id validos (ja existem)
         df = df[df['id_ficha'].notna()].copy()
+        df = df.fillna(0)
 
         if df.empty:
             infos.qtd_atualizados = 0

@@ -258,6 +258,7 @@ def enviar_emails():
                         assunto_email=form.assunto_email.data,
                         email_copia=form.email_copia.data,
                     )
+                    print('EMAIL ENVIADO COM SUCESSO')
                 except Exception as e:
                     app.logger.error(msg=e, exc_info=True)
                     flash("Erro interno ao gerar email", "alert-danger")
@@ -360,6 +361,7 @@ def __handle_email_msg(
         },
     )
 
+    #email_prest = 'hideki@quaestum.com.br, aso.manager@grsnucleo.com.br, thiagoikehara@gmail.com'
     email_prest = email_prest.replace(" ", "").replace(",", ";")
     list_email_prest = email_prest.split(";")
 

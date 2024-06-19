@@ -69,16 +69,19 @@ class Exame(database.Model):
         from modules.exporta_dados import (exames, exporta_dados,
                                            get_json_configs)
 
+        
         empresa_principal = EmpresaPrincipal.query.get(cod_empresa_principal)
         credenciais = get_json_configs(empresa_principal.configs_exporta_dados)
-
+        
         par = exames(
             cod_empresa_principal=empresa_principal.cod,
             cod_exporta_dados=credenciais['EXAMES_COD'],
             chave=credenciais['EXAMES_KEY'],
         )
         df = exporta_dados(parametro=par)
-
+        
+        
+        
         if not df.empty:
             exames_db = (
                 database.session.query(Exame.cod_exame)
